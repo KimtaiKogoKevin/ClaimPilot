@@ -126,7 +126,7 @@ export default function DamageAssessmentStep({
               <Brain className="text-white h-6 w-6 mr-3" />
               <h5 className="text-white font-semibold text-lg">AI-Powered Damage Analysis</h5>
             </div>
-            <p className="text-purple-100 mb-4">
+            <p className="text-white font-medium mb-6">
               Upload photos from the required angles. Our AI will automatically analyze the damage for faster processing.
             </p>
             
@@ -140,11 +140,11 @@ export default function DamageAssessmentStep({
                     onComplete={handlePhotoUploadComplete(angle.id)}
                     buttonClassName="w-full"
                   >
-                    <div className="border-2 border-dashed border-white border-opacity-70 rounded-lg p-4 text-center hover:border-opacity-100 hover:bg-white hover:bg-opacity-10 transition-all cursor-pointer">
+                    <div className="border-2 border-dashed border-white rounded-lg p-4 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
                       <Camera className="text-white h-8 w-8 mx-auto mb-2" />
-                      <div className="text-white text-sm font-semibold">{angle.label}</div>
-                      <div className="text-purple-100 text-xs font-medium">
-                        {angle.required ? 'Required' : 'Optional'}
+                      <div className="text-white text-sm font-bold mb-1">{angle.label}</div>
+                      <div className="text-white text-xs font-semibold bg-black bg-opacity-30 px-2 py-1 rounded-full">
+                        {angle.required ? 'REQUIRED' : 'OPTIONAL'}
                       </div>
                     </div>
                   </ObjectUploader>
@@ -184,8 +184,9 @@ export default function DamageAssessmentStep({
                   placeholder="Describe the goods that were damaged..."
                 />
               </div>
-              <div className="bg-ai-purple bg-opacity-10 rounded-lg p-4">
-                <h6 className="font-medium text-neutral-800 mb-2">Upload Goods Damage Photos</h6>
+              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4">
+                <h6 className="font-semibold text-white mb-3">Upload Goods Damage Photos</h6>
+                <p className="text-white text-sm font-medium mb-4">Upload clear photos showing damage to goods or cargo</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <ObjectUploader
                     maxNumberOfFiles={5}
@@ -194,9 +195,12 @@ export default function DamageAssessmentStep({
                     onComplete={handlePhotoUploadComplete('GOODS_DAMAGE', true)}
                     buttonClassName="w-full"
                   >
-                    <div className="border-2 border-dashed border-ai-purple border-opacity-70 rounded-lg p-4 text-center hover:border-opacity-100 hover:bg-ai-purple hover:bg-opacity-5 transition-all cursor-pointer">
-                      <Camera className="text-ai-purple h-6 w-6 mx-auto mb-2" />
-                      <div className="text-ai-purple text-sm font-semibold">Add Photos</div>
+                    <div className="border-2 border-dashed border-white rounded-lg p-4 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
+                      <Camera className="text-white h-6 w-6 mx-auto mb-2" />
+                      <div className="text-white text-sm font-bold mb-1">Add Photos</div>
+                      <div className="text-white text-xs font-semibold bg-black bg-opacity-30 px-2 py-1 rounded-full">
+                        Up to 5 photos
+                      </div>
                     </div>
                   </ObjectUploader>
                 </div>

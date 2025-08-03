@@ -120,7 +120,7 @@ export const corporateDetails = pgTable("corporate_details", {
 // Vehicle details
 export const vehicles = pgTable("vehicles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  claimId: varchar("claim_id").notNull().references(() => claims.id).unique(),
   make: varchar("make").notNull(),
   model: varchar("model").notNull(),
   yearOfManufacture: integer("year_of_manufacture"),
