@@ -76,8 +76,8 @@ export default function Landing() {
             </div>
             <div className="hidden lg:block">
               <img
-                src="https://images.unsplash.com/photo-1559526324-593bc7d77e62?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&h=600"
-                alt="Modern insurance technology and digital claims processing"
+                src="https://images.unsplash.com/photo-1485291571150-772bcfc10da5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+                alt="Insurance professional using digital tools for car accident assessment"
                 className="rounded-2xl shadow-2xl"
               />
             </div>
