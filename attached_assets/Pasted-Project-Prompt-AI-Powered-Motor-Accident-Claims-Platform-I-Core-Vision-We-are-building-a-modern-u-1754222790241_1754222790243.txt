@@ -1,0 +1,47 @@
+Project Prompt: AI-Powered Motor Accident Claims Platform
+I. Core Vision
+We are building a modern, user-centric web application designed to dramatically streamline the motor accident insurance claims process. The platform's primary goal is to replace cumbersome, multi-page paper forms with an intelligent, guided, multi-step digital experience. The core innovation is the integration of an AI-powered computer vision model to automatically analyze uploaded vehicle photos, identify damages, and provide an initial assessment, thereby accelerating the adjudication process.
+II. Key User Roles & Workflows
+The application will serve three distinct user roles:
+The Insured (Claimant): The primary user who has been in an accident. Their workflow is:
+Register and log in to a secure personal account.
+Initiate a new claim through a guided, multi-step form that intelligently adapts based on their input (e.g., showing different fields for an individual vs. a company).
+Provide comprehensive details about the policy, the incident, the vehicles involved, and any damages or injuries, mirroring the data required by traditional claim forms.
+Upload photographic evidence through a structured interface that prompts for specific angles (front, rear, driver's side, close-up of damage, etc.) to ensure complete data capture.
+View a personal dashboard that lists all their submitted claims and their current status (e.g., "Pending," "Under Review," "Approved").
+Drill down into a specific claim to see all submitted details and the results of the AI damage analysis.
+The Insurance Broker (Reviewer): An internal user responsible for the initial validation of a claim.
+Logs into a specialized dashboard to view a queue of newly submitted claims.
+Reviews the claimant's submitted data and the AI-generated damage report.
+Provides an initial approval or rejection, escalating the claim to a final adjudicator.
+The Insurer/Adjudicator (Decision Maker): An internal user with the final authority on a claim.
+Logs into a dashboard to view claims that have been reviewed by a broker.
+Makes the final decision to approve, reject, or process payment for the claim.
+III. Core Features & Technical Requirements
+Intelligent Multi-Step Form:
+The form must be broken down into logical, user-friendly steps to avoid overwhelming the user.
+It must feature conditional logic:
+Show/hide fields based on user input (e.g., "Individual" vs. "Company").
+Show/hide an image upload slot for "Damaged Goods" only if the user indicates goods were damaged.
+Implement robust, real-time validation on all fields.
+Guided Image Upload:
+The platform must guide the user to upload images from specific, required angles to ensure high-quality data for the AI model.
+Each uploaded image must be tagged with its corresponding angle (e.g., FRONT_VIEW).
+Image files must be uploaded securely and efficiently to a cloud-based object storage service (S3-compatible).
+AI-Powered Damage Analysis:
+Upon successful image upload, an asynchronous background process must be triggered.
+This process will send the uploaded images to a pre-trained computer vision model (hosted on a service like Roboflow).
+The AI will analyze the images to detect and classify damage (e.g., "dent," "scratch," "crack").
+The structured results from the AI (bounding boxes, confidence scores, damage type) must be saved and linked to the corresponding image and claim in the database.
+Role-Based Dashboards:
+Each user role must have a dedicated dashboard tailored to their specific workflow and permissions.
+The Insured's dashboard will focus on claim status tracking and viewing submitted data.
+The Broker's and Adjudicator's dashboards will be work queues for processing and making decisions on claims.
+IV. Technology Stack
+Backend: Python with Django & Django Rest Framework.
+Frontend: TypeScript with React & Next.js, styled with Tailwind CSS.
+Database: PostgreSQL for production (SQLite for development).
+Asynchronous Tasks: Celery with Redis as the message broker.
+File Storage: S3-compatible object storage (e.g., MinIO for local development, Cloudflare R2/AWS S3 for production).
+AI Model: A pre-trained object detection model accessed via a REST API (e.g., from Roboflow Universe).
+Frontend Form Management: React Hook Form with Zod for validation.

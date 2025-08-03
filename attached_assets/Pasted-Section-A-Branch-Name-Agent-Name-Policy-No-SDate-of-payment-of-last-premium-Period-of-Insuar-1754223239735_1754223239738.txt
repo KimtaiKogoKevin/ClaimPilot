@@ -1,0 +1,54 @@
+Section A
+Branch Name , Agent Name , Policy No , SDate of payment of last premium , Period of Insuarnce,:From ..... To ... , (Type of Cover: Comprehensive , TPF&T , TPO ) , NAme of Hire purchase or finance company (if any): ...., is there any other insurance in force upon the vehicle ...yes/no? if yes , please supply setails ......, Did you purchase a loan repayment cover(yes/no)? ,Total Principal Loan amount , Toatal Interest , If yes , indicate the monthly instalment : Monthly Principal Repayment , monthly Interest charged
+Individual Insured Personal details (To eb completed if insured is an individual)
+Surname , middle name , first name , ID /passport No: , NAtionality , Date of Birth , Pin No , Occupation , telephone:Residential ,Telephone:office , Mobile , Postal address , postal code ,physical address , Email , Trade .business of insured , Age band (individuals)(ideally a checkbox) 1-21 , 22-40 41-69 above 70
+Co prate Insured Details
+COmpany registered name , registration no , country of registration , pin no , vat reg no , telephone office , mobile conatct person , postal address , postal code , physical address of registered office , email, trade / business of insured , how long has the comaony been in operaton ? 0-1 yrs , 2-3yrs , 3-5yrs, over 5 yrs
+Section B
+Vehicle details
+Make , model , Year of manufacture , eg.No (Prime Mover / truck) carrying capacity (cabin) Loading capacity , reg No (Trailer) Laoding capacity , AName and address of registered owner , vehicle use :state the exact purpose for which the vehicle was being used at the time of the accident e.g carrying bags of cement ,
+Accident Details (please provide as much details as possible to aid in faster decison making)
+Date, Time(a.m/p.m) ,place , Type of road surface, visibility , weather condition Wet or dry? , What warning did your driver give? , what lights were showing on your vehicle , did police take particulars , if so , give constables number and station , attach copy Notice of intended prosecution if any . STatement by driver of what happened at the scene (needs to be indepth ...allow for many paragraphs )
+Section C
+Damage to insured vehicle
+State briefly apparent damage
+when and where can it be inspected ?
+Repaires name and address
+is the vehicle stoll in use
+(Here is where the image would go , you can confirm this for me )
+Damage To Goods Carried
+Description of goods being carried , name of owner of goods , was a trailer attached, weight load on (a) vehicle (b) Trailer (s)
+Other vehicles involved (ideally a tablewith Name and address of owner , reg no and name of insurer) ..the table should be able to add more rows (You will let me know if this is possible)
+Damage to third party property , smae as above with two coulumns now Name and address of owner , property damaged
+Persons Injured (same as above but with the following coumns ) Name and adress , ealationship to insured , if driver or passenger (if driver ask for registartion ) , apparent injuries
+PAssengers in your vehicle (this should just be two fields Name and adress but with the ability of adding a row igf there more than one
+Inpendent witnesses , same as above
+Section D
+Drivers details
+Name , occupation , address , date of birth , tel no ,
+is he /she employed by you ?
+if yes how long has she been in your service ?
+Was he /s he driving with your permisiion ? yes or no
+How long has he / she been driving motor vehicles? (not dependent on the previous answer)
+was he . she in a nyw ay to blame for the accident
+Did she he admit liability
+Did he / shehave any previous accidents?
+if so how many an approximate date ?
+has he any convivtion for any offence in connection with any motor vehicle or any charges pending?
+if so, give details including dates
+does he /she hold a full or provisional license to drive this vehicle ?
+Full D prrovisonal D if full , state date when driving test first passed , driving license Number ,
+does he/she own a motor vehivle?
+if so give the name and address of insurer
+drivers policy no
+statement by owner / insured
+declaration by owner
+name , title date electronic signature
+Bank details
+Bankname ,
+account name
+account no
+branch
+Bank swift code
+bank sort code
+these are all the fields i need , i know its alot , can you manage to parse this into the form intelligently figuring out which should be required or not and which need logical yes or no questionsand show me how we can execute it
