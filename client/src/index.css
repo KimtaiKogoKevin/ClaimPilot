@@ -1,0 +1,300 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(143, 85%, 33%);
+  --secondary-foreground: hsl(60, 9.1%, 97.8%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+  --ai-purple: hsl(251, 91%, 68%);
+  --neutral-50: hsl(216, 33%, 97%);
+  --neutral-100: hsl(214, 32%, 95%);
+  --neutral-200: hsl(213, 27%, 84%);
+  --neutral-600: hsl(215, 13%, 35%);
+  --neutral-800: hsl(217, 19%, 16%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(143, 85%, 33%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+  --ai-purple: hsl(251, 91%, 68%);
+  --neutral-50: hsl(240, 4.9%, 15.9%);
+  --neutral-100: hsl(240, 3.7%, 15.9%);
+  --neutral-200: hsl(240, 3.7%, 25.9%);
+  --neutral-600: hsl(240, 5%, 64.9%);
+  --neutral-800: hsl(0, 0%, 98%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-ai-purple {
+    color: var(--ai-purple);
+  }
+  
+  .bg-ai-purple {
+    background-color: var(--ai-purple);
+  }
+  
+  .border-ai-purple {
+    border-color: var(--ai-purple);
+  }
+  
+  .text-neutral-50 {
+    color: var(--neutral-50);
+  }
+  
+  .bg-neutral-50 {
+    background-color: var(--neutral-50);
+  }
+  
+  .text-neutral-100 {
+    color: var(--neutral-100);
+  }
+  
+  .bg-neutral-100 {
+    background-color: var(--neutral-100);
+  }
+  
+  .text-neutral-200 {
+    color: var(--neutral-200);
+  }
+  
+  .bg-neutral-200 {
+    background-color: var(--neutral-200);
+  }
+  
+  .border-neutral-200 {
+    border-color: var(--neutral-200);
+  }
+  
+  .text-neutral-600 {
+    color: var(--neutral-600);
+  }
+  
+  .text-neutral-800 {
+    color: var(--neutral-800);
+  }
+  
+  .bg-neutral-800 {
+    background-color: var(--neutral-800);
+  }
+}
+
+/* Custom styles for the insurance platform */
+.step-indicator {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: hsl(213, 27%, 84%);
+  color: hsl(215, 13%, 35%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.step-indicator.active {
+  background-color: hsl(207, 90%, 54%);
+  color: white;
+}
+
+.step-indicator.completed {
+  background-color: hsl(143, 85%, 33%);
+  color: white;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background-color: hsl(213, 27%, 84%);
+  margin: 0 12px;
+  transition: all 0.3s ease;
+}
+
+.step-line.active {
+  background-color: hsl(207, 90%, 54%);
+}
+
+.form-step {
+  display: none;
+}
+
+.form-step.active {
+  display: block;
+}
+
+.upload-placeholder:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+
+/* AI analysis visualization styles */
+.damage-overlay {
+  position: absolute;
+  border: 2px solid hsl(251, 91%, 68%);
+  background-color: hsla(251, 91%, 68%, 0.1);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.confidence-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: hsl(251, 91%, 68%);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* Loading animations */
+@keyframes pulse-ai {
+  0%, 100% {
+    opacity: 1;
+    background-color: hsla(251, 91%, 68%, 0.1);
+  }
+  50% {
+    opacity: 0.7;
+    background-color: hsla(251, 91%, 68%, 0.2);
+  }
+}
+
+.ai-processing {
+  animation: pulse-ai 2s ease-in-out infinite;
+}
+
+/* Progress indicators */
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.35s;
+  transform-origin: 50% 50%;
+}
+
+/* Custom scrollbar for tables */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: hsl(60, 4.8%, 95.9%);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(25, 5.3%, 44.7%);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(20, 14.3%, 4.1%);
+}
+
+/* Focus styles for accessibility */
+.focus-ring:focus {
+  outline: 2px solid hsl(207, 90%, 54%);
+  outline-offset: 2px;
+}
+
+/* Toast notification styling */
+.toast-success {
+  background-color: hsl(143, 85%, 33%);
+  border-color: hsl(143, 85%, 33%);
+}
+
+.toast-error {
+  background-color: hsl(0, 84.2%, 60.2%);
+  border-color: hsl(0, 84.2%, 60.2%);
+}
+
+/* Mobile responsiveness improvements */
+@media (max-width: 768px) {
+  .mobile-stack {
+    flex-direction: column;
+  }
+  
+  .mobile-full {
+    width: 100%;
+  }
+  
+  .mobile-text-center {
+    text-align: center;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: hsl(0, 0%, 0%);
+    --ring: hsl(0, 0%, 0%);
+  }
+  
+  .dark {
+    --border: hsl(0, 0%, 100%);
+    --ring: hsl(0, 0%, 100%);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .step-indicator,
+  .step-line,
+  .upload-placeholder {
+    transition: none;
+  }
+  
+  .ai-processing {
+    animation: none;
+  }
+}
