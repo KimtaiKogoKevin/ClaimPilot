@@ -146,7 +146,7 @@ export default function DamageAssessmentStep({
             </div>
             
             <div className="bg-white bg-opacity-15 rounded-lg p-4 mb-4">
-              <h6 className="text-white font-bold text-sm mb-2">📸 Photo Upload Instructions</h6>
+              <h6 className="text-white font-bold text-sm mb-2">Photo Upload Instructions</h6>
               <ul className="text-white text-sm space-y-1">
                 <li>• Click each box below to upload a photo from that angle</li>
                 <li>• Take clear, well-lit photos showing the damage clearly</li>
@@ -221,7 +221,7 @@ export default function DamageAssessmentStep({
                 </div>
                 
                 <div className="bg-white bg-opacity-15 rounded-lg p-3 mb-4">
-                  <h6 className="text-white font-bold text-sm mb-2">📦 Goods Photo Guidelines</h6>
+                  <h6 className="text-white font-bold text-sm mb-2">Goods Photo Guidelines</h6>
                   <ul className="text-white text-sm space-y-1">
                     <li>• Take photos of damaged goods from multiple angles</li>
                     <li>• Include close-up shots of specific damage</li>
@@ -230,24 +230,21 @@ export default function DamageAssessmentStep({
                   </ul>
                 </div>
                 
-                <div className="w-full max-w-xs mx-auto">
-                  <ObjectUploader
-                    maxNumberOfFiles={5}
-                    maxFileSize={10485760} // 10MB
-                    onGetUploadParameters={handleGetUploadParameters}
-                    onComplete={handlePhotoUploadComplete('GOODS_DAMAGE', true)}
-                    buttonClassName="w-full"
-                  >
-                    <div className="border-2 border-dashed border-white rounded-lg p-6 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10 min-h-[100px] flex flex-col justify-center">
-                      <Camera className="text-white h-8 w-8 mx-auto mb-2" />
-                      <div className="text-white text-sm font-bold mb-1">Upload Goods Photos</div>
-                      <div className="text-white text-xs font-semibold bg-black bg-opacity-40 px-2 py-1 rounded-full mb-1">
-                        Up to 5 photos
-                      </div>
-                      <div className="text-white text-xs opacity-90">Click to select files</div>
+                <ObjectUploader
+                  maxNumberOfFiles={5}
+                  maxFileSize={10485760} // 10MB
+                  onGetUploadParameters={handleGetUploadParameters}
+                  onComplete={handlePhotoUploadComplete('GOODS_DAMAGE', true)}
+                  buttonClassName="w-full"
+                >
+                  <div className="border-2 border-dashed border-white hover:border-solid rounded-lg p-4 text-center hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
+                    <Camera className="text-white h-6 w-6 mx-auto mb-2" />
+                    <div className="text-white font-bold text-sm mb-1">Upload Goods Photos</div>
+                    <div className="text-white text-xs bg-white bg-opacity-20 px-2 py-1 rounded">
+                      Up to 5 photos • Click to browse
                     </div>
-                  </ObjectUploader>
-                </div>
+                  </div>
+                </ObjectUploader>
               </div>
             </div>
           )}
