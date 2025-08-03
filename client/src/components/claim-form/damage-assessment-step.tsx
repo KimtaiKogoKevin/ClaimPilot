@@ -109,14 +109,32 @@ export default function DamageAssessmentStep({
         {/* Vehicle Damage Section */}
         <div>
           <h4 className="text-lg font-semibold text-neutral-800 mb-4">Vehicle Damage Documentation</h4>
+          
+          {/* Instructions for vehicle damage */}
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+            <div className="flex items-center mb-2">
+              <div className="text-blue-600 mr-2">🚗</div>
+              <h5 className="text-blue-800 font-semibold">Vehicle Damage Assessment Guide</h5>
+            </div>
+            <ul className="text-blue-700 text-sm space-y-1">
+              <li>• First, describe the damage in the text area below</li>
+              <li>• Then take photos from all 4 required angles</li>
+              <li>• Focus on areas with visible damage (dents, scratches, broken parts)</li>
+              <li>• Ensure good lighting and clear visibility of damage</li>
+            </ul>
+          </div>
+          
           <div className="mb-6">
-            <Label htmlFor="vehicleDamageDescription">Brief Description of Damage</Label>
+            <Label htmlFor="vehicleDamageDescription" className="text-sm font-medium text-neutral-700 mb-2 block">
+              Brief Description of Vehicle Damage
+            </Label>
             <Textarea
               id="vehicleDamageDescription"
               rows={3}
               value={formData.damage.vehicleDescription}
               onChange={(e) => handleDamageChange('vehicleDescription', e.target.value)}
-              placeholder="Describe the visible damage to your vehicle..."
+              placeholder="Describe the visible damage to your vehicle (location, severity, type of damage)..."
+              className="w-full"
             />
           </div>
 
@@ -202,7 +220,7 @@ export default function DamageAssessmentStep({
                   <h6 className="font-semibold text-white text-base">Goods Damage Photos</h6>
                 </div>
                 
-                <div className="bg-white bg-opacity-15 rounded-lg p-4 mb-4">
+                <div className="bg-white bg-opacity-15 rounded-lg p-4 mb-6">
                   <h6 className="text-white font-bold text-sm mb-2">📦 Goods Photo Guidelines</h6>
                   <ul className="text-white text-sm space-y-1">
                     <li>• Take photos of damaged goods from multiple angles</li>
@@ -212,7 +230,7 @@ export default function DamageAssessmentStep({
                   </ul>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="w-full max-w-sm mx-auto">
                   <ObjectUploader
                     maxNumberOfFiles={5}
                     maxFileSize={10485760} // 10MB
@@ -220,13 +238,13 @@ export default function DamageAssessmentStep({
                     onComplete={handlePhotoUploadComplete('GOODS_DAMAGE', true)}
                     buttonClassName="w-full"
                   >
-                    <div className="border-2 border-dashed border-white rounded-lg p-6 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
-                      <Camera className="text-white h-8 w-8 mx-auto mb-3" />
-                      <div className="text-white text-sm font-bold mb-2">Upload Goods Photos</div>
-                      <div className="text-white text-xs font-semibold bg-black bg-opacity-40 px-3 py-1 rounded-full mb-2">
+                    <div className="border-2 border-dashed border-white rounded-lg p-8 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10 min-h-[120px] flex flex-col justify-center">
+                      <Camera className="text-white h-10 w-10 mx-auto mb-3" />
+                      <div className="text-white text-base font-bold mb-2">Upload Goods Photos</div>
+                      <div className="text-white text-sm font-semibold bg-black bg-opacity-40 px-3 py-1 rounded-full mb-2">
                         Up to 5 photos
                       </div>
-                      <div className="text-white text-xs opacity-90">Click to select files</div>
+                      <div className="text-white text-sm opacity-90">Click to select files</div>
                     </div>
                   </ObjectUploader>
                 </div>
