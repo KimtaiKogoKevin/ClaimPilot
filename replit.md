@@ -6,6 +6,8 @@ This is a modern, AI-powered web application designed to streamline the motor ac
 
 The application serves three primary user roles: claimants who submit claims, insurance brokers who review submissions, and adjusters who make final decisions. The core innovation lies in its guided photo upload system and AI-powered damage assessment that provides instant analysis of vehicle damage through integrated computer vision models.
 
+**Deployment Flexibility**: The platform now supports both Replit-hosted deployment and completely standalone local deployment, allowing users to run the application independently without any Replit service dependencies.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -23,9 +25,13 @@ The server is built on Express.js with TypeScript, following a modular route-bas
 The application uses Drizzle ORM for type-safe database operations with PostgreSQL as the primary database. The schema defines comprehensive relationships between users, claims, vehicle details, damage photos, and AI analysis results.
 
 ### File Upload and Storage
-The platform implements a sophisticated file upload system using Uppy for the frontend interface and Google Cloud Storage for backend storage. The ObjectUploader component provides a modal-based interface for file selection, preview, and upload progress tracking.
+The platform implements flexible file upload systems:
 
-Object storage includes Access Control List (ACL) policies for fine-grained permission management, allowing different access levels based on user roles and object types. The system supports presigned URLs for direct-to-storage uploads, reducing server load.
+**Replit Mode**: Uses Uppy frontend interface with Google Cloud Storage backend and ACL policies for fine-grained permission management. Supports presigned URLs for direct-to-storage uploads.
+
+**Standalone Mode**: Offers both local file system storage and optional AWS S3 integration. Local storage organizes files in structured directories with automatic cleanup, while S3 option provides professional cloud storage with CDN capabilities.
+
+Both modes include the ObjectUploader component for modal-based file selection, preview, and upload progress tracking.
 
 ### AI Integration
 The core innovation is the integration with Roboflow's computer vision API for automated damage assessment. When users upload vehicle photos, the system automatically triggers AI analysis to detect and classify damage types (dents, scratches, cracks, etc.).
@@ -33,9 +39,13 @@ The core innovation is the integration with Roboflow's computer vision API for a
 The AI analysis results include bounding boxes, confidence scores, and damage classifications, which are stored in the database and displayed to users through interactive visualizations. The system calculates damage severity estimates and cost ranges based on the AI predictions.
 
 ### Authentication and Authorization
-User authentication is handled through Replit's OpenID Connect (OIDC) integration using Passport.js strategies. The system maintains user sessions using PostgreSQL-backed session storage with configurable TTL.
+The platform supports dual authentication modes:
 
-Role-based access control differentiates between claimants, brokers, and adjusters, with each role having access to specific dashboards and functionalities. The authentication system supports both individual and corporate user types.
+**Replit Mode**: Uses Replit's OpenID Connect (OIDC) integration with Passport.js strategies for seamless cloud deployment.
+
+**Standalone Mode**: Implements JWT-based authentication with bcrypt password hashing for independent local deployment. Includes simple email-based registration and login flows.
+
+Both modes maintain user sessions and support role-based access control differentiating between claimants, brokers, and adjusters, with each role having access to specific dashboards and functionalities.
 
 ### Database Design
 The PostgreSQL database schema includes comprehensive tables for users, claims, individual/corporate details, vehicles, drivers, bank information, damage photos, and AI analysis results. The schema uses foreign key relationships to maintain data integrity and supports complex queries for claim processing workflows.
