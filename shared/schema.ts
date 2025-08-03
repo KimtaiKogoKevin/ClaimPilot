@@ -212,13 +212,71 @@ export const claimsRelations = relations(claims, ({ one, many }) => ({
     fields: [claims.claimantId],
     references: [users.id],
   }),
-  individualDetails: one(individualDetails),
-  corporateDetails: one(corporateDetails),
-  vehicle: one(vehicles),
-  driver: one(drivers),
-  bankDetails: one(bankDetails),
+  individualDetails: one(individualDetails, {
+    fields: [claims.id],
+    references: [individualDetails.claimId],
+  }),
+  corporateDetails: one(corporateDetails, {
+    fields: [claims.id],
+    references: [corporateDetails.claimId],
+  }),
+  vehicle: one(vehicles, {
+    fields: [claims.id],
+    references: [vehicles.claimId],
+  }),
+  driver: one(drivers, {
+    fields: [claims.id],
+    references: [drivers.claimId],
+  }),
+  bankDetails: one(bankDetails, {
+    fields: [claims.id],
+    references: [bankDetails.claimId],
+  }),
   otherVehicles: many(otherVehicles),
   damagedPhotos: many(damagedPhotos),
+}));
+
+// Add missing relations for all entities
+export const individualDetailsRelations = relations(individualDetails, ({ one }) => ({
+  claim: one(claims, {
+    fields: [individualDetails.claimId],
+    references: [claims.id],
+  }),
+}));
+
+export const corporateDetailsRelations = relations(corporateDetails, ({ one }) => ({
+  claim: one(claims, {
+    fields: [corporateDetails.claimId],
+    references: [claims.id],
+  }),
+}));
+
+export const vehiclesRelations = relations(vehicles, ({ one }) => ({
+  claim: one(claims, {
+    fields: [vehicles.claimId],
+    references: [claims.id],
+  }),
+}));
+
+export const driversRelations = relations(drivers, ({ one }) => ({
+  claim: one(claims, {
+    fields: [drivers.claimId],
+    references: [claims.id],
+  }),
+}));
+
+export const bankDetailsRelations = relations(bankDetails, ({ one }) => ({
+  claim: one(claims, {
+    fields: [bankDetails.claimId],
+    references: [claims.id],
+  }),
+}));
+
+export const otherVehiclesRelations = relations(otherVehicles, ({ one }) => ({
+  claim: one(claims, {
+    fields: [otherVehicles.claimId],
+    references: [claims.id],
+  }),
 }));
 
 export const damagedPhotosRelations = relations(damagedPhotos, ({ one, many }) => ({

@@ -33,7 +33,7 @@ export default function ProgressBar({ currentStep, totalSteps }: ProgressBarProp
                         ? 'bg-secondary text-white'
                         : isActive
                         ? 'bg-primary text-white'
-                        : 'bg-neutral-200 text-neutral-600'
+                        : 'bg-neutral-200 text-neutral-800'
                       }
                     `}
                   >
@@ -52,13 +52,13 @@ export default function ProgressBar({ currentStep, totalSteps }: ProgressBarProp
             })}
           </div>
         </div>
-        <div className="text-sm font-medium text-neutral-600">
+        <div className="text-sm font-medium text-neutral-800">
           Step {currentStep} of {totalSteps}
         </div>
       </div>
       
       {/* Step Labels */}
-      <div className="flex justify-between mt-2 text-xs text-neutral-500">
+      <div className="flex justify-between mt-2 text-xs text-neutral-700">
         {steps.map((step, index) => (
           <span key={index} className="text-center max-w-[100px]">
             {step}

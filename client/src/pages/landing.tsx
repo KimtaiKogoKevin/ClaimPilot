@@ -67,7 +67,7 @@ export default function Landing() {
                   variant="outline"
                   onClick={handleLogin}
                   size="lg"
-                  className="border-2 border-white text-white hover:bg-white hover:text-primary"
+                  className="border-2 border-white bg-white bg-opacity-10 text-white hover:bg-white hover:text-primary font-semibold"
                 >
                   <span className="mr-2">G</span>
                   Sign In with Google

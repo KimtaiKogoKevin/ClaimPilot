@@ -140,10 +140,10 @@ export default function DamageAssessmentStep({
                     onComplete={handlePhotoUploadComplete(angle.id)}
                     buttonClassName="w-full"
                   >
-                    <div className="border-2 border-dashed border-white border-opacity-50 rounded-lg p-4 text-center hover:border-opacity-75 transition-all cursor-pointer">
+                    <div className="border-2 border-dashed border-white border-opacity-70 rounded-lg p-4 text-center hover:border-opacity-100 hover:bg-white hover:bg-opacity-10 transition-all cursor-pointer">
                       <Camera className="text-white h-8 w-8 mx-auto mb-2" />
-                      <div className="text-white text-sm font-medium">{angle.label}</div>
-                      <div className="text-purple-200 text-xs">
+                      <div className="text-white text-sm font-semibold">{angle.label}</div>
+                      <div className="text-purple-100 text-xs font-medium">
                         {angle.required ? 'Required' : 'Optional'}
                       </div>
                     </div>
@@ -194,9 +194,9 @@ export default function DamageAssessmentStep({
                     onComplete={handlePhotoUploadComplete('GOODS_DAMAGE', true)}
                     buttonClassName="w-full"
                   >
-                    <div className="border-2 border-dashed border-ai-purple border-opacity-50 rounded-lg p-4 text-center hover:border-opacity-75 transition-all cursor-pointer">
+                    <div className="border-2 border-dashed border-ai-purple border-opacity-70 rounded-lg p-4 text-center hover:border-opacity-100 hover:bg-ai-purple hover:bg-opacity-5 transition-all cursor-pointer">
                       <Camera className="text-ai-purple h-6 w-6 mx-auto mb-2" />
-                      <div className="text-ai-purple text-sm">Add Photos</div>
+                      <div className="text-ai-purple text-sm font-semibold">Add Photos</div>
                     </div>
                   </ObjectUploader>
                 </div>
@@ -207,7 +207,7 @@ export default function DamageAssessmentStep({
 
         {/* Upload Progress */}
         {uploadPhotoMutation.isPending && (
-          <div className="flex items-center space-x-2 text-sm text-neutral-600">
+          <div className="flex items-center space-x-2 text-sm text-neutral-800 font-medium">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
             <span>Uploading photo and analyzing with AI...</span>
           </div>
