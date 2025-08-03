@@ -121,14 +121,21 @@ export default function DamageAssessmentStep({
           </div>
 
           {/* Guided Image Upload */}
-          <div className="bg-gradient-to-r from-ai-purple to-purple-600 rounded-xl p-6 mb-6">
+          <div className="bg-gradient-to-r from-ai-purple to-purple-600 rounded-xl p-6 mb-8">
             <div className="flex items-center mb-4">
               <Brain className="text-white h-6 w-6 mr-3" />
               <h5 className="text-white font-semibold text-lg">AI-Powered Damage Analysis</h5>
             </div>
-            <p className="text-white font-medium mb-6">
-              Upload photos from the required angles. Our AI will automatically analyze the damage for faster processing.
-            </p>
+            
+            <div className="bg-white bg-opacity-15 rounded-lg p-4 mb-6">
+              <h6 className="text-white font-bold text-sm mb-2">📸 Photo Upload Instructions</h6>
+              <ul className="text-white text-sm space-y-1">
+                <li>• Click each box below to upload a photo from that angle</li>
+                <li>• Take clear, well-lit photos showing the damage clearly</li>
+                <li>• Our AI will automatically analyze each photo for damage</li>
+                <li>• All 4 angles are required for complete assessment</li>
+              </ul>
+            </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {requiredAngles.map((angle) => (
@@ -143,9 +150,10 @@ export default function DamageAssessmentStep({
                     <div className="border-2 border-dashed border-white rounded-lg p-4 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
                       <Camera className="text-white h-8 w-8 mx-auto mb-2" />
                       <div className="text-white text-sm font-bold mb-1">{angle.label}</div>
-                      <div className="text-white text-xs font-semibold bg-black bg-opacity-30 px-2 py-1 rounded-full">
+                      <div className="text-white text-xs font-semibold bg-black bg-opacity-40 px-2 py-1 rounded-full">
                         {angle.required ? 'REQUIRED' : 'OPTIONAL'}
                       </div>
+                      <div className="text-white text-xs mt-1 opacity-90">Click to upload</div>
                     </div>
                   </ObjectUploader>
                 </div>
@@ -160,34 +168,51 @@ export default function DamageAssessmentStep({
         </div>
 
         {/* Goods Damage Section */}
-        <div>
-          <div className="flex items-center space-x-2 mb-4">
+        <div className="mt-12 pt-8 border-t border-neutral-200">
+          <div className="flex items-center space-x-2 mb-6">
             <Checkbox
               id="goods-damaged"
               checked={formData.damage.goodsDamaged}
               onCheckedChange={(checked) => handleDamageChange('goodsDamaged', checked)}
             />
-            <Label htmlFor="goods-damaged" className="text-sm font-medium text-neutral-700">
-              Were goods/cargo also damaged?
+            <Label htmlFor="goods-damaged" className="text-base font-medium text-neutral-800">
+              Were goods/cargo also damaged in this accident?
             </Label>
           </div>
           
           {formData.damage.goodsDamaged && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <Label htmlFor="goodsDescription">Description of Goods</Label>
+                <Label htmlFor="goodsDescription" className="text-sm font-medium text-neutral-700 mb-2 block">
+                  Description of Damaged Goods/Cargo
+                </Label>
                 <Textarea
                   id="goodsDescription"
-                  rows={2}
+                  rows={3}
                   value={formData.damage.goodsDescription}
                   onChange={(e) => handleDamageChange('goodsDescription', e.target.value)}
-                  placeholder="Describe the goods that were damaged..."
+                  placeholder="Describe the goods that were damaged (type, quantity, estimated value)..."
+                  className="w-full"
                 />
               </div>
-              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4">
-                <h6 className="font-semibold text-white mb-3">Upload Goods Damage Photos</h6>
-                <p className="text-white text-sm font-medium mb-4">Upload clear photos showing damage to goods or cargo</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              
+              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6">
+                <div className="flex items-center mb-4">
+                  <Camera className="text-white h-5 w-5 mr-2" />
+                  <h6 className="font-semibold text-white text-base">Goods Damage Photos</h6>
+                </div>
+                
+                <div className="bg-white bg-opacity-15 rounded-lg p-4 mb-4">
+                  <h6 className="text-white font-bold text-sm mb-2">📦 Goods Photo Guidelines</h6>
+                  <ul className="text-white text-sm space-y-1">
+                    <li>• Take photos of damaged goods from multiple angles</li>
+                    <li>• Include close-up shots of specific damage</li>
+                    <li>• Show any spilled or scattered cargo</li>
+                    <li>• Upload up to 5 photos for complete documentation</li>
+                  </ul>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <ObjectUploader
                     maxNumberOfFiles={5}
                     maxFileSize={10485760} // 10MB
@@ -195,12 +220,13 @@ export default function DamageAssessmentStep({
                     onComplete={handlePhotoUploadComplete('GOODS_DAMAGE', true)}
                     buttonClassName="w-full"
                   >
-                    <div className="border-2 border-dashed border-white rounded-lg p-4 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
-                      <Camera className="text-white h-6 w-6 mx-auto mb-2" />
-                      <div className="text-white text-sm font-bold mb-1">Add Photos</div>
-                      <div className="text-white text-xs font-semibold bg-black bg-opacity-30 px-2 py-1 rounded-full">
+                    <div className="border-2 border-dashed border-white rounded-lg p-6 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
+                      <Camera className="text-white h-8 w-8 mx-auto mb-3" />
+                      <div className="text-white text-sm font-bold mb-2">Upload Goods Photos</div>
+                      <div className="text-white text-xs font-semibold bg-black bg-opacity-40 px-3 py-1 rounded-full mb-2">
                         Up to 5 photos
                       </div>
+                      <div className="text-white text-xs opacity-90">Click to select files</div>
                     </div>
                   </ObjectUploader>
                 </div>
