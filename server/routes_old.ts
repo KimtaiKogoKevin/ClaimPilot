@@ -57,29 +57,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Debug auth endpoint
-  app.get('/api/debug/auth', (req: any, res) => {
-    console.log("=== AUTH DEBUG ===");
-    console.log("Full req.user:", JSON.stringify(req.user, null, 2));
-    console.log("req.isAuthenticated():", req.isAuthenticated());
-    console.log("req.user.claims:", req.user?.claims);
-    console.log("req.user.claims.sub:", req.user?.claims?.sub);
-    
-    res.json({
-      isAuthenticated: req.isAuthenticated(),
-      userExists: !!req.user,
-      hasUserClaims: !!req.user?.claims,
-      userClaimsSub: req.user?.claims?.sub,
-      fullUser: req.user
-    });
-  });
-
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;
       if (!userId) {
-        console.error("User ID not found in req.user.claims.sub:", req.user);
         return res.status(401).json({ message: "User ID not found" });
       }
       const user = await storage.getUser(userId);
@@ -102,8 +84,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['claimant', 'broker', 'adjudicator'].includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
-      
-      const updatedUser = await storage.updateUser(userId, { role });
+
+      const updatedUser = await storage.updateUserRole(userId, role);
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user role:", error);
@@ -111,45 +93,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create a new draft claim
+  // Object storage routes for protected file uploading
+  app.get("/objects/:objectPath(*)", isAuthenticated, async (req, res) => {
+    const userId = req.user?.claims?.sub;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(
+        req.path,
+      );
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: userId,
+        requestedPermission: ObjectPermission.READ,
+      });
+      if (!canAccess) {
+        return res.sendStatus(401);
+      }
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error checking object access:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    res.json({ uploadURL });
+  });
+
+  // Claims routes
   app.post("/api/claims", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
-      
+      const userId = req.user.claims.sub;
       const claimData = insertClaimSchema.parse({
         ...req.body,
         claimantId: userId,
-        status: "draft"
       });
-      
+
       const claim = await storage.createClaim(claimData);
-      res.status(201).json(claim);
+      res.json(claim);
     } catch (error) {
       console.error("Error creating claim:", error);
       res.status(400).json({ message: "Invalid claim data" });
     }
   });
 
-  // Update a claim
-  app.put("/api/claims/:id", isAuthenticated, async (req, res) => {
+  app.patch("/api/claims/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       
       // Verify user owns this claim
       const existingClaim = await storage.getClaim(id);
       if (!existingClaim || existingClaim.claimantId !== userId) {
         return res.status(404).json({ message: "Claim not found" });
       }
-      
-      const updateData = insertClaimSchema.partial().parse(req.body);
-      const updatedClaim = await storage.updateClaim(id, updateData);
+
+      const updates = insertClaimSchema.partial().parse(req.body);
+      const updatedClaim = await storage.updateClaim(id, updates);
       res.json(updatedClaim);
     } catch (error) {
       console.error("Error updating claim:", error);
@@ -157,15 +162,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user's claims
   app.get("/api/claims", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
-      
-      const claims = await storage.getUserClaims(userId);
+      const userId = req.user.claims.sub;
+      const claims = await storage.getClaimsByUser(userId);
       res.json(claims);
     } catch (error) {
       console.error("Error fetching claims:", error);
@@ -173,14 +173,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get claim details
   app.get("/api/claims/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       
       const claim = await storage.getClaim(id);
       if (!claim || claim.claimantId !== userId) {
@@ -286,75 +282,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.addOtherVehicle(vehicle);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error saving other vehicle:", error);
-      res.status(400).json({ message: "Invalid other vehicle data" });
+      console.error("Error adding other vehicle:", error);
+      res.status(400).json({ message: "Invalid vehicle data" });
     }
   });
 
-  // Damage photo upload
+  app.delete("/api/other-vehicles/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.removeOtherVehicle(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing other vehicle:", error);
+      res.status(500).json({ message: "Failed to remove vehicle" });
+    }
+  });
+
+  // Photo upload and AI analysis routes
   app.post("/api/claims/:id/photos", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       
+      if (!req.body.photoUrl) {
+        return res.status(400).json({ error: "photoUrl is required" });
+      }
+
       // Verify user owns this claim
       const claim = await storage.getClaim(id);
       if (!claim || claim.claimantId !== userId) {
         return res.status(404).json({ message: "Claim not found" });
       }
-      
-      const { imageUrl, angle, isGoodsPhoto } = req.body;
-      
-      if (!imageUrl || !angle) {
-        return res.status(400).json({ message: "Image URL and angle are required" });
-      }
-      
-      // Analyze image with Roboflow
-      let detectedDamages = [];
-      try {
-        const analysisResult = await analyzeImageWithRoboflow(imageUrl, isGoodsPhoto);
-        detectedDamages = analysisResult.predictions?.map((prediction: any) => ({
-          damageType: prediction.class,
-          confidence: prediction.confidence,
-          boundingBox: {
-            x: prediction.x,
-            y: prediction.y,
-            width: prediction.width,
-            height: prediction.height,
-          },
-        })) || [];
-      } catch (analysisError) {
-        console.error("AI analysis failed:", analysisError);
-        // Continue without AI analysis
-      }
-      
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.photoUrl,
+        {
+          owner: userId,
+          visibility: "private",
+        },
+      );
+
       const photoData = insertDamagedPhotoSchema.parse({
         claimId: id,
-        objectPath: imageUrl,
-        angle,
-        isGoodsPhoto: !!isGoodsPhoto,
-        detectedDamages,
+        objectPath,
+        angle: req.body.angle,
+        isGoodsPhoto: req.body.isGoodsPhoto || false,
       });
-      
+
       const photo = await storage.addDamagedPhoto(photoData);
-      res.status(201).json(photo);
+
+      // Trigger AI analysis in background
+      try {
+        const analysisResults = await analyzeImageWithRoboflow(
+          req.body.photoUrl, 
+          req.body.isGoodsPhoto || false
+        );
+        
+        await storage.updatePhotoAnalysis(photo.id, analysisResults);
+        
+        // Save detected damages if any
+        if (analysisResults.predictions && Array.isArray(analysisResults.predictions)) {
+          for (const prediction of analysisResults.predictions) {
+            await storage.addDetectedDamage({
+              photoId: photo.id,
+              damageType: prediction.class,
+              confidence: prediction.confidence,
+              boundingBox: {
+                x: prediction.x,
+                y: prediction.y,
+                width: prediction.width,
+                height: prediction.height,
+              },
+              severity: prediction.confidence > 0.8 ? 'severe' : prediction.confidence > 0.6 ? 'moderate' : 'minor',
+              estimatedCost: null, // Could be calculated based on damage type and severity
+            });
+          }
+        }
+      } catch (aiError) {
+        console.error("AI analysis failed:", aiError);
+        // Continue without AI analysis - don't fail the upload
+      }
+
+      res.json({ 
+        photo,
+        objectPath: objectPath,
+      });
     } catch (error) {
-      console.error("Error adding damage photo:", error);
-      res.status(500).json({ message: "Failed to add damage photo" });
+      console.error("Error uploading photo:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  // Generate PDF for claim
+  // Generate PDF for claim (for claimants)
   app.get("/api/claims/:id/pdf", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       
       // Verify user owns this claim
       const claim = await storage.getClaim(id);
@@ -378,10 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/claims/:id/submit", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       
       // Verify user owns this claim
       const claim = await storage.getClaim(id);
@@ -407,10 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staff portal routes (simplified - would need additional role checking in production)
   app.get("/api/staff/claims", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
       // Check if user has staff access (broker or adjudicator)
@@ -430,10 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get claim details for staff
   app.get("/api/staff/claims/:id", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
       if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
@@ -453,13 +468,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate PDF for claim - Staff version
+  // Generate PDF for claim
   app.get("/api/staff/claims/:id/pdf", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
       if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
@@ -487,10 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update claim status
   app.put("/api/staff/claims/:id/status", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
+      const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
       if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
@@ -510,80 +519,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Object storage endpoints (simplified)
-  app.get("/objects/:objectPath(*)", isAuthenticated, async (req, res) => {
-    const objectStorageService = new ObjectStorageService();
+  app.patch("/api/staff/claims/:id/status", isAuthenticated, async (req, res) => {
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(
-        req.path,
-      );
+      const { id } = req.params;
+      const { status } = req.body;
       
-      const userId = req.user?.claims?.sub;
-      const canAccess = await objectStorageService.canAccessObjectEntity({
-        objectFile,
-        userId: userId,
-        requestedPermission: ObjectPermission.READ,
+      if (!['under_review', 'approved', 'rejected', 'paid'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      const updatedClaim = await storage.updateClaim(id, { 
+        status,
+        submittedAt: status === 'submitted' ? new Date() : undefined,
       });
-      if (!canAccess) {
-        return res.sendStatus(401);
-      }
-      objectStorageService.downloadObject(objectFile, res);
+      
+      res.json(updatedClaim);
     } catch (error) {
-      console.error("Error checking object access:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
-      }
-      return res.sendStatus(500);
-    }
-  });
-
-  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
-    const objectStorageService = new ObjectStorageService();
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    res.json({ uploadURL });
-  });
-
-  app.put("/api/damage-photos", isAuthenticated, async (req, res) => {
-    if (!req.body.photoURL) {
-      return res.status(400).json({ error: "photoURL is required" });
-    }
-
-    const userId = req.user?.claims?.sub;
-    if (!userId) {
-      return res.status(401).json({ message: "User ID not found" });
-    }
-
-    try {
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.photoURL,
-        {
-          owner: userId,
-          visibility: "private",
-        },
-      );
-
-      res.status(200).json({
-        objectPath: objectPath,
-      });
-    } catch (error) {
-      console.error("Error setting damage photo:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  app.get("/public-objects/:filePath(*)", async (req, res) => {
-    const filePath = req.params.filePath;
-    const objectStorageService = new ObjectStorageService();
-    try {
-      const file = await objectStorageService.searchPublicObject(filePath);
-      if (!file) {
-        return res.status(404).json({ error: "File not found" });
-      }
-      objectStorageService.downloadObject(file, res);
-    } catch (error) {
-      console.error("Error searching for public object:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      console.error("Error updating claim status:", error);
+      res.status(500).json({ message: "Failed to update claim status" });
     }
   });
 

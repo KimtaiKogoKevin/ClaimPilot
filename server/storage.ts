@@ -40,6 +40,8 @@ export interface IStorage {
   updateClaimStatus(claimId: string, status: string): Promise<void>;
   getClaim(id: string): Promise<ClaimWithDetails | undefined>;
   getClaimsByUser(userId: string): Promise<ClaimWithDetails[]>;
+  getUserClaims(userId: string): Promise<ClaimWithDetails[]>;
+  updateUser(id: string, updates: Partial<UpsertUser>): Promise<User>;
   getAllClaims(): Promise<ClaimWithDetails[]>;
   
   // Claim details operations
@@ -182,6 +184,19 @@ export class DatabaseStorage implements IStorage {
       },
     });
     return result as ClaimWithDetails[];
+  }
+
+  async getUserClaims(userId: string): Promise<ClaimWithDetails[]> {
+    return this.getClaimsByUser(userId);
+  }
+
+  async updateUser(id: string, updates: Partial<UpsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   // Claim details operations
