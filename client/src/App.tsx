@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import ClaimForm from "@/pages/claim-form";
+import ClaimDetails from "@/pages/claim-details";
 import ClaimantDashboard from "@/pages/claimant-dashboard";
 import StaffPortal from "@/pages/staff-portal";
 import RoleSelection from "@/pages/role-selection";
@@ -41,6 +42,7 @@ function Router() {
             <>
               <Route path="/" component={ClaimantDashboard} />
               <Route path="/claim/:id?" component={ClaimForm} />
+              <Route path="/claim-details/:id" component={ClaimDetails} />
               <Route path="/staff-portal" component={() => <div className="p-8 text-center">Access denied. You don't have staff permissions.</div>} />
             </>
           ) : (

@@ -41,19 +41,28 @@ export default function ClaimantDashboard() {
   };
 
   const handleViewClaim = (claimId: string) => {
-    window.location.href = `/claim/${claimId}`;
+    window.location.href = `/claim-details/${claimId}`;
   };
 
   const handleDownloadPDF = async (claimId: string) => {
     try {
       const response = await fetch(`/api/claims/${claimId}/pdf`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/pdf',
-        },
+        credentials: 'include', // Include session cookies for authentication
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: "Unauthorized",
+            description: "You are logged out. Logging in again...",
+            variant: "destructive",
+          });
+          setTimeout(() => {
+            window.location.href = "/api/login";
+          }, 500);
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
