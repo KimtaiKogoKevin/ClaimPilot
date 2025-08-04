@@ -40,6 +40,48 @@ export default function ClaimantDashboard() {
     window.location.href = "/api/logout";
   };
 
+  const handleViewClaim = (claimId: string) => {
+    window.location.href = `/claim/${claimId}`;
+  };
+
+  const handleDownloadPDF = async (claimId: string) => {
+    try {
+      const response = await fetch(`/api/claims/${claimId}/pdf`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `claim-${claimId.substring(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "PDF Downloaded",
+        description: "Your claim report has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -235,11 +277,31 @@ export default function ClaimantDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Button variant="ghost" size="sm" className="text-primary hover:text-blue-600 mr-3">
-                          View Details
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-neutral-600 hover:text-neutral-800">
-                          Download
+                        {claim.status === 'draft' ? (
+                          <Button
+                            size="sm"
+                            onClick={() => window.location.href = `/claim/${claim.id}`}
+                            className="bg-primary hover:bg-blue-600 mr-3"
+                          >
+                            Continue
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-primary hover:text-blue-600 mr-3"
+                            onClick={() => handleViewClaim(claim.id)}
+                          >
+                            View Details
+                          </Button>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-neutral-600 hover:text-neutral-800"
+                          onClick={() => handleDownloadPDF(claim.id)}
+                        >
+                          Download PDF
                         </Button>
                       </td>
                     </tr>

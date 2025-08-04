@@ -368,6 +368,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate PDF for claim (for claimants)
+  app.get("/api/claims/:id/pdf", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Verify user owns this claim
+      const claim = await storage.getClaim(id);
+      if (!claim || claim.claimantId !== userId) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      // Generate PDF content
+      const pdfContent = await generateClaimPDF(claim);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="claim-${claim.id}.pdf"`);
+      res.send(pdfContent);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
+    }
+  });
+
   // Submit a claim (change status from draft to submitted)
   app.post("/api/claims/:id/submit", isAuthenticated, async (req, res) => {
     try {
