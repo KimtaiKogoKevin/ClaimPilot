@@ -9,23 +9,41 @@ import Landing from "@/pages/landing";
 import ClaimForm from "@/pages/claim-form";
 import ClaimantDashboard from "@/pages/claimant-dashboard";
 import StaffPortal from "@/pages/staff-portal";
+import RoleSelection from "@/pages/role-selection";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/staff" component={StaffPortal} />
+          <Route path="/staff-portal" component={StaffPortal} />
           <Route path="/claim" component={ClaimForm} />
         </>
+      ) : !user?.role ? (
+        // Redirect to role selection if authenticated but no role set
+        <Route path="*" component={RoleSelection} />
       ) : (
         <>
-          <Route path="/" component={ClaimantDashboard} />
-          <Route path="/claim/:id?" component={ClaimForm} />
-          <Route path="/staff" component={StaffPortal} />
+          {/* Role selection route */}
+          <Route path="/role-selection" component={RoleSelection} />
+          
+          {/* Main routes based on user role */}
+          {user.role === 'claimant' ? (
+            <>
+              <Route path="/" component={ClaimantDashboard} />
+              <Route path="/claim/:id?" component={ClaimForm} />
+              <Route path="/staff-portal" component={() => <div className="p-8 text-center">Access denied. You don't have staff permissions.</div>} />
+            </>
+          ) : (
+            <>
+              <Route path="/" component={StaffPortal} />
+              <Route path="/staff-portal" component={StaffPortal} />
+              <Route path="/claim/:id?" component={ClaimForm} />
+            </>
+          )}
         </>
       )}
       <Route component={NotFound} />

@@ -69,6 +69,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user role
+  app.put('/api/auth/update-role', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { role } = req.body;
+      
+      if (!['claimant', 'broker', 'adjudicator'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      const updatedUser = await storage.updateUserRole(userId, role);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
   // Object storage routes for protected file uploading
   app.get("/objects/:objectPath(*)", isAuthenticated, async (req, res) => {
     const userId = req.user?.claims?.sub;
@@ -361,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
-      const claims = await storage.getAllClaims();
+      const claims = await storage.getAllClaimsWithDetails();
       res.json(claims);
     } catch (error) {
       console.error("Error fetching all claims:", error);
@@ -379,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
-      const claim = await storage.getClaim(req.params.id);
+      const claim = await storage.getClaimWithDetails(req.params.id);
       if (!claim) {
         return res.status(404).json({ message: "Claim not found" });
       }
@@ -401,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
-      const claim = await storage.getClaim(req.params.id);
+      const claim = await storage.getClaimWithDetails(req.params.id);
       if (!claim) {
         return res.status(404).json({ message: "Claim not found" });
       }

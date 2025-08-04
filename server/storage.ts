@@ -32,6 +32,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail?(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserRole(id: string, role: string): Promise<User>;
+  updateClaimStatus(claimId: string, status: string): Promise<void>;
   
   // Claim operations
   createClaim(claim: InsertClaim): Promise<Claim>;
@@ -82,6 +84,22 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUserRole(id: string, role: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ role: role as any, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateClaimStatus(claimId: string, status: string): Promise<void> {
+    await db
+      .update(claims)
+      .set({ status: status as any, updatedAt: new Date() })
+      .where(eq(claims.id, claimId));
   }
 
   // Claim operations
