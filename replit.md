@@ -8,6 +8,10 @@ The application serves three primary user roles: claimants who submit claims, in
 
 **Deployment Flexibility**: The platform now supports both Replit-hosted deployment and completely standalone local deployment, allowing users to run the application independently without any Replit service dependencies.
 
+## Recent Updates (January 2025)
+
+**PDF Generation & View Completeness Achieved**: Successfully implemented comprehensive PDF generation with proper jsPDF library integration and resolved all role-based view completeness issues. All three user roles (claimants, brokers, and adjudicators) now have complete parity in both viewing claim details and generating PDF reports that include all form sections: driver information, bank details, other vehicles, and extended individual/corporate details. Critical TypeScript authentication errors were resolved, ensuring seamless PDF download functionality across all roles.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
