@@ -84,7 +84,7 @@ export default function ClaimDetails() {
     if (!claim) return;
     
     try {
-      const response = await fetch(`/api/claims/${claim.id}/pdf`, {
+      const response = await fetch(`/api/staff/claims/${claim.id}/pdf`, {
         method: 'GET',
         credentials: 'include',
       });
