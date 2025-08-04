@@ -169,13 +169,40 @@ export default function ClaimForm() {
   };
 
   const handleSubmitClaim = async () => {
+    if (!claimId) {
+      toast({
+        title: "Error",
+        description: "No claim ID found. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Final validation and submission logic would go here
+      // Submit the claim (change status from draft to submitted)
+      const response = await fetch(`/api/claims/${claimId}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
       toast({
         title: "Claim Submitted Successfully",
-        description: "You will receive a confirmation email shortly.",
+        description: "Your claim has been submitted for review. You will receive updates via email.",
       });
-      setLocation("/");
+      
+      // Redirect to dashboard after successful submission
+      setTimeout(() => {
+        setLocation("/");
+      }, 1500);
+      
     } catch (error) {
       if (isUnauthorizedError(error as Error)) {
         toast({
@@ -188,9 +215,11 @@ export default function ClaimForm() {
         }, 500);
         return;
       }
+      
+      console.error("Error submitting claim:", error);
       toast({
         title: "Submission Failed",
-        description: "Please try again or contact support if the problem persists.",
+        description: "Failed to submit your claim. Please try again or contact support.",
         variant: "destructive",
       });
     }

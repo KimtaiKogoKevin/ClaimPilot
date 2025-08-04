@@ -368,6 +368,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Submit a claim (change status from draft to submitted)
+  app.post("/api/claims/:id/submit", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Verify user owns this claim
+      const claim = await storage.getClaim(id);
+      if (!claim || claim.claimantId !== userId) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      if (claim.status !== "draft") {
+        return res.status(400).json({ message: "Only draft claims can be submitted" });
+      }
+      
+      // Update claim status to submitted and set submittedAt timestamp
+      await storage.updateClaimStatus(id, "submitted");
+      await storage.updateClaim(id, { submittedAt: new Date() });
+      
+      res.json({ success: true, message: "Claim submitted successfully" });
+    } catch (error) {
+      console.error("Error submitting claim:", error);
+      res.status(500).json({ message: "Failed to submit claim" });
+    }
+  });
+
   // Staff portal routes (simplified - would need additional role checking in production)
   app.get("/api/staff/claims", isAuthenticated, async (req, res) => {
     try {
@@ -379,6 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
+      // Get claims with full details for staff portal
       const claims = await storage.getAllClaims();
       res.json(claims);
     } catch (error) {
@@ -397,6 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
+      // Get claim with full details for staff portal
       const claim = await storage.getClaim(req.params.id);
       if (!claim) {
         return res.status(404).json({ message: "Claim not found" });
@@ -419,6 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
+      // Get claim with full details for PDF generation
       const claim = await storage.getClaim(req.params.id);
       if (!claim) {
         return res.status(404).json({ message: "Claim not found" });

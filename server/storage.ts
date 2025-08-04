@@ -33,11 +33,11 @@ export interface IStorage {
   getUserByEmail?(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(id: string, role: string): Promise<User>;
-  updateClaimStatus(claimId: string, status: string): Promise<void>;
   
   // Claim operations
   createClaim(claim: InsertClaim): Promise<Claim>;
   updateClaim(id: string, claim: Partial<InsertClaim>): Promise<Claim>;
+  updateClaimStatus(claimId: string, status: string): Promise<void>;
   getClaim(id: string): Promise<ClaimWithDetails | undefined>;
   getClaimsByUser(userId: string): Promise<ClaimWithDetails[]>;
   getAllClaims(): Promise<ClaimWithDetails[]>;
