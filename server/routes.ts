@@ -18,6 +18,7 @@ import {
   insertDamagedPhotoSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import { generateClaimPDF } from "./pdfGenerator";
 
 // Roboflow analysis function
 async function analyzeImageWithRoboflow(imageUrl: string, isGoodsPhoto: boolean = false) {
@@ -352,12 +353,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staff portal routes (simplified - would need additional role checking in production)
   app.get("/api/staff/claims", isAuthenticated, async (req, res) => {
     try {
-      // In production, add role-based access control here
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      // Check if user has staff access (broker or adjudicator)
+      if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
+        return res.status(403).json({ message: "Access denied. Staff access required." });
+      }
+      
       const claims = await storage.getAllClaims();
       res.json(claims);
     } catch (error) {
       console.error("Error fetching all claims:", error);
       res.status(500).json({ message: "Failed to fetch claims" });
+    }
+  });
+
+  // Get claim details for staff
+  app.get("/api/staff/claims/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
+        return res.status(403).json({ message: "Access denied. Staff access required." });
+      }
+      
+      const claim = await storage.getClaim(req.params.id);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      res.json(claim);
+    } catch (error) {
+      console.error("Error fetching claim details:", error);
+      res.status(500).json({ message: "Failed to fetch claim details" });
+    }
+  });
+
+  // Generate PDF for claim
+  app.get("/api/staff/claims/:id/pdf", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
+        return res.status(403).json({ message: "Access denied. Staff access required." });
+      }
+      
+      const claim = await storage.getClaim(req.params.id);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      // Generate PDF content
+      const pdfContent = await generateClaimPDF(claim);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="claim-${claim.id}.pdf"`);
+      res.send(pdfContent);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
+    }
+  });
+
+  // Update claim status
+  app.put("/api/staff/claims/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
+        return res.status(403).json({ message: "Access denied. Staff access required." });
+      }
+      
+      const { status } = req.body;
+      if (!['submitted', 'under_review', 'approved', 'rejected', 'paid'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const updatedClaim = await storage.updateClaim(req.params.id, { status });
+      res.json(updatedClaim);
+    } catch (error) {
+      console.error("Error updating claim status:", error);
+      res.status(500).json({ message: "Failed to update claim status" });
     }
   });
 

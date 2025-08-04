@@ -1,16 +1,106 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter, Download, FileText, User, Phone } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { ClaimWithDetails } from "@shared/schema";
+import { useState } from "react";
 
 export default function StaffPortal() {
-  // Note: In production, this would need proper staff authentication
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["/api/staff/claims"],
     retry: false,
   });
+
+  const { data: selectedClaim } = useQuery({
+    queryKey: ["/api/staff/claims", selectedClaimId],
+    enabled: !!selectedClaimId,
+    retry: false,
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ claimId, status }: { claimId: string; status: string }) => {
+      await apiRequest(`/api/staff/claims/${claimId}/status`, {
+        method: "PUT",
+        body: { status },
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Status Updated",
+        description: "Claim status has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/staff/claims"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update claim status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleViewDetails = (claimId: string) => {
+    setSelectedClaimId(claimId);
+    setIsDetailsOpen(true);
+  };
+
+  const handleDownloadPDF = async (claimId: string) => {
+    try {
+      const response = await fetch(`/api/staff/claims/${claimId}/pdf`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `claim-${claimId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: "Claim report has been downloaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download PDF report.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-neutral-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -87,9 +177,9 @@ export default function StaffPortal() {
           <div className="flex items-center space-x-4">
             <div className="text-sm">
               <span className="text-neutral-300">Logged in as:</span>
-              <span className="font-medium ml-1">Staff Member</span>
+              <span className="font-medium ml-1">{user?.firstName} {user?.lastName}</span>
               <span className="text-neutral-300 mx-2">•</span>
-              <span className="text-neutral-300">Senior Adjudicator</span>
+              <span className="text-neutral-300 capitalize">{user?.role || 'Staff'}</span>
             </div>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-neutral-300 hover:text-white">
               Sign Out
@@ -265,16 +355,40 @@ export default function StaffPortal() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Button 
-                          size="sm" 
-                          className="bg-primary hover:bg-blue-600 mr-2"
-                          disabled={claim.status === 'draft'}
-                        >
-                          Review
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-neutral-600 hover:text-neutral-800">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleViewDetails(claim.id)}
+                            className="bg-primary hover:bg-blue-600"
+                            disabled={claim.status === 'draft'}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleDownloadPDF(claim.id)}
+                            className="text-neutral-600 hover:text-neutral-800"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Select
+                            value={claim.status}
+                            onValueChange={(status) => updateStatusMutation.mutate({ claimId: claim.id, status })}
+                          >
+                            <SelectTrigger className="w-[120px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="submitted">Submitted</SelectItem>
+                              <SelectItem value="under_review">Under Review</SelectItem>
+                              <SelectItem value="approved">Approved</SelectItem>
+                              <SelectItem value="rejected">Rejected</SelectItem>
+                              <SelectItem value="paid">Paid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -283,6 +397,163 @@ export default function StaffPortal() {
             )}
           </div>
         </Card>
+
+        {/* Claim Details Modal */}
+        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Claim Details - #{selectedClaim?.id.slice(0, 8)}...
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedClaim && (
+              <div className="grid gap-6">
+                {/* Claim Overview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Claim Overview
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <strong>Policy Number:</strong> {selectedClaim.policyNumber}
+                    </div>
+                    <div>
+                      <strong>Status:</strong> <Badge className={getStatusColor(selectedClaim.status)}>{selectedClaim.status}</Badge>
+                    </div>
+                    <div>
+                      <strong>Branch:</strong> {selectedClaim.branchName || 'N/A'}
+                    </div>
+                    <div>
+                      <strong>Agent:</strong> {selectedClaim.agentName || 'N/A'}
+                    </div>
+                    <div>
+                      <strong>Created:</strong> {new Date(selectedClaim.createdAt).toLocaleDateString()}
+                    </div>
+                    <div>
+                      <strong>Submitted:</strong> {selectedClaim.submittedAt ? new Date(selectedClaim.submittedAt).toLocaleDateString() : 'N/A'}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Claimant Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Claimant Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <strong>Name:</strong> {selectedClaim.claimant.firstName} {selectedClaim.claimant.lastName}
+                    </div>
+                    <div>
+                      <strong>Email:</strong> {selectedClaim.claimant.email}
+                    </div>
+                    {selectedClaim.individualDetails && (
+                      <>
+                        <div>
+                          <strong>ID Number:</strong> {selectedClaim.individualDetails.idNumber}
+                        </div>
+                        <div>
+                          <strong>Mobile:</strong> {selectedClaim.individualDetails.mobile || 'N/A'}
+                        </div>
+                      </>
+                    )}
+                    {selectedClaim.corporateDetails && (
+                      <>
+                        <div>
+                          <strong>Company:</strong> {selectedClaim.corporateDetails.registeredName}
+                        </div>
+                        <div>
+                          <strong>Registration:</strong> {selectedClaim.corporateDetails.registrationNumber}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Accident Details */}
+                {selectedClaim.accidentDescription && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Accident Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <strong>Date:</strong> {selectedClaim.accidentDate ? new Date(selectedClaim.accidentDate).toLocaleDateString() : 'N/A'}
+                        </div>
+                        <div>
+                          <strong>Time:</strong> {selectedClaim.accidentTime || 'N/A'}
+                        </div>
+                        <div className="md:col-span-2">
+                          <strong>Location:</strong> {selectedClaim.accidentLocation || 'N/A'}
+                        </div>
+                      </div>
+                      <div>
+                        <strong>Description:</strong>
+                        <p className="mt-2 text-neutral-600">{selectedClaim.accidentDescription}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* AI Analysis */}
+                {selectedClaim.damagedPhotos && selectedClaim.damagedPhotos.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5" />
+                        AI Damage Analysis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4">
+                        <div className="grid md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <strong>Photos:</strong> {selectedClaim.damagedPhotos.length}
+                          </div>
+                          <div>
+                            <strong>Detected Damages:</strong> {selectedClaim.damagedPhotos.reduce((sum, photo) => sum + (photo.detectedDamages?.length || 0), 0)}
+                          </div>
+                          <div>
+                            <strong>AI Confidence:</strong> High
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {selectedClaim.damagedPhotos.map((photo, index) => (
+                            <div key={photo.id} className="p-3 bg-neutral-50 rounded-lg">
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium">{photo.angle} - {photo.isGoodsPhoto ? 'Goods' : 'Vehicle'}</span>
+                                <span className="text-sm text-neutral-600">{photo.detectedDamages?.length || 0} damages</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button variant="outline" onClick={() => handleDownloadPDF(selectedClaim.id)}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </Button>
+                  <Button onClick={() => setIsDetailsOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
