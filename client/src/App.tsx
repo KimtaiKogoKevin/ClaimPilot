@@ -19,10 +19,10 @@ function Router() {
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/staff-portal" component={StaffPortal} />
+          <Route path="/staff-portal" component={Landing} />
           <Route path="/claim" component={ClaimForm} />
         </>
-      ) : !user?.role ? (
+      ) : !(user as any)?.role ? (
         // Redirect to role selection if authenticated but no role set
         <Route path="*" component={RoleSelection} />
       ) : (
@@ -31,7 +31,7 @@ function Router() {
           <Route path="/role-selection" component={RoleSelection} />
           
           {/* Main routes based on user role */}
-          {user.role === 'claimant' ? (
+          {(user as any).role === 'claimant' ? (
             <>
               <Route path="/" component={ClaimantDashboard} />
               <Route path="/claim/:id?" component={ClaimForm} />
