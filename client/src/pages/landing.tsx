@@ -65,21 +65,24 @@ export default function Landing() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
-                  onClick={handleStartClaim}
+                  onClick={() => window.location.href = "/claimant-signup"}
                   size="lg"
                   className="bg-white text-primary hover:bg-neutral-50 transform hover:scale-105 transition-all shadow-lg"
                 >
-                  <span className="mr-2">+</span>
-                  Start New Claim
+                  <span className="mr-2">🚗</span>
+                  Submit Claim
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={handleLogin}
+                  onClick={() => {
+                    localStorage.setItem('pendingUserRole', 'claimant');
+                    window.location.href = "/api/login";
+                  }}
                   size="lg"
                   className="border-2 border-white bg-white bg-opacity-10 text-white hover:bg-white hover:text-primary font-semibold"
                 >
-                  <span className="mr-2">G</span>
-                  Sign In with Google
+                  <span className="mr-2">👤</span>
+                  Sign In (Existing User)
                 </Button>
               </div>
             </div>

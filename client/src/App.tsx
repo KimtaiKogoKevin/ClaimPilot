@@ -12,6 +12,7 @@ import StaffPortal from "@/pages/staff-portal";
 import RoleSelection from "@/pages/role-selection";
 import BrokerSignup from "@/pages/broker-signup";
 import AdjudicatorSignup from "@/pages/adjudicator-signup";
+import ClaimantSignup from "@/pages/claimant-signup";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -25,6 +26,7 @@ function Router() {
           <Route path="/claim" component={ClaimForm} />
           <Route path="/broker-signup" component={BrokerSignup} />
           <Route path="/adjudicator-signup" component={AdjudicatorSignup} />
+          <Route path="/claimant-signup" component={ClaimantSignup} />
         </>
       ) : !(user as any)?.role ? (
         // Redirect to role selection if authenticated but no role set

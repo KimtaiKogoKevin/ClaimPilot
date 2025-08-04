@@ -379,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
-      const claims = await storage.getAllClaimsWithDetails();
+      const claims = await storage.getAllClaims();
       res.json(claims);
     } catch (error) {
       console.error("Error fetching all claims:", error);
@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
-      const claim = await storage.getClaimWithDetails(req.params.id);
+      const claim = await storage.getClaim(req.params.id);
       if (!claim) {
         return res.status(404).json({ message: "Claim not found" });
       }
@@ -419,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
-      const claim = await storage.getClaimWithDetails(req.params.id);
+      const claim = await storage.getClaim(req.params.id);
       if (!claim) {
         return res.status(404).json({ message: "Claim not found" });
       }
