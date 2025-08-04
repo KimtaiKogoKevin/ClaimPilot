@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter, Download, FileText, User, Phone } from "lucide-react";
+import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter, Download, FileText, User, Phone, Car, CreditCard, Truck, Building } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -498,6 +498,201 @@ export default function StaffPortal() {
                       <div>
                         <strong>Description:</strong>
                         <p className="mt-2 text-neutral-600">{selectedClaim.accidentDescription}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Vehicle Information */}
+                {selectedClaim.vehicle && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Car className="h-5 w-5" />
+                        Vehicle Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <strong>Make:</strong> {selectedClaim.vehicle.make}
+                      </div>
+                      <div>
+                        <strong>Model:</strong> {selectedClaim.vehicle.model}
+                      </div>
+                      <div>
+                        <strong>Year:</strong> {selectedClaim.vehicle.yearOfManufacture || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Registration:</strong> {selectedClaim.vehicle.registrationNumber || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Owner:</strong> {selectedClaim.vehicle.ownerName || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Vehicle Use:</strong> {selectedClaim.vehicle.vehicleUse || 'N/A'}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Driver Information */}
+                {selectedClaim.driver && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        Driver Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <strong>Name:</strong> {selectedClaim.driver.name}
+                      </div>
+                      <div>
+                        <strong>License Number:</strong> {selectedClaim.driver.licenseNumber || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Years of Driving:</strong> {selectedClaim.driver.yearsOfDriving || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Occupation:</strong> {selectedClaim.driver.occupation || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Address:</strong> {selectedClaim.driver.address || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Telephone:</strong> {selectedClaim.driver.telephone || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Employed by Insured:</strong> {selectedClaim.driver.employedByInsured ? 'Yes' : 'No'}
+                      </div>
+                      <div>
+                        <strong>Previous Accidents:</strong> {selectedClaim.driver.previousAccidents ? 'Yes' : 'No'}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Bank Details */}
+                {selectedClaim.bankDetails && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="h-5 w-5" />
+                        Bank Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <strong>Bank Name:</strong> {selectedClaim.bankDetails.bankName}
+                      </div>
+                      <div>
+                        <strong>Account Name:</strong> {selectedClaim.bankDetails.accountName}
+                      </div>
+                      <div>
+                        <strong>Account Number:</strong> {selectedClaim.bankDetails.accountNumber}
+                      </div>
+                      <div>
+                        <strong>Branch:</strong> {selectedClaim.bankDetails.branch || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Swift Code:</strong> {selectedClaim.bankDetails.swiftCode || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Sort Code:</strong> {selectedClaim.bankDetails.sortCode || 'N/A'}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Other Vehicles Involved */}
+                {selectedClaim.otherVehicles && selectedClaim.otherVehicles.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Truck className="h-5 w-5" />
+                        Other Vehicles Involved
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {selectedClaim.otherVehicles.map((vehicle, index) => (
+                          <div key={vehicle.id} className="border rounded-lg p-4 bg-gray-50">
+                            <h4 className="font-medium text-gray-900 mb-2">Vehicle {index + 1}</h4>
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                <strong>Owner Name:</strong> {vehicle.ownerName || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>Registration:</strong> {vehicle.registrationNumber || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>Owner Address:</strong> {vehicle.ownerAddress || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>Insurer:</strong> {vehicle.insurer || 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Individual Details (Extended) */}
+                {selectedClaim.individualDetails && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        Individual Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <strong>Full Name:</strong> {selectedClaim.individualDetails.firstName} {selectedClaim.individualDetails.middleName || ''} {selectedClaim.individualDetails.surname}
+                      </div>
+                      <div>
+                        <strong>ID Number:</strong> {selectedClaim.individualDetails.idNumber || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Nationality:</strong> {selectedClaim.individualDetails.nationality || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Mobile:</strong> {selectedClaim.individualDetails.mobile || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Email:</strong> {selectedClaim.individualDetails.email || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Address:</strong> {selectedClaim.individualDetails.physicalAddress || 'N/A'}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Corporate Details (Extended) */}
+                {selectedClaim.corporateDetails && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building className="h-5 w-5" />
+                        Corporate Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <strong>Company Name:</strong> {selectedClaim.corporateDetails.registeredName}
+                      </div>
+                      <div>
+                        <strong>Registration Number:</strong> {selectedClaim.corporateDetails.registrationNumber || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Years in Operation:</strong> {selectedClaim.corporateDetails.yearsInOperation || 'N/A'}
+                      </div>
+                      <div>
+                        <strong>Address:</strong> {selectedClaim.corporateDetails.physicalAddress || 'N/A'}
                       </div>
                     </CardContent>
                   </Card>
