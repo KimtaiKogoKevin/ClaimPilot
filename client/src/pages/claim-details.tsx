@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, FileText } from "lucide-react";
+import { ArrowLeft, Download, FileText, AlertCircle, Car, User, CheckCircle, Clock, XCircle, Camera, CreditCard, Truck } from "lucide-react";
 import type { ClaimWithDetails } from "@shared/schema";
 
 export default function ClaimDetails() {
@@ -320,6 +320,118 @@ export default function ClaimDetails() {
               </div>
             </div>
           </div>
+
+          {/* Driver Information */}
+          {claim.driver && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="w-5 h-5 mr-2 text-green-600" />
+                Driver Information
+              </h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Name</p>
+                    <p className="text-gray-900">{claim.driver.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">ID Number</p>
+                    <p className="text-gray-900">{claim.driver.licenseNumber || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">License Number</p>
+                    <p className="text-gray-900">{claim.driver.licenseNumber || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Years of Driving</p>
+                    <p className="text-gray-900">{claim.driver.yearsOfDriving || 'N/A'}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Address</p>
+                  <p className="text-gray-900">{claim.driver.address || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Telephone</p>
+                  <p className="text-gray-900">{claim.driver.telephone || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bank Details */}
+          {claim.bankDetails && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <CreditCard className="w-5 h-5 mr-2 text-purple-600" />
+                Bank Details
+              </h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Bank Name</p>
+                    <p className="text-gray-900">{claim.bankDetails.bankName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Branch</p>
+                    <p className="text-gray-900">{claim.bankDetails.branch || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Account Number</p>
+                    <p className="text-gray-900">{claim.bankDetails.accountNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Swift Code</p>
+                    <p className="text-gray-900">{claim.bankDetails.swiftCode || 'N/A'}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Account Name</p>
+                  <p className="text-gray-900">{claim.bankDetails.accountName}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Other Vehicles */}
+          {claim.otherVehicles && claim.otherVehicles.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6 lg:col-span-2">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Truck className="w-5 h-5 mr-2 text-orange-600" />
+                Other Vehicles Involved
+              </h2>
+              <div className="space-y-4">
+                {claim.otherVehicles.map((vehicle, index) => (
+                  <div key={vehicle.id} className="border rounded-lg p-4 bg-gray-50">
+                    <h3 className="font-medium text-gray-900 mb-2">Vehicle {index + 1}</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Owner Name</p>
+                        <p className="text-gray-900">{vehicle.ownerName || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Owner Address</p>
+                        <p className="text-gray-900">{vehicle.ownerAddress || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Registration</p>
+                        <p className="text-gray-900">{vehicle.registrationNumber || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Insurer</p>
+                        <p className="text-gray-900">{vehicle.insurer || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Individual Details */}
           {claim.individualDetails && (
