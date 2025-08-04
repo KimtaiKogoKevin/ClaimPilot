@@ -25,6 +25,7 @@ export default function DamageAssessmentStep({
   const { toast } = useToast();
   const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [photosByAngle, setPhotosByAngle] = useState<Record<string, any>>({});
 
   const requiredAngles = [
     { id: 'FRONT_VIEW', label: 'Front View', required: true },
@@ -46,6 +47,10 @@ export default function DamageAssessmentStep({
     },
     onSuccess: (data) => {
       setUploadedPhotos(prev => [...prev, data.photo]);
+      setPhotosByAngle(prev => ({
+        ...prev,
+        [data.photo.angle]: data.photo
+      }));
       if (data.photo.aiAnalysisResults) {
         setAiAnalysis(data.photo.aiAnalysisResults);
       }
@@ -156,28 +161,94 @@ export default function DamageAssessmentStep({
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {requiredAngles.map((angle) => (
-                <div key={angle.id} className="text-center">
-                  <ObjectUploader
-                    maxNumberOfFiles={1}
-                    maxFileSize={10485760} // 10MB
-                    onGetUploadParameters={handleGetUploadParameters}
-                    onComplete={handlePhotoUploadComplete(angle.id)}
-                    buttonClassName="w-full"
-                  >
-                    <div className="border-2 border-dashed border-white rounded-lg p-4 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
-                      <Camera className="text-white h-8 w-8 mx-auto mb-2" />
-                      <div className="text-white text-sm font-bold mb-1">{angle.label}</div>
-                      <div className="text-white text-xs font-semibold bg-black bg-opacity-40 px-2 py-1 rounded-full">
-                        {angle.required ? 'REQUIRED' : 'OPTIONAL'}
+              {requiredAngles.map((angle) => {
+                const uploadedPhoto = photosByAngle[angle.id];
+                return (
+                  <div key={angle.id} className="text-center">
+                    {uploadedPhoto ? (
+                      <div className="relative border-2 border-white rounded-lg overflow-hidden bg-white bg-opacity-10">
+                        <img 
+                          src={`/objects/${uploadedPhoto.objectPath.split('/objects/')[1]}`}
+                          alt={`${angle.label} view`}
+                          className="w-full h-32 object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <ObjectUploader
+                            maxNumberOfFiles={1}
+                            maxFileSize={10485760}
+                            onGetUploadParameters={handleGetUploadParameters}
+                            onComplete={handlePhotoUploadComplete(angle.id)}
+                            buttonClassName="text-xs"
+                          >
+                            <div className="text-white text-xs font-bold px-2 py-1 bg-white bg-opacity-20 rounded">
+                              Replace
+                            </div>
+                          </ObjectUploader>
+                        </div>
+                        <div className="p-2">
+                          <div className="text-white text-sm font-bold">{angle.label}</div>
+                          <div className="text-white text-xs bg-green-500 bg-opacity-80 px-2 py-1 rounded-full">
+                            ✓ UPLOADED
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-white text-xs mt-1 opacity-90">Click to upload</div>
-                    </div>
-                  </ObjectUploader>
-                </div>
-              ))}
+                    ) : (
+                      <ObjectUploader
+                        maxNumberOfFiles={1}
+                        maxFileSize={10485760}
+                        onGetUploadParameters={handleGetUploadParameters}
+                        onComplete={handlePhotoUploadComplete(angle.id)}
+                        buttonClassName="w-full"
+                      >
+                        <div className="border-2 border-dashed border-white rounded-lg p-4 text-center hover:border-white hover:bg-white hover:bg-opacity-20 transition-all cursor-pointer bg-white bg-opacity-10">
+                          <Camera className="text-white h-8 w-8 mx-auto mb-2" />
+                          <div className="text-white text-sm font-bold mb-1">{angle.label}</div>
+                          <div className="text-white text-xs font-semibold bg-black bg-opacity-40 px-2 py-1 rounded-full">
+                            {angle.required ? 'REQUIRED' : 'OPTIONAL'}
+                          </div>
+                          <div className="text-white text-xs mt-1 opacity-90">Click to upload</div>
+                        </div>
+                      </ObjectUploader>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
+
+          {/* Uploaded Photos Preview */}
+          {uploadedPhotos.length > 0 && (
+            <div className="mt-6 bg-white rounded-lg border border-gray-200 p-4">
+              <h5 className="font-semibold text-gray-900 mb-4 flex items-center">
+                <Camera className="h-5 w-5 mr-2 text-blue-600" />
+                Uploaded Damage Photos ({uploadedPhotos.length})
+              </h5>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {uploadedPhotos.map((photo, index) => (
+                  <div key={photo.id} className="group relative">
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <img
+                        src={`/objects/${photo.objectPath.split('/objects/')[1]}`}
+                        alt={`${photo.angle} damage view`}
+                        className="w-full h-32 object-cover"
+                      />
+                      <div className="p-2 bg-gray-50">
+                        <div className="text-sm font-medium text-gray-900">{photo.angle.replace('_', ' ')}</div>
+                        <div className="text-xs text-gray-500">
+                          {photo.isGoodsPhoto ? 'Goods Damage' : 'Vehicle Damage'}
+                        </div>
+                        {photo.detectedDamages && photo.detectedDamages.length > 0 && (
+                          <div className="text-xs text-green-600 font-medium mt-1">
+                            ✓ {photo.detectedDamages.length} damage{photo.detectedDamages.length !== 1 ? 's' : ''} detected
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* AI Analysis Results */}
           {aiAnalysis && (
