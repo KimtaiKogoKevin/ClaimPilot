@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,15 @@ export default function RoleSelection() {
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
+
+  // Check for pending role from signup flow
+  useEffect(() => {
+    const pendingRole = localStorage.getItem('pendingUserRole');
+    if (pendingRole) {
+      setSelectedRole(pendingRole);
+      localStorage.removeItem('pendingUserRole');
+    }
+  }, []);
 
   const handleRoleUpdate = async () => {
     if (!selectedRole) {

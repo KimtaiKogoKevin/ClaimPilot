@@ -12,7 +12,7 @@ export default function Landing() {
   };
 
   const handleStaffPortal = () => {
-    window.location.href = "/staff";
+    window.location.href = "/staff-portal";
   };
 
   return (
@@ -30,13 +30,22 @@ export default function Landing() {
             <Button variant="ghost" className="text-neutral-600 hover:text-primary">
               Help
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleStaffPortal}
-              className="bg-neutral-100 text-neutral-800 hover:bg-neutral-200"
-            >
-              Staff Portal
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => window.location.href = "/broker-signup"}
+                className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+              >
+                Broker Portal
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.location.href = "/adjudicator-signup"}
+                className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+              >
+                Adjudicator Portal
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
