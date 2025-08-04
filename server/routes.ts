@@ -63,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Full req.user:", JSON.stringify(req.user, null, 2));
     console.log("req.isAuthenticated():", req.isAuthenticated());
     console.log("req.user.claims:", req.user?.claims);
-    console.log("req.user.claims.sub:", req.user?.claims?.sub);
+    console.log("(req.user as any)?.claims?.sub:", req.user?.claims?.sub);
     
     res.json({
       isAuthenticated: req.isAuthenticated(),
@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user?.claims?.sub;
       if (!userId) {
-        console.error("User ID not found in req.user.claims.sub:", req.user);
+        console.error("User ID not found in (req.user as any)?.claims?.sub:", req.user);
         return res.status(401).json({ message: "User ID not found" });
       }
       const user = await storage.getUser(userId);
