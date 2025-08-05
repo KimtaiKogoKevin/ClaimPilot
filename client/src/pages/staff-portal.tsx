@@ -457,29 +457,53 @@ export default function StaffPortal() {
                 {/* Claim Overview */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
+                    <CardTitle className="flex items-center text-lg font-semibold text-indigo-800">
+                      <FileText className="h-5 w-5 mr-2 text-indigo-600" />
                       Claim Overview
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <strong>Policy Number:</strong> {selectedClaim.policyNumber}
-                    </div>
-                    <div>
-                      <strong>Status:</strong> <Badge className={getStatusColor(selectedClaim.status)}>{selectedClaim.status}</Badge>
-                    </div>
-                    <div>
-                      <strong>Branch:</strong> {selectedClaim.branchName || 'N/A'}
-                    </div>
-                    <div>
-                      <strong>Agent:</strong> {selectedClaim.agentName || 'N/A'}
-                    </div>
-                    <div>
-                      <strong>Created:</strong> {selectedClaim.createdAt ? new Date(selectedClaim.createdAt as Date).toLocaleDateString() : 'N/A'}
-                    </div>
-                    <div>
-                      <strong>Submitted:</strong> {selectedClaim.submittedAt ? new Date(selectedClaim.submittedAt).toLocaleDateString() : 'N/A'}
+                  <CardContent>
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-indigo-700 mb-1">Policy Number</label>
+                          <div className="bg-white p-2 rounded border border-indigo-200">
+                            <div className="text-indigo-900 font-mono">{selectedClaim.policyNumber}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-indigo-700 mb-1">Status</label>
+                          <div className="bg-white p-2 rounded border border-indigo-200">
+                            <Badge className={getStatusColor(selectedClaim.status)}>
+                              {selectedClaim.status.charAt(0).toUpperCase() + selectedClaim.status.slice(1)}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-indigo-700 mb-1">Branch</label>
+                          <div className="bg-white p-2 rounded border border-indigo-200">
+                            <div className="text-indigo-900">{selectedClaim.branchName || 'Not specified'}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-indigo-700 mb-1">Agent</label>
+                          <div className="bg-white p-2 rounded border border-indigo-200">
+                            <div className="text-indigo-900">{selectedClaim.agentName || 'Not specified'}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-indigo-700 mb-1">Date Created</label>
+                          <div className="bg-white p-2 rounded border border-indigo-200">
+                            <div className="text-indigo-900 font-medium">{selectedClaim.createdAt ? new Date(selectedClaim.createdAt as Date).toLocaleDateString() : 'Not specified'}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-indigo-700 mb-1">Date Submitted</label>
+                          <div className="bg-white p-2 rounded border border-indigo-200">
+                            <div className="text-indigo-900">{selectedClaim.submittedAt ? new Date(selectedClaim.submittedAt).toLocaleDateString() : 'Not submitted'}</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -487,38 +511,63 @@ export default function StaffPortal() {
                 {/* Claimant Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
+                    <CardTitle className="flex items-center text-lg font-semibold text-teal-800">
+                      <User className="h-5 w-5 mr-2 text-teal-600" />
                       Claimant Information
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <strong>Name:</strong> {selectedClaim.claimant.firstName} {selectedClaim.claimant.lastName}
+                  <CardContent>
+                    <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-teal-700 mb-1">Full Name</label>
+                          <div className="bg-white p-2 rounded border border-teal-200">
+                            <div className="text-teal-900 font-medium">{selectedClaim.claimant.firstName} {selectedClaim.claimant.lastName}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-teal-700 mb-1">Email Address</label>
+                          <div className="bg-white p-2 rounded border border-teal-200">
+                            <div className="text-teal-900">{selectedClaim.claimant.email}</div>
+                          </div>
+                        </div>
+                        {selectedClaim.individualDetails && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-teal-700 mb-1">ID Number</label>
+                              <div className="bg-white p-2 rounded border border-teal-200">
+                                <div className="text-teal-900 font-mono">{selectedClaim.individualDetails.idNumber}</div>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-teal-700 mb-1">Mobile Number</label>
+                              <div className="bg-white p-2 rounded border border-teal-200">
+                                <div className="text-teal-900 font-mono">{selectedClaim.individualDetails.mobile || 'Not specified'}</div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        {selectedClaim.corporateDetails && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-teal-700 mb-1">Registered Company Name</label>
+                              <div className="bg-white p-2 rounded border border-teal-200">
+                                <div className="text-teal-900 font-medium flex items-center">
+                                  <Building className="h-4 w-4 mr-2 text-teal-600" />
+                                  {selectedClaim.corporateDetails.registeredName}
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-teal-700 mb-1">Registration Number</label>
+                              <div className="bg-white p-2 rounded border border-teal-200">
+                                <div className="text-teal-900 font-mono">{selectedClaim.corporateDetails.registrationNumber}</div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <strong>Email:</strong> {selectedClaim.claimant.email}
-                    </div>
-                    {selectedClaim.individualDetails && (
-                      <>
-                        <div>
-                          <strong>ID Number:</strong> {selectedClaim.individualDetails.idNumber}
-                        </div>
-                        <div>
-                          <strong>Mobile:</strong> {selectedClaim.individualDetails.mobile || 'N/A'}
-                        </div>
-                      </>
-                    )}
-                    {selectedClaim.corporateDetails && (
-                      <>
-                        <div>
-                          <strong>Company:</strong> {selectedClaim.corporateDetails.registeredName}
-                        </div>
-                        <div>
-                          <strong>Registration:</strong> {selectedClaim.corporateDetails.registrationNumber}
-                        </div>
-                      </>
-                    )}
                   </CardContent>
                 </Card>
 
