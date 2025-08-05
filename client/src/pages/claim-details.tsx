@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, FileText, AlertCircle, Car, User, CheckCircle, Clock, XCircle, Camera, CreditCard, Truck } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowLeft, Download, FileText, AlertCircle, Car, User, CheckCircle, Clock, XCircle, Camera, CreditCard, Truck, Info, MapPin, Calendar, Eye } from "lucide-react";
 import type { ClaimWithDetails } from "@shared/schema";
 
 export default function ClaimDetails() {
@@ -14,6 +15,7 @@ export default function ClaimDetails() {
   const { toast } = useToast();
   const [claim, setClaim] = useState<ClaimWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -194,6 +196,199 @@ export default function ClaimDetails() {
                   <Download className="w-4 h-4 mr-2" />
                   Download PDF
                 </Button>
+                
+                <Dialog open={isIncidentModalOpen} onOpenChange={setIsIncidentModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                    >
+                      <Info className="h-4 w-4 mr-2" />
+                      View Incident Details
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center text-xl font-bold text-gray-800">
+                        <AlertCircle className="h-6 w-6 mr-2 text-red-500" />
+                        Complete Incident Information
+                      </DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6 mt-6">
+                      {/* Accident Details Section */}
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                        <h3 className="flex items-center text-lg font-semibold text-red-800 mb-4">
+                          <MapPin className="h-5 w-5 mr-2" />
+                          Accident Information
+                        </h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-red-700 mb-1">Date & Time</label>
+                            <div className="bg-white p-3 rounded border border-red-200">
+                              <div className="flex items-center text-gray-900">
+                                <Calendar className="h-4 w-4 mr-2 text-red-500" />
+                                {claim?.accidentDate ? new Date(claim.accidentDate).toLocaleDateString() : 'Not specified'} 
+                                {claim?.accidentTime && ` at ${claim.accidentTime}`}
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-red-700 mb-1">Location</label>
+                            <div className="bg-white p-3 rounded border border-red-200">
+                              <div className="text-gray-900">{claim?.accidentLocation || 'Not specified'}</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-red-700 mb-1">Description of Incident</label>
+                          <div className="bg-white p-4 rounded border border-red-200">
+                            <div className="text-gray-900 whitespace-pre-wrap">
+                              {claim?.accidentDescription || 'No description provided'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Vehicle Information Section */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h3 className="flex items-center text-lg font-semibold text-blue-800 mb-4">
+                          <Car className="h-5 w-5 mr-2" />
+                          Vehicle Information
+                        </h3>
+                        {claim?.vehicle ? (
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-blue-700 mb-1">Make & Model</label>
+                              <div className="bg-white p-3 rounded border border-blue-200">
+                                <div className="text-gray-900">{claim.vehicle.make} {claim.vehicle.model}</div>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-blue-700 mb-1">Year</label>
+                              <div className="bg-white p-3 rounded border border-blue-200">
+                                <div className="text-gray-900">{claim.vehicle.yearOfManufacture || 'Not specified'}</div>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-blue-700 mb-1">Registration</label>
+                              <div className="bg-white p-3 rounded border border-blue-200">
+                                <div className="text-gray-900">{claim.vehicle.registrationNumber || 'Not specified'}</div>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-blue-700 mb-1">Owner</label>
+                              <div className="bg-white p-3 rounded border border-blue-200">
+                                <div className="text-gray-900">{claim.vehicle.ownerName || 'Not specified'}</div>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-blue-700 mb-1">Vehicle Use</label>
+                              <div className="bg-white p-3 rounded border border-blue-200">
+                                <div className="text-gray-900">{claim.vehicle.vehicleUse || 'Not specified'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-gray-600">No vehicle information available</div>
+                        )}
+                      </div>
+
+                      {/* Other Vehicles Section */}
+                      {claim?.otherVehicles && claim.otherVehicles.length > 0 && (
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                          <h3 className="flex items-center text-lg font-semibold text-orange-800 mb-4">
+                            <Truck className="h-5 w-5 mr-2" />
+                            Other Vehicles Involved
+                          </h3>
+                          <div className="space-y-4">
+                            {claim.otherVehicles.map((vehicle, index) => (
+                              <div key={index} className="bg-white border border-orange-200 rounded-lg p-4">
+                                <h4 className="font-medium text-orange-800 mb-3">Vehicle {index + 1}</h4>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-orange-700 mb-1">Owner Name</label>
+                                    <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                                      <div className="text-gray-900">{vehicle.ownerName || 'Not specified'}</div>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-orange-700 mb-1">Registration</label>
+                                    <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                                      <div className="text-gray-900">{vehicle.registrationNumber || 'Not specified'}</div>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-orange-700 mb-1">Owner Address</label>
+                                    <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                                      <div className="text-gray-900">{vehicle.ownerAddress || 'Not specified'}</div>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-orange-700 mb-1">Insurer</label>
+                                    <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                                      <div className="text-gray-900">{vehicle.insurer || 'Not specified'}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Damage Assessment Section */}
+                      {claim?.damagedPhotos && claim.damagedPhotos.length > 0 && (
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                          <h3 className="flex items-center text-lg font-semibold text-purple-800 mb-4">
+                            <Camera className="h-5 w-5 mr-2" />
+                            Damage Assessment
+                          </h3>
+                          <div className="space-y-4">
+                            {claim.damagedPhotos.map((photo, index) => (
+                              <div key={index} className="bg-white border border-purple-200 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-medium text-purple-800">Photo {index + 1}: {photo.angle}</h4>
+                                  <span className="text-sm text-purple-600 bg-purple-100 px-2 py-1 rounded">
+                                    {photo.isGoodsPhoto ? 'Goods Photo' : 'Vehicle Photo'}
+                                  </span>
+                                </div>
+                                
+                                {photo.detectedDamages && photo.detectedDamages.length > 0 ? (
+                                  <div className="space-y-2">
+                                    <div className="font-medium text-purple-700">AI Detected Damages:</div>
+                                    {photo.detectedDamages.map((damage, damageIndex) => (
+                                      <div key={damageIndex} className="bg-purple-50 border border-purple-200 rounded p-3">
+                                        <div className="text-sm text-purple-800">
+                                          <strong>Damage {damageIndex + 1}:</strong> {damage.damageType || 'Unspecified type'}
+                                        </div>
+                                        <div className="text-sm text-purple-600 mt-1">
+                                          Confidence: {damage.confidence ? (damage.confidence * 100).toFixed(1) + '%' : 'N/A'}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-purple-600 text-sm">No damages detected in this photo</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end mt-6 pt-4 border-t">
+                      <Button 
+                        onClick={() => setIsIncidentModalOpen(false)}
+                        className="bg-gray-600 hover:bg-gray-700 text-white"
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </div>
