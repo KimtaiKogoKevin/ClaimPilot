@@ -118,7 +118,8 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     return res.status(401).json({ message: 'User not found' });
   }
 
-  req.user = user as User;
+  // Attach user to request in the same format as AuthUser
+  (req as any).user = toAuthUser(user);
   next();
 }
 
@@ -217,7 +218,7 @@ export async function login(req: Request, res: Response) {
 // Setup 2FA endpoint
 export async function setup2FA(req: Request, res: Response) {
   try {
-    const user = req.user;
+    const user = (req as any).user;
     if (!user) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -252,7 +253,7 @@ export async function setup2FA(req: Request, res: Response) {
 // Enable 2FA endpoint
 export async function enable2FA(req: Request, res: Response) {
   try {
-    const user = req.user;
+    const user = (req as any).user;
     if (!user) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -297,7 +298,7 @@ export async function enable2FA(req: Request, res: Response) {
 // Disable 2FA endpoint
 export async function disable2FA(req: Request, res: Response) {
   try {
-    const user = req.user;
+    const user = (req as any).user;
     if (!user) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -319,19 +320,12 @@ export async function disable2FA(req: Request, res: Response) {
 // Get current user endpoint
 export async function getCurrentUser(req: Request, res: Response) {
   try {
-    const user = req.user;
+    const user = (req as any).user;
     if (!user) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    res.json({
-      id: user.id,
-      email: user.email || '',
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      role: user.role,
-      twoFactorEnabled: user.twoFactorEnabled || false
-    });
+    res.json(user);
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ message: 'Internal server error' });

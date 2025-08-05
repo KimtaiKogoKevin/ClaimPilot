@@ -39,7 +39,7 @@ export function useStandaloneAuth() {
 
   // Get the current user data
   const { data: user, isLoading, error } = useQuery({
-    queryKey: ['/api/standalone/user'],
+    queryKey: ['/api/auth/user'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -47,7 +47,7 @@ export function useStandaloneAuth() {
       }
 
       try {
-        const response = await fetch('/api/standalone/user', {
+        const response = await fetch('/api/auth/user', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -73,13 +73,13 @@ export function useStandaloneAuth() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const response = await apiRequest("POST", "/api/standalone/login", credentials);
+      const response = await apiRequest("POST", "/api/auth/login", credentials);
       return await response.json();
     },
     onSuccess: (data: AuthResponse & { requiresTwoFactor?: boolean }) => {
       if (!data.requiresTwoFactor && data.token) {
         localStorage.setItem('auth_token', data.token);
-        queryClient.setQueryData(['/api/standalone/user'], data.user);
+        queryClient.setQueryData(['/api/auth/user'], data.user);
       }
     },
     onError: (error: Error) => {
@@ -94,12 +94,12 @@ export function useStandaloneAuth() {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async (credentials: RegisterData) => {
-      const response = await apiRequest("POST", "/api/standalone/register", credentials);
+      const response = await apiRequest("POST", "/api/auth/register", credentials);
       return await response.json();
     },
     onSuccess: (data: AuthResponse) => {
       localStorage.setItem('auth_token', data.token);
-      queryClient.setQueryData(['/api/standalone/user'], data.user);
+      queryClient.setQueryData(['/api/auth/user'], data.user);
     },
     onError: (error: Error) => {
       toast({
@@ -113,11 +113,11 @@ export function useStandaloneAuth() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/standalone/logout");
+      await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
       localStorage.removeItem('auth_token');
-      queryClient.setQueryData(['/api/standalone/user'], null);
+      queryClient.setQueryData(['/api/auth/user'], null);
       queryClient.clear();
     },
     onError: (error: Error) => {
@@ -133,7 +133,7 @@ export function useStandaloneAuth() {
   const setup2FAMutation = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/standalone/2fa/setup', {
+      const response = await fetch('/api/auth/2fa/setup', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -160,7 +160,7 @@ export function useStandaloneAuth() {
   const enable2FAMutation = useMutation({
     mutationFn: async (token: string) => {
       const authToken = localStorage.getItem('auth_token');
-      const response = await fetch('/api/standalone/2fa/enable', {
+      const response = await fetch('/api/auth/2fa/enable', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -176,7 +176,7 @@ export function useStandaloneAuth() {
       return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/standalone/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       toast({
         title: "Two-factor authentication enabled",
         description: "Your account is now more secure",
@@ -195,7 +195,7 @@ export function useStandaloneAuth() {
   const disable2FAMutation = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/standalone/2fa/disable', {
+      const response = await fetch('/api/auth/2fa/disable', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -210,7 +210,7 @@ export function useStandaloneAuth() {
       return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/standalone/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       toast({
         title: "Two-factor authentication disabled",
         description: "2FA has been removed from your account",

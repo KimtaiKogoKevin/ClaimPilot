@@ -1,18 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Brain, Smartphone, Clock } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
+
   const handleStartClaim = () => {
-    window.location.href = "/claim";
+    setLocation("/claim");
   };
 
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    setLocation("/auth");
   };
 
   const handleStaffPortal = () => {
-    window.location.href = "/staff-portal";
+    setLocation("/staff-portal");
   };
 
   return (
@@ -33,14 +36,14 @@ export default function Landing() {
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
-                onClick={() => window.location.href = "/broker-signup"}
+                onClick={() => setLocation("/auth")}
                 className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
               >
                 Broker Portal
               </Button>
               <Button
                 variant="outline"
-                onClick={() => window.location.href = "/adjudicator-signup"}
+                onClick={() => setLocation("/auth")}
                 className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
               >
                 Adjudicator Portal

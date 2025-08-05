@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
   register, 
   login, 
@@ -10,7 +9,7 @@ import {
   setup2FA, 
   enable2FA, 
   disable2FA, 
-  authenticateToken 
+  authenticateToken
 } from "./standaloneAuth";
 import {
   ObjectStorageService,
@@ -64,55 +63,19 @@ async function analyzeImageWithRoboflow(imageUrl: string, isGoodsPhoto: boolean 
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
   // Standalone authentication routes
-  app.post('/api/standalone/register', register);
-  app.post('/api/standalone/login', login);
-  app.post('/api/standalone/logout', logout);
-  app.get('/api/standalone/user', authenticateToken, getCurrentUser);
-  app.post('/api/standalone/2fa/setup', authenticateToken, setup2FA);
-  app.post('/api/standalone/2fa/enable', authenticateToken, enable2FA);
-  app.post('/api/standalone/2fa/disable', authenticateToken, disable2FA);
-
-  // Debug auth endpoint
-  app.get('/api/debug/auth', (req: any, res) => {
-    console.log("=== AUTH DEBUG ===");
-    console.log("Full req.user:", JSON.stringify(req.user, null, 2));
-    console.log("req.isAuthenticated():", req.isAuthenticated());
-    console.log("req.user.claims:", req.user?.claims);
-    console.log("(req.user as any)?.claims?.sub:", req.user?.claims?.sub);
-    
-    res.json({
-      isAuthenticated: req.isAuthenticated(),
-      userExists: !!req.user,
-      hasUserClaims: !!req.user?.claims,
-      userClaimsSub: req.user?.claims?.sub,
-      fullUser: req.user
-    });
-  });
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        console.error("User ID not found in (req.user as any)?.claims?.sub:", req.user);
-        return res.status(401).json({ message: "User ID not found" });
-      }
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  app.post('/api/auth/register', register);
+  app.post('/api/auth/login', login);
+  app.post('/api/auth/logout', logout);
+  app.get('/api/auth/user', authenticateToken, getCurrentUser);
+  app.post('/api/auth/2fa/setup', authenticateToken, setup2FA);
+  app.post('/api/auth/2fa/enable', authenticateToken, enable2FA);
+  app.post('/api/auth/2fa/disable', authenticateToken, disable2FA);
 
   // Update user role
-  app.put('/api/auth/update-role', isAuthenticated, async (req: any, res) => {
+  app.put('/api/auth/update-role', authenticateToken, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -131,9 +94,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new draft claim
-  app.post("/api/claims", isAuthenticated, async (req, res) => {
+  app.post("/api/claims", authenticateToken, async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -153,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a claim
-  app.put("/api/claims/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/claims/:id", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const userId = (req.user as any)?.claims?.sub;
@@ -177,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user's claims
-  app.get("/api/claims", isAuthenticated, async (req, res) => {
+  app.get("/api/claims", authenticateToken, async (req, res) => {
     try {
       const userId = req.user?.claims?.sub;
       if (!userId) {
@@ -193,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get claim details
-  app.get("/api/claims/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/claims/:id", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const userId = req.user?.claims?.sub;
@@ -214,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Claim details routes
-  app.post("/api/claims/:id/individual-details", isAuthenticated, async (req, res) => {
+  app.post("/api/claims/:id/individual-details", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const details = insertIndividualDetailsSchema.parse({
@@ -230,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/corporate-details", isAuthenticated, async (req, res) => {
+  app.post("/api/claims/:id/corporate-details", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const details = insertCorporateDetailsSchema.parse({
@@ -246,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/vehicle", isAuthenticated, async (req, res) => {
+  app.post("/api/claims/:id/vehicle", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const vehicle = insertVehicleSchema.parse({
@@ -262,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/driver", isAuthenticated, async (req, res) => {
+  app.post("/api/claims/:id/driver", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const driver = insertDriverSchema.parse({
@@ -278,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/bank-details", isAuthenticated, async (req, res) => {
+  app.post("/api/claims/:id/bank-details", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const bankDetails = insertBankDetailsSchema.parse({
@@ -294,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/other-vehicles", isAuthenticated, async (req, res) => {
+  app.post("/api/claims/:id/other-vehicles", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const vehicle = insertOtherVehicleSchema.parse({
@@ -311,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Damage photo upload
-  app.post("/api/claims/:id/photos", isAuthenticated, async (req, res) => {
+  app.post("/api/claims/:id/photos", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const userId = req.user?.claims?.sub;
@@ -367,7 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate PDF for claim
-  app.get("/api/claims/:id/pdf", isAuthenticated, async (req, res) => {
+  app.get("/api/claims/:id/pdf", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const userId = req.user?.claims?.sub;
@@ -394,7 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Submit a claim (change status from draft to submitted)
-  app.post("/api/claims/:id/submit", isAuthenticated, async (req, res) => {
+  app.post("/api/claims/:id/submit", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
       const userId = req.user?.claims?.sub;
@@ -424,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Staff portal routes (simplified - would need additional role checking in production)
-  app.get("/api/staff/claims", isAuthenticated, async (req, res) => {
+  app.get("/api/staff/claims", authenticateToken, async (req, res) => {
     try {
       const userId = req.user?.claims?.sub;
       if (!userId) {
@@ -447,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get claim details for staff
-  app.get("/api/staff/claims/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/staff/claims/:id", authenticateToken, async (req, res) => {
     try {
       const userId = req.user?.claims?.sub;
       if (!userId) {
@@ -473,7 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate PDF for claim - Staff version
-  app.get("/api/staff/claims/:id/pdf", isAuthenticated, async (req, res) => {
+  app.get("/api/staff/claims/:id/pdf", authenticateToken, async (req, res) => {
     try {
       const userId = req.user?.claims?.sub;
       if (!userId) {
@@ -504,7 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update claim status
-  app.put("/api/staff/claims/:id/status", isAuthenticated, async (req, res) => {
+  app.put("/api/staff/claims/:id/status", authenticateToken, async (req, res) => {
     try {
       const userId = (req.user as any)?.claims?.sub;
       if (!userId) {
@@ -530,7 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Edit claim (adjudicator only)
-  app.put("/api/staff/claims/:id/edit", isAuthenticated, async (req, res) => {
+  app.put("/api/staff/claims/:id/edit", authenticateToken, async (req, res) => {
     try {
       const userId = (req.user as any)?.claims?.sub;
       if (!userId) {
@@ -551,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete claim (adjudicator only)
-  app.delete("/api/staff/claims/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/staff/claims/:id", authenticateToken, async (req, res) => {
     try {
       const userId = (req.user as any)?.claims?.sub;
       if (!userId) {
@@ -572,7 +535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Object storage endpoints (simplified)
-  app.get("/objects/:objectPath(*)", isAuthenticated, async (req, res) => {
+  app.get("/objects/:objectPath(*)", authenticateToken, async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(
@@ -598,13 +561,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+  app.post("/api/objects/upload", authenticateToken, async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
     res.json({ uploadURL });
   });
 
-  app.put("/api/damage-photos", isAuthenticated, async (req, res) => {
+  app.put("/api/damage-photos", authenticateToken, async (req, res) => {
     if (!req.body.photoURL) {
       return res.status(400).json({ error: "photoURL is required" });
     }
