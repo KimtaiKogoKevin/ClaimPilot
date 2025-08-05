@@ -20,18 +20,18 @@ export default function StaffPortal() {
   const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
   const [incidentClaimId, setIncidentClaimId] = useState<string | null>(null);
 
-  const { data: claims = [], isLoading } = useQuery({
+  const { data: claims = [], isLoading } = useQuery<ClaimWithDetails[]>({
     queryKey: ["/api/staff/claims"],
     retry: false,
   });
 
-  const { data: selectedClaim } = useQuery({
+  const { data: selectedClaim } = useQuery<ClaimWithDetails>({
     queryKey: ["/api/staff/claims", selectedClaimId],
     enabled: !!selectedClaimId,
     retry: false,
   });
 
-  const { data: incidentClaim } = useQuery({
+  const { data: incidentClaim } = useQuery<ClaimWithDetails>({
     queryKey: ["/api/staff/claims", incidentClaimId],
     enabled: !!incidentClaimId,
     retry: false,
@@ -39,10 +39,7 @@ export default function StaffPortal() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ claimId, status }: { claimId: string; status: string }) => {
-      await apiRequest(`/api/staff/claims/${claimId}/status`, {
-        method: "PUT",
-        body: { status },
-      });
+      await apiRequest(`/api/staff/claims/${claimId}/status`, "PUT", { status });
     },
     onSuccess: () => {
       toast({
@@ -70,10 +67,37 @@ export default function StaffPortal() {
     setIsIncidentModalOpen(true);
   };
 
+  const handleLogout = () => {
+    window.location.href = '/api/logout';
+  };
+
+  const handleEditClaim = (claimId: string) => {
+    // TODO: Implement edit functionality
+    console.log('Edit claim:', claimId);
+  };
+
+  const handleDeleteClaim = async (claimId: string) => {
+    if (confirm('Are you sure you want to delete this claim?')) {
+      try {
+        await apiRequest(`/api/staff/claims/${claimId}`, "DELETE");
+        queryClient.invalidateQueries({ queryKey: ["/api/staff/claims"] });
+        toast({
+          title: "Claim Deleted",
+          description: "The claim has been deleted successfully.",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete claim",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const handleDownloadPDF = async (claimId: string) => {
     try {
       const response = await fetch(`/api/staff/claims/${claimId}/pdf`, {
-        method: 'GET',
         credentials: 'include',
       });
       
@@ -104,38 +128,7 @@ export default function StaffPortal() {
     }
   };
 
-  const handleEditClaim = (claimId: string) => {
-    // Navigate to claim edit form
-    window.location.href = `/claim/${claimId}`;
-  };
 
-  const deleteMutation = useMutation({
-    mutationFn: async (claimId: string) => {
-      await apiRequest(`/api/staff/claims/${claimId}`, {
-        method: "DELETE",
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Claim Deleted",
-        description: "Claim has been permanently deleted.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/staff/claims"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Delete Failed",
-        description: error.message || "Failed to delete claim",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleDeleteClaim = (claimId: string) => {
-    if (window.confirm("Are you sure you want to permanently delete this claim? This action cannot be undone.")) {
-      deleteMutation.mutate(claimId);
-    }
-  };
 
   if (authLoading || isLoading) {
     return (
@@ -148,9 +141,7 @@ export default function StaffPortal() {
     );
   }
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
-  };
+
 
   if (isLoading) {
     return (
@@ -167,7 +158,7 @@ export default function StaffPortal() {
   const stats = {
     pending: claims.filter((c: ClaimWithDetails) => c.status === 'submitted').length,
     inReview: claims.filter((c: ClaimWithDetails) => c.status === 'under_review').length,
-    aiProcessed: claims.filter((c: ClaimWithDetails) => c.damagedPhotos.length > 0).length,
+    aiProcessed: claims.filter((c: ClaimWithDetails) => c.damagedPhotos?.length > 0).length,
     completedToday: claims.filter((c: ClaimWithDetails) => {
       const today = new Date().toDateString();
       return c.updatedAt && new Date(c.updatedAt).toDateString() === today;
@@ -196,14 +187,14 @@ export default function StaffPortal() {
 
   const getPriorityColor = (claim: ClaimWithDetails) => {
     // Simple priority logic based on AI analysis confidence and damage count
-    const damageCount = claim.damagedPhotos.reduce((sum, photo) => sum + photo.detectedDamages.length, 0);
+    const damageCount = claim.damagedPhotos?.reduce((sum, photo) => sum + (photo.detectedDamages?.length || 0), 0) || 0;
     if (damageCount >= 3) return 'bg-red-100 text-red-800';
     if (damageCount >= 2) return 'bg-yellow-100 text-yellow-800';
     return 'bg-green-100 text-green-800';
   };
 
   const getPriorityText = (claim: ClaimWithDetails) => {
-    const damageCount = claim.damagedPhotos.reduce((sum, photo) => sum + photo.detectedDamages.length, 0);
+    const damageCount = claim.damagedPhotos?.reduce((sum, photo) => sum + (photo.detectedDamages?.length || 0), 0) || 0;
     if (damageCount >= 3) return 'High';
     if (damageCount >= 2) return 'Medium';
     return 'Low';
@@ -223,9 +214,9 @@ export default function StaffPortal() {
           <div className="flex items-center space-x-4">
             <div className="text-sm">
               <span className="text-neutral-300">Logged in as:</span>
-              <span className="font-medium ml-1">{user?.firstName} {user?.lastName}</span>
+              <span className="font-medium ml-1">{(user as any)?.firstName} {(user as any)?.lastName}</span>
               <span className="text-neutral-300 mx-2">•</span>
-              <span className="text-neutral-300 capitalize">{user?.role || 'Staff'}</span>
+              <span className="text-neutral-300 capitalize">{(user as any)?.role || 'Staff'}</span>
             </div>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-neutral-300 hover:text-white">
               Sign Out
@@ -428,7 +419,7 @@ export default function StaffPortal() {
                           >
                             <Download className="h-4 w-4" />
                           </Button>
-                          {user?.role === 'adjudicator' && (
+                          {(user as any)?.role === 'adjudicator' && (
                             <>
                               <Button 
                                 variant="outline" 
@@ -506,7 +497,7 @@ export default function StaffPortal() {
                       <strong>Agent:</strong> {selectedClaim.agentName || 'N/A'}
                     </div>
                     <div>
-                      <strong>Created:</strong> {new Date(selectedClaim.createdAt).toLocaleDateString()}
+                      <strong>Created:</strong> {selectedClaim.createdAt ? new Date(selectedClaim.createdAt as Date).toLocaleDateString() : 'N/A'}
                     </div>
                     <div>
                       <strong>Submitted:</strong> {selectedClaim.submittedAt ? new Date(selectedClaim.submittedAt).toLocaleDateString() : 'N/A'}
@@ -849,7 +840,7 @@ export default function StaffPortal() {
                       <div className="bg-white p-3 rounded border border-red-200">
                         <div className="flex items-center text-gray-900">
                           <Calendar className="h-4 w-4 mr-2 text-red-500" />
-                          {incidentClaim?.accidentDate ? new Date(incidentClaim.accidentDate).toLocaleDateString() : 'Not specified'} 
+                          {incidentClaim?.accidentDate ? new Date(incidentClaim.accidentDate as Date).toLocaleDateString() : 'Not specified'} 
                           {incidentClaim?.accidentTime && ` at ${incidentClaim.accidentTime}`}
                         </div>
                       </div>
@@ -985,7 +976,7 @@ export default function StaffPortal() {
                                     <strong>Damage {damageIndex + 1}:</strong> {damage.damageType || 'Unspecified type'}
                                   </div>
                                   <div className="text-sm text-purple-600 mt-1">
-                                    Confidence: {damage.confidence ? (damage.confidence * 100).toFixed(1) + '%' : 'N/A'}
+                                    Confidence: {damage.confidence ? ((damage.confidence as number) * 100).toFixed(1) + '%' : 'N/A'}
                                   </div>
                                 </div>
                               ))}
