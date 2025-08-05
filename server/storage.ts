@@ -144,9 +144,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateClaim(id: string, claim: Partial<InsertClaim>): Promise<Claim> {
+    // Process date fields to ensure they're properly formatted
+    const processedClaim = {
+      ...claim,
+      lastPaymentDate: claim.lastPaymentDate && typeof claim.lastPaymentDate === 'string' 
+        ? new Date(claim.lastPaymentDate) 
+        : claim.lastPaymentDate,
+      accidentDate: claim.accidentDate && typeof claim.accidentDate === 'string' 
+        ? new Date(claim.accidentDate) 
+        : claim.accidentDate,
+      submittedAt: claim.submittedAt && typeof claim.submittedAt === 'string' 
+        ? new Date(claim.submittedAt) 
+        : claim.submittedAt,
+      updatedAt: new Date()
+    };
+
     const [updatedClaim] = await db
       .update(claims)
-      .set({ ...claim, updatedAt: new Date() })
+      .set(processedClaim)
       .where(eq(claims.id, id))
       .returning();
     return updatedClaim;
@@ -231,12 +246,20 @@ export class DatabaseStorage implements IStorage {
 
   // Claim details operations
   async upsertIndividualDetails(details: InsertIndividualDetails): Promise<void> {
+    // Convert string dates to Date objects for proper insertion
+    const processedDetails = {
+      ...details,
+      dateOfBirth: details.dateOfBirth && typeof details.dateOfBirth === 'string' 
+        ? new Date(details.dateOfBirth) 
+        : details.dateOfBirth
+    };
+
     await db
       .insert(individualDetails)
-      .values(details)
+      .values(processedDetails)
       .onConflictDoUpdate({
         target: individualDetails.claimId,
-        set: details,
+        set: processedDetails,
       });
   }
 
@@ -270,13 +293,13 @@ export class DatabaseStorage implements IStorage {
       });
   }
 
-  async upsertBankDetails(bankDetails: InsertBankDetails): Promise<void> {
+  async upsertBankDetails(details: InsertBankDetails): Promise<void> {
     await db
       .insert(bankDetails)
-      .values(bankDetails)
+      .values(details)
       .onConflictDoUpdate({
         target: bankDetails.claimId,
-        set: bankDetails,
+        set: details,
       });
   }
 
