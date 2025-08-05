@@ -209,8 +209,65 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
       const totalDamages = claim.damagedPhotos.reduce((sum, photo) => sum + (photo.detectedDamages?.length || 0), 0);
       addFormField('AI Detected Damages', totalDamages.toString());
       
+      // Photo details and damage descriptions
       claim.damagedPhotos.forEach((photo, index) => {
-        addTwoColumnFields(`Photo ${index + 1} - ${photo.angle}`, photo.isGoodsPhoto ? 'Goods Photo' : 'Vehicle Photo', 'Damages Detected', (photo.detectedDamages?.length || 0).toString());
+        yPosition += 10;
+        addText(`Photo ${index + 1}: ${photo.angle}`, leftColumn, 11, true);
+        addTwoColumnFields('Photo Type', photo.isGoodsPhoto ? 'Goods Photo' : 'Vehicle Photo', 'Upload Date', photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleDateString() : 'N/A');
+        
+        // Show detected damages if available
+        if (photo.detectedDamages && photo.detectedDamages.length > 0) {
+          yPosition += 5;
+          addText('Detected Damages:', leftColumn, 10, true);
+          
+          photo.detectedDamages.forEach((damage, damageIndex) => {
+            yPosition += 3;
+            // Create damage description box
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(leftColumn + 10, yPosition - 5, 165, 20);
+            
+            // Damage label
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Damage ${damageIndex + 1}`, leftColumn + 12, yPosition - 1);
+            
+            // Damage details
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Type: ${damage.damageType || 'Not specified'}`, leftColumn + 12, yPosition + 4);
+            doc.text(`Confidence: ${damage.confidence ? (damage.confidence * 100).toFixed(1) + '%' : 'N/A'}`, leftColumn + 12, yPosition + 8);
+            doc.text(`Location: ${damage.boundingBox ? `X:${damage.boundingBox.x}, Y:${damage.boundingBox.y}, W:${damage.boundingBox.width}, H:${damage.boundingBox.height}` : 'Not specified'}`, leftColumn + 12, yPosition + 12);
+            
+            yPosition += 25;
+          });
+        } else {
+          addFormField('Damage Analysis', 'No damages detected by AI analysis', leftColumn + 10, 165);
+        }
+        
+        // AI Analysis Results summary if available
+        if (photo.aiAnalysisResults) {
+          yPosition += 5;
+          doc.setDrawColor(200, 200, 200);
+          doc.rect(leftColumn, yPosition - 5, 175, 15);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text('AI Analysis Summary', leftColumn + 2, yPosition - 1);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+          
+          // Try to extract meaningful info from AI results
+          const analysisText = typeof photo.aiAnalysisResults === 'string' 
+            ? photo.aiAnalysisResults 
+            : JSON.stringify(photo.aiAnalysisResults).substring(0, 100) + '...';
+          doc.text(analysisText, leftColumn + 2, yPosition + 6);
+          yPosition += 20;
+        }
+        
+        yPosition += 10; // Space between photos
       });
     }
     
