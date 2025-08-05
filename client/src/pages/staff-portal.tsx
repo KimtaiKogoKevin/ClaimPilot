@@ -576,7 +576,53 @@ export default function StaffPortal() {
                   </Card>
                 )}
 
-
+                {/* Accident Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg font-semibold text-red-800">
+                      <AlertCircle className="h-5 w-5 mr-2 text-red-500" />
+                      Accident Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium text-red-700 mb-1">Date</label>
+                          <div className="bg-white p-2 rounded border border-red-200">
+                            <div className="flex items-center text-red-900 font-medium">
+                              <Calendar className="h-4 w-4 mr-2 text-red-500" />
+                              {selectedClaim.accidentDate ? new Date(selectedClaim.accidentDate).toLocaleDateString() : 'Not specified'}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-red-700 mb-1">Time</label>
+                          <div className="bg-white p-2 rounded border border-red-200">
+                            <div className="text-red-900 font-medium">{selectedClaim.accidentTime || 'Not specified'}</div>
+                          </div>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-red-700 mb-1">Location</label>
+                          <div className="bg-white p-2 rounded border border-red-200">
+                            <div className="flex items-start text-red-900">
+                              <MapPin className="h-4 w-4 mr-2 text-red-500 mt-0.5 flex-shrink-0" />
+                              <span>{selectedClaim.accidentLocation || 'Not specified'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-red-700 mb-1">Description of Incident</label>
+                        <div className="bg-white p-3 rounded border border-red-200">
+                          <div className="text-red-900 whitespace-pre-wrap leading-relaxed">
+                            {selectedClaim.accidentDescription || 'No description provided'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {/* Driver Information */}
                 {selectedClaim.driver && (
