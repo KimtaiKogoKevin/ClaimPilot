@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter, Download, FileText, User, Phone, Car, CreditCard, Truck, Building } from "lucide-react";
+import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter, Download, FileText, User, Phone, Car, CreditCard, Truck, Building, Edit, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -88,6 +88,39 @@ export default function StaffPortal() {
         description: "Failed to download PDF report.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleEditClaim = (claimId: string) => {
+    // Navigate to claim edit form
+    window.location.href = `/claim/${claimId}`;
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (claimId: string) => {
+      await apiRequest(`/api/staff/claims/${claimId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Claim Deleted",
+        description: "Claim has been permanently deleted.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/staff/claims"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete claim",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteClaim = (claimId: string) => {
+    if (window.confirm("Are you sure you want to permanently delete this claim? This action cannot be undone.")) {
+      deleteMutation.mutate(claimId);
     }
   };
 
@@ -373,6 +406,26 @@ export default function StaffPortal() {
                           >
                             <Download className="h-4 w-4" />
                           </Button>
+                          {user?.role === 'adjudicator' && (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleEditClaim(claim.id)}
+                                className="text-blue-600 hover:text-blue-800 border-blue-200 hover:border-blue-300"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDeleteClaim(claim.id)}
+                                className="text-red-600 hover:text-red-800 border-red-200 hover:border-red-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                           <Select
                             value={claim.status}
                             onValueChange={(status) => updateStatusMutation.mutate({ claimId: claim.id, status })}

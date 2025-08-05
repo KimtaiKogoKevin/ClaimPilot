@@ -8,8 +8,10 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
     // Create a new PDF document
     const doc = new jsPDF();
     let yPosition = 20;
-    const lineHeight = 6;
+    const lineHeight = 7;
     const pageHeight = 280; // A4 page height minus margins
+    const leftColumn = 20;
+    const rightColumn = 110;
     
     // Helper function to add text with line breaks
     const addText = (text: string, x: number = 20, fontSize: number = 10, isBold: boolean = false) => {
@@ -24,153 +26,225 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
       yPosition += lineHeight;
     };
     
-    const addSection = (title: string) => {
-      yPosition += 5;
-      addText(title, 20, 12, true);
-      yPosition += 2;
+    // Helper function to add form-style field
+    const addFormField = (label: string, value: string, x: number = leftColumn, width: number = 85) => {
+      if (yPosition > pageHeight) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      // Draw border around field
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(x, yPosition - 5, width, 12);
+      
+      // Add label
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(label, x + 2, yPosition - 1);
+      
+      // Add value
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(value || 'N/A', x + 2, yPosition + 4);
+      
+      yPosition += 18;
     };
     
-    // Title
-    addText('MOTOR ACCIDENT INSURANCE CLAIM REPORT', 20, 16, true);
-    addText('=====================================', 20);
-    yPosition += 5;
+    // Helper function to add two-column form fields
+    const addTwoColumnFields = (leftLabel: string, leftValue: string, rightLabel: string, rightValue: string) => {
+      if (yPosition > pageHeight) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      const currentY = yPosition;
+      
+      // Left field
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(leftColumn, currentY - 5, 85, 12);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(leftLabel, leftColumn + 2, currentY - 1);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(leftValue || 'N/A', leftColumn + 2, currentY + 4);
+      
+      // Right field
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(rightColumn, currentY - 5, 85, 12);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(rightLabel, rightColumn + 2, currentY - 1);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(rightValue || 'N/A', rightColumn + 2, currentY + 4);
+      
+      yPosition += 18;
+    };
     
-    // Basic claim info
-    addText(`Claim ID: ${claim.id}`);
-    addText(`Policy Number: ${claim.policyNumber || 'N/A'}`);
-    addText(`Status: ${claim.status.replace('_', ' ').toUpperCase()}`);
-    addText(`Date Created: ${new Date(claim.createdAt!).toLocaleDateString()}`);
-    if (claim.submittedAt) {
-      addText(`Date Submitted: ${new Date(claim.submittedAt).toLocaleDateString()}`);
-    }
+    const addSectionHeader = (title: string) => {
+      yPosition += 10;
+      if (yPosition > pageHeight) {
+        doc.addPage();
+        yPosition = 30;
+      }
+      
+      // Section background
+      doc.setFillColor(240, 240, 240);
+      doc.rect(leftColumn, yPosition - 8, 175, 15, 'F');
+      
+      // Section title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(50, 50, 50);
+      doc.text(title, leftColumn + 5, yPosition);
+      yPosition += 15;
+    };
     
-    // Claimant Information
-    addSection('CLAIMANT INFORMATION');
-    addText(`Name: ${claim.claimant.firstName} ${claim.claimant.lastName}`);
-    addText(`Email: ${claim.claimant.email}`);
+    // Main Title
+    doc.setFillColor(25, 118, 210);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(255, 255, 255);
+    doc.text('MOTOR ACCIDENT INSURANCE CLAIM', 20, 20);
+    yPosition = 45;
     
-    // Policy Details
-    addSection('POLICY DETAILS');
-    addText(`Branch: ${claim.branchName || 'N/A'}`);
-    addText(`Agent: ${claim.agentName || 'N/A'}`);
-    addText(`Last Payment: ${claim.lastPaymentDate ? new Date(claim.lastPaymentDate).toLocaleDateString() : 'N/A'}`);
-    addText(`Insured Type: ${claim.insuredType}`);
+    // Claim Overview Section
+    addSectionHeader('SECTION A: CLAIM INFORMATION');
+    addTwoColumnFields('Policy Number', claim.policyNumber || '', 'Claim ID', claim.id.substring(0, 8));
+    addTwoColumnFields('Branch Name', claim.branchName || '', 'Agent Name', claim.agentName || '');
+    addTwoColumnFields('Date of Last Premium Payment', claim.lastPaymentDate ? new Date(claim.lastPaymentDate).toLocaleDateString() : '', 'Period of Insurance', 'N/A');
+    addFormField('Status', claim.status.replace('_', ' ').toUpperCase());
     
-    // Accident Details
-    addSection('ACCIDENT DETAILS');
-    addText(`Date: ${claim.accidentDate ? new Date(claim.accidentDate).toLocaleDateString() : 'N/A'}`);
-    addText(`Time: ${claim.accidentTime || 'N/A'}`);
-    addText(`Location: ${claim.accidentLocation || 'N/A'}`);
-    addText(`Description: ${claim.accidentDescription || 'N/A'}`);
+    // Section B: Insured Details
+    addSectionHeader('SECTION B: INSURED DETAILS');
+    addFormField('Type of Insured', claim.insuredType);
     
-    // Vehicle Information
-    if (claim.vehicle) {
-      addSection('VEHICLE INFORMATION');
-      addText(`Make: ${claim.vehicle.make}`);
-      addText(`Model: ${claim.vehicle.model}`);
-      addText(`Year: ${claim.vehicle.yearOfManufacture || 'N/A'}`);
-      addText(`Registration: ${claim.vehicle.registrationNumber || 'N/A'}`);
-      addText(`Owner: ${claim.vehicle.ownerName || 'N/A'}`);
-    }
-    
-    // Individual Details
     if (claim.individualDetails) {
-      addSection('INDIVIDUAL DETAILS');
-      addText(`Full Name: ${claim.individualDetails.firstName} ${claim.individualDetails.middleName || ''} ${claim.individualDetails.surname}`);
-      addText(`ID Number: ${claim.individualDetails.idNumber || 'N/A'}`);
-      addText(`Address: ${claim.individualDetails.physicalAddress || 'N/A'}`);
-      addText(`Phone: ${claim.individualDetails.mobile || 'N/A'}`);
-      addText(`Email: ${claim.individualDetails.email || 'N/A'}`);
+      addTwoColumnFields('First Name', claim.individualDetails.firstName || '', 'Middle Name', claim.individualDetails.middleName || '');
+      addTwoColumnFields('Surname', claim.individualDetails.surname || '', 'ID Number', claim.individualDetails.idNumber || '');
+      addTwoColumnFields('Nationality', claim.individualDetails.nationality || '', 'Mobile Number', claim.individualDetails.mobile || '');
+      addTwoColumnFields('Email Address', claim.individualDetails.email || '', 'Physical Address', claim.individualDetails.physicalAddress || '');
     }
     
-    // Corporate Details
     if (claim.corporateDetails) {
-      addSection('CORPORATE DETAILS');
-      addText(`Company Name: ${claim.corporateDetails.registeredName}`);
-      addText(`Registration Number: ${claim.corporateDetails.registrationNumber || 'N/A'}`);
-      addText(`Address: ${claim.corporateDetails.physicalAddress || 'N/A'}`);
-      addText(`Years in Operation: ${claim.corporateDetails.yearsInOperation || 'N/A'}`);
+      addTwoColumnFields('Registered Name', claim.corporateDetails.registeredName || '', 'Registration Number', claim.corporateDetails.registrationNumber || '');
+      addTwoColumnFields('Years in Operation', claim.corporateDetails.yearsInOperation?.toString() || '', 'Physical Address', claim.corporateDetails.physicalAddress || '');
     }
     
-    // Driver Information
+    // Section C: Vehicle Information
+    if (claim.vehicle) {
+      addSectionHeader('SECTION C: VEHICLE INFORMATION');
+      addTwoColumnFields('Make', claim.vehicle.make || '', 'Model', claim.vehicle.model || '');
+      addTwoColumnFields('Year of Manufacture', claim.vehicle.yearOfManufacture?.toString() || '', 'Registration Number', claim.vehicle.registrationNumber || '');
+      addTwoColumnFields('Owner Name', claim.vehicle.ownerName || '', 'Vehicle Use', claim.vehicle.vehicleUse || '');
+    }
+    
+    // Section D: Driver Information
     if (claim.driver) {
-      addSection('DRIVER INFORMATION');
-      addText(`Name: ${claim.driver.name}`);
-      addText(`License Number: ${claim.driver.licenseNumber || 'N/A'}`);
-      addText(`Years of Driving: ${claim.driver.yearsOfDriving || 'N/A'}`);
-      addText(`Address: ${claim.driver.address || 'N/A'}`);
-      addText(`Telephone: ${claim.driver.telephone || 'N/A'}`);
+      addSectionHeader('SECTION D: DRIVER INFORMATION');
+      addTwoColumnFields('Driver Name', claim.driver.name || '', 'License Number', claim.driver.licenseNumber || '');
+      addTwoColumnFields('Years of Driving Experience', claim.driver.yearsOfDriving?.toString() || '', 'Occupation', claim.driver.occupation || '');
+      addTwoColumnFields('Address', claim.driver.address || '', 'Telephone', claim.driver.telephone || '');
+      addTwoColumnFields('Employed by Insured', claim.driver.employedByInsured ? 'Yes' : 'No', 'Previous Accidents', claim.driver.previousAccidents ? 'Yes' : 'No');
     }
     
-    // Bank Details
+    // Section E: Bank Details
     if (claim.bankDetails) {
-      addSection('BANK DETAILS');
-      addText(`Bank Name: ${claim.bankDetails.bankName}`);
-      addText(`Branch: ${claim.bankDetails.branch || 'N/A'}`);
-      addText(`Account Number: ${claim.bankDetails.accountNumber}`);
-      addText(`Account Name: ${claim.bankDetails.accountName}`);
-      addText(`Swift Code: ${claim.bankDetails.swiftCode || 'N/A'}`);
+      addSectionHeader('SECTION E: BANK DETAILS');
+      addTwoColumnFields('Bank Name', claim.bankDetails.bankName || '', 'Account Name', claim.bankDetails.accountName || '');
+      addTwoColumnFields('Account Number', claim.bankDetails.accountNumber || '', 'Branch', claim.bankDetails.branch || '');
+      addTwoColumnFields('Swift Code', claim.bankDetails.swiftCode || '', 'Sort Code', claim.bankDetails.sortCode || '');
     }
     
-    // Other Vehicles
+    // Section F: Other Vehicles Involved
     if (claim.otherVehicles && claim.otherVehicles.length > 0) {
-      addSection('OTHER VEHICLES INVOLVED');
+      addSectionHeader('SECTION F: OTHER VEHICLES INVOLVED');
       claim.otherVehicles.forEach((vehicle, index) => {
-        addText(`Vehicle ${index + 1}:`);
-        addText(`  Owner Name: ${vehicle.ownerName || 'N/A'}`, 25);
-        addText(`  Owner Address: ${vehicle.ownerAddress || 'N/A'}`, 25);
-        addText(`  Registration: ${vehicle.registrationNumber || 'N/A'}`, 25);
-        addText(`  Insurer: ${vehicle.insurer || 'N/A'}`, 25);
+        yPosition += 5;
+        addText(`Vehicle ${index + 1}:`, leftColumn, 10, true);
+        addTwoColumnFields('Owner Name', vehicle.ownerName || '', 'Registration Number', vehicle.registrationNumber || '');
+        addTwoColumnFields('Owner Address', vehicle.ownerAddress || '', 'Insurer', vehicle.insurer || '');
       });
     }
     
-    // Damage Assessment
-    addSection('DAMAGE ASSESSMENT');
-    addText(`Vehicle Damage: ${claim.vehicleDamageDescription || 'N/A'}`);
-    addText(`Goods Damaged: ${claim.goodsDamaged ? 'Yes' : 'No'}`);
-    if (claim.goodsDamaged) {
-      addText(`Goods Description: ${claim.goodsDescription || 'N/A'}`);
+    // Section G: Accident Details
+    addSectionHeader('SECTION G: ACCIDENT DETAILS');
+    addTwoColumnFields('Accident Date', claim.accidentDate ? new Date(claim.accidentDate).toLocaleDateString() : '', 'Accident Time', claim.accidentTime || '');
+    addFormField('Accident Location', claim.accidentLocation || '');
+    
+    // Description box
+    if (claim.accidentDescription) {
+      yPosition += 5;
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(leftColumn, yPosition - 5, 175, 30);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Accident Description', leftColumn + 2, yPosition - 1);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      
+      // Split long text into multiple lines
+      const lines = doc.splitTextToSize(claim.accidentDescription, 170);
+      lines.forEach((line: string, index: number) => {
+        doc.text(line, leftColumn + 2, yPosition + 6 + (index * 5));
+      });
+      yPosition += 35;
     }
     
-    // Damage Photos
-    if (claim.damagedPhotos?.length) {
-      addSection('DAMAGE PHOTOS');
-      addText(`Total Photos Uploaded: ${claim.damagedPhotos.length}`);
-      addText(`Total Detected Damages: ${claim.damagedPhotos.reduce((sum, photo) => sum + (photo.detectedDamages?.length || 0), 0)}`);
-      addText(`Analysis Status: Complete`);
+    // Section H: Damage Assessment
+    if (claim.damagedPhotos && claim.damagedPhotos.length > 0) {
+      addSectionHeader('SECTION H: DAMAGE ASSESSMENT');
+      addFormField('Number of Photos Submitted', claim.damagedPhotos.length.toString());
+      
+      const totalDamages = claim.damagedPhotos.reduce((sum, photo) => sum + (photo.detectedDamages?.length || 0), 0);
+      addFormField('AI Detected Damages', totalDamages.toString());
+      
+      claim.damagedPhotos.forEach((photo, index) => {
+        addTwoColumnFields(`Photo ${index + 1} - ${photo.angle}`, photo.isGoodsPhoto ? 'Goods Photo' : 'Vehicle Photo', 'Damages Detected', (photo.detectedDamages?.length || 0).toString());
+      });
     }
     
-    // Return the PDF as buffer
+    // Footer
+    yPosition += 20;
+    if (yPosition > pageHeight) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    
+    doc.setFillColor(240, 240, 240);
+    doc.rect(leftColumn, yPosition, 175, 15, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, leftColumn + 5, yPosition + 8);
+    doc.text(`Claim Status: ${claim.status.replace('_', ' ').toUpperCase()}`, rightColumn + 20, yPosition + 8);
+    
+    // Convert to buffer and return
     return Buffer.from(doc.output('arraybuffer'));
     
   } catch (error) {
-    console.error('PDF generation error:', error);
-    // Fallback to text content if jsPDF fails
-    const textContent = `
-MOTOR ACCIDENT INSURANCE CLAIM REPORT
-=====================================
-
-Claim ID: ${claim.id}
-Policy Number: ${claim.policyNumber}
-Status: ${claim.status.replace('_', ' ').toUpperCase()}
-Date Created: ${new Date(claim.createdAt!).toLocaleDateString()}
-${claim.submittedAt ? `Date Submitted: ${new Date(claim.submittedAt).toLocaleDateString()}` : ''}
-
-CLAIMANT INFORMATION
-===================
-Name: ${claim.claimant.firstName} ${claim.claimant.lastName}
-Email: ${claim.claimant.email}
-
-POLICY DETAILS
-=============
-Branch: ${claim.branchName || 'N/A'}
-Agent: ${claim.agentName || 'N/A'}
-Last Payment: ${claim.lastPaymentDate ? new Date(claim.lastPaymentDate).toLocaleDateString() : 'N/A'}
-Insured Type: ${claim.insuredType}
-
-ERROR: PDF generation failed. Please contact support.
-`;
-
-    return Buffer.from(textContent, 'utf-8');
+    console.error("PDF generation failed:", error);
+    // Fallback to text-based PDF
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.text('CLAIM REPORT - PDF GENERATION ERROR', 20, 20);
+    doc.text(`Claim ID: ${claim.id}`, 20, 40);
+    doc.text(`Status: ${claim.status}`, 20, 50);
+    doc.text('Please contact support for detailed report.', 20, 70);
+    
+    return Buffer.from(doc.output('arraybuffer'));
   }
 }

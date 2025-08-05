@@ -487,7 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update claim status
   app.put("/api/staff/claims/:id/status", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -507,6 +507,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating claim status:", error);
       res.status(500).json({ message: "Failed to update claim status" });
+    }
+  });
+
+  // Edit claim (adjudicator only)
+  app.put("/api/staff/claims/:id/edit", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'adjudicator') {
+        return res.status(403).json({ message: "Access denied. Adjudicator access required." });
+      }
+      
+      const updatedClaim = await storage.updateClaim(req.params.id, req.body);
+      res.json(updatedClaim);
+    } catch (error) {
+      console.error("Error updating claim:", error);
+      res.status(500).json({ message: "Failed to update claim" });
+    }
+  });
+
+  // Delete claim (adjudicator only)
+  app.delete("/api/staff/claims/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'adjudicator') {
+        return res.status(403).json({ message: "Access denied. Adjudicator access required." });
+      }
+      
+      await storage.deleteClaim(req.params.id);
+      res.json({ success: true, message: "Claim deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting claim:", error);
+      res.status(500).json({ message: "Failed to delete claim" });
     }
   });
 

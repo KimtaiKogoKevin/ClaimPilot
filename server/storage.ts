@@ -38,6 +38,7 @@ export interface IStorage {
   createClaim(claim: InsertClaim): Promise<Claim>;
   updateClaim(id: string, claim: Partial<InsertClaim>): Promise<Claim>;
   updateClaimStatus(claimId: string, status: string): Promise<void>;
+  deleteClaim(id: string): Promise<void>;
   getClaim(id: string): Promise<ClaimWithDetails | undefined>;
   getClaimsByUser(userId: string): Promise<ClaimWithDetails[]>;
   getUserClaims(userId: string): Promise<ClaimWithDetails[]>;
@@ -257,6 +258,29 @@ export class DatabaseStorage implements IStorage {
 
   async removeOtherVehicle(id: string): Promise<void> {
     await db.delete(otherVehicles).where(eq(otherVehicles.id, id));
+  }
+
+  async deleteClaim(id: string): Promise<void> {
+    // Delete related records first (cascade delete)
+    // First get photo IDs for this claim
+    const photos = await db.select({ id: damagedPhotos.id }).from(damagedPhotos).where(eq(damagedPhotos.claimId, id));
+    
+    // Delete detected damages for these photos
+    for (const photo of photos) {
+      await db.delete(detectedDamages).where(eq(detectedDamages.photoId, photo.id));
+    }
+    
+    // Delete other related records
+    await db.delete(damagedPhotos).where(eq(damagedPhotos.claimId, id));
+    await db.delete(otherVehicles).where(eq(otherVehicles.claimId, id));
+    await db.delete(bankDetails).where(eq(bankDetails.claimId, id));
+    await db.delete(drivers).where(eq(drivers.claimId, id));
+    await db.delete(vehicles).where(eq(vehicles.claimId, id));
+    await db.delete(corporateDetails).where(eq(corporateDetails.claimId, id));
+    await db.delete(individualDetails).where(eq(individualDetails.claimId, id));
+    
+    // Finally delete the claim itself
+    await db.delete(claims).where(eq(claims.id, id));
   }
 
   // Photos and AI analysis
