@@ -33,6 +33,24 @@ export default function VehicleAccidentStep({
     },
   });
 
+  // Auto-save accident details
+  const saveAccidentMutation = useMutation({
+    mutationFn: async (accidentData: any) => {
+      if (!claimId) throw new Error("No claim ID");
+      // Map form field names to database field names
+      const mappedData = {
+        accidentDate: accidentData.date,
+        accidentTime: accidentData.time,
+        accidentLocation: accidentData.location,
+        accidentDescription: accidentData.description,
+      };
+      await apiRequest("PUT", `/api/claims/${claimId}`, mappedData);
+    },
+    onError: (error) => {
+      console.error("Error saving accident details:", error);
+    },
+  });
+
   // Auto-save other vehicles
   const addOtherVehicleMutation = useMutation({
     mutationFn: async (vehicleData: any) => {
@@ -59,6 +77,20 @@ export default function VehicleAccidentStep({
       saveVehicleMutation.mutate(vehicleData);
     }
   }, [claimId, formData.vehicle]);
+
+  // Auto-save accident details when they change
+  useEffect(() => {
+    if (claimId && (formData.accident.date || formData.accident.location || formData.accident.description)) {
+      saveAccidentMutation.mutate(formData.accident);
+    }
+  }, [claimId, formData.accident]);
+
+  // Auto-save accident details when they change
+  useEffect(() => {
+    if (claimId && (formData.accident.date || formData.accident.location || formData.accident.description)) {
+      saveAccidentMutation.mutate(formData.accident);
+    }
+  }, [claimId, formData.accident]);
 
   const handleVehicleChange = (field: string, value: any) => {
     setFormData((prev: any) => ({
