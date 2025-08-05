@@ -51,6 +51,7 @@ export const photoAngleEnum = pgEnum('photo_angle', ['FRONT_VIEW', 'REAR_VIEW', 
 export const claims = pgTable("claims", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   claimantId: varchar("claimant_id").notNull().references(() => users.id),
+  claimantReferenceNumber: varchar("claimant_reference_number").unique(),
   status: claimStatusEnum("status").default('draft').notNull(),
   
   // Policy details

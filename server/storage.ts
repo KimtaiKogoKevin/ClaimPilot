@@ -25,7 +25,30 @@ import {
   type DetectedDamage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
+
+// Generate a unique claimant reference number in format CLM-YYYY-###
+async function generateClaimantReferenceNumber(): Promise<string> {
+  const currentYear = new Date().getFullYear();
+  const prefix = `CLM-${currentYear}-`;
+  
+  // Get the latest claimant reference number for this year
+  const [latestClaim] = await db
+    .select({ claimantReferenceNumber: claims.claimantReferenceNumber })
+    .from(claims)
+    .where(sql`${claims.claimantReferenceNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(claims.claimantReferenceNumber))
+    .limit(1);
+  
+  let nextNumber = 1;
+  if (latestClaim?.claimantReferenceNumber) {
+    const parts = latestClaim.claimantReferenceNumber.split('-');
+    const lastNumber = parseInt(parts[2] || '0');
+    nextNumber = lastNumber + 1;
+  }
+  
+  return `${prefix}${nextNumber.toString().padStart(3, '0')}`;
+}
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -107,9 +130,15 @@ export class DatabaseStorage implements IStorage {
 
   // Claim operations
   async createClaim(claim: InsertClaim): Promise<Claim> {
+    // Auto-generate claimant reference number if not provided
+    const claimantReferenceNumber = claim.claimantReferenceNumber || await generateClaimantReferenceNumber();
+    
     const [newClaim] = await db
       .insert(claims)
-      .values(claim)
+      .values({
+        ...claim,
+        claimantReferenceNumber
+      })
       .returning();
     return newClaim;
   }

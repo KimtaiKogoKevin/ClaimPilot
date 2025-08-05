@@ -466,6 +466,12 @@ export default function StaffPortal() {
                     <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
+                          <label className="block text-sm font-medium text-indigo-700 mb-1">Claimant ID</label>
+                          <div className="bg-white p-2 rounded border border-indigo-200">
+                            <div className="text-indigo-900 font-mono font-bold">{selectedClaim.claimantReferenceNumber || 'Generating...'}</div>
+                          </div>
+                        </div>
+                        <div>
                           <label className="block text-sm font-medium text-indigo-700 mb-1">Policy Number</label>
                           <div className="bg-white p-2 rounded border border-indigo-200">
                             <div className="text-indigo-900 font-mono">{selectedClaim.policyNumber}</div>
