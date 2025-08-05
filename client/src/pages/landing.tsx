@@ -65,7 +65,7 @@ export default function Landing() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
-                  onClick={() => window.location.href = "/claimant-signup"}
+                  onClick={() => setLocation('/auth')}
                   size="lg"
                   className="bg-white text-primary hover:bg-neutral-50 transform hover:scale-105 transition-all shadow-lg"
                 >
@@ -74,10 +74,7 @@ export default function Landing() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    localStorage.setItem('pendingUserRole', 'claimant');
-                    window.location.href = "/api/login";
-                  }}
+                  onClick={() => setLocation('/auth')}
                   size="lg"
                   className="border-2 border-white bg-white bg-opacity-10 text-white hover:bg-white hover:text-primary font-semibold"
                 >

@@ -2,6 +2,16 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { 
+  register, 
+  login, 
+  getCurrentUser, 
+  logout, 
+  setup2FA, 
+  enable2FA, 
+  disable2FA, 
+  authenticateToken 
+} from "./standaloneAuth";
 import {
   ObjectStorageService,
   ObjectNotFoundError,
@@ -56,6 +66,15 @@ async function analyzeImageWithRoboflow(imageUrl: string, isGoodsPhoto: boolean 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+
+  // Standalone authentication routes
+  app.post('/api/standalone/register', register);
+  app.post('/api/standalone/login', login);
+  app.post('/api/standalone/logout', logout);
+  app.get('/api/standalone/user', authenticateToken, getCurrentUser);
+  app.post('/api/standalone/2fa/setup', authenticateToken, setup2FA);
+  app.post('/api/standalone/2fa/enable', authenticateToken, enable2FA);
+  app.post('/api/standalone/2fa/disable', authenticateToken, disable2FA);
 
   // Debug auth endpoint
   app.get('/api/debug/auth', (req: any, res) => {

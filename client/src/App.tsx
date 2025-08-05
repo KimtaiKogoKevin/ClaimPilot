@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
+import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import ClaimForm from "@/pages/claim-form";
@@ -14,22 +14,24 @@ import RoleSelection from "@/pages/role-selection";
 import BrokerSignup from "@/pages/broker-signup";
 import AdjudicatorSignup from "@/pages/adjudicator-signup";
 import ClaimantSignup from "@/pages/claimant-signup";
+import AuthPage from "@/pages/auth-page";
 
 function Router() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useStandaloneAuth();
 
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
+          <Route path="/auth" component={AuthPage} />
           <Route path="/staff-portal" component={Landing} />
           <Route path="/claim" component={ClaimForm} />
           <Route path="/broker-signup" component={BrokerSignup} />
           <Route path="/adjudicator-signup" component={AdjudicatorSignup} />
           <Route path="/claimant-signup" component={ClaimantSignup} />
         </>
-      ) : !(user as any)?.role ? (
+      ) : !user?.role ? (
         // Redirect to role selection if authenticated but no role set
         <Route path="*" component={RoleSelection} />
       ) : (
@@ -38,7 +40,7 @@ function Router() {
           <Route path="/role-selection" component={RoleSelection} />
           
           {/* Main routes based on user role */}
-          {(user as any).role === 'claimant' ? (
+          {user.role === 'claimant' ? (
             <>
               <Route path="/" component={ClaimantDashboard} />
               <Route path="/claim/:id?" component={ClaimForm} />

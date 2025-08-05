@@ -1,194 +1,240 @@
-import { useState, useEffect, createContext, useContext } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface User {
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  profileImageUrl?: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  twoFactorEnabled: boolean;
 }
 
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
-  simpleLogin: (userData: SimpleLoginData) => Promise<void>;
-  logout: () => void;
+interface AuthResponse {
+  token: string;
+  user: User;
+  message: string;
 }
 
-interface LoginCredentials {
+interface LoginData {
   email: string;
   password: string;
+  twoFactorCode?: string;
 }
 
 interface RegisterData {
   email: string;
   password: string;
+  confirmPassword: string;
   firstName: string;
   lastName: string;
+  role: 'claimant' | 'broker' | 'adjudicator';
 }
 
-interface SimpleLoginData {
-  email: string;
-  firstName?: string;
-  lastName?: string;
-}
-
-const AuthContext = createContext<AuthContextType | null>(null);
-
-// Token management
-const TOKEN_KEY = 'claims_auth_token';
-
-function getStoredToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-function setStoredToken(token: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-function removeStoredToken(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-// API helper with token
-async function apiRequest(url: string, options: RequestInit = {}) {
-  const token = getStoredToken();
-  const headers = new Headers(options.headers);
-  
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`${response.status}: ${error}`);
-  }
-
-  return response.json();
-}
-
+// Custom hook for standalone authentication
 export function useStandaloneAuth() {
   const queryClient = useQueryClient();
-  
-  // Get current user
+  const { toast } = useToast();
+
+  // Get the current user data
   const { data: user, isLoading, error } = useQuery({
-    queryKey: ['auth', 'user'],
-    queryFn: () => apiRequest('/api/auth/me'),
-    enabled: !!getStoredToken(),
+    queryKey: ['/api/standalone/user'],
+    queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        return null;
+      }
+
+      try {
+        const response = await fetch('/api/standalone/user', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            return null;
+          }
+          throw new Error('Failed to fetch user');
+        }
+
+        return await response.json();
+      } catch (error) {
+        localStorage.removeItem('auth_token');
+        return null;
+      }
+    },
     retry: false,
   });
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginCredentials) => {
-      const response = await apiRequest('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials)
-      });
-      return response;
+    mutationFn: async (credentials: LoginData) => {
+      const response = await apiRequest("POST", "/api/standalone/login", credentials);
+      return await response.json();
     },
-    onSuccess: (data) => {
-      setStoredToken(data.token);
-      queryClient.setQueryData(['auth', 'user'], data.user);
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
-    }
+    onSuccess: (data: AuthResponse & { requiresTwoFactor?: boolean }) => {
+      if (!data.requiresTwoFactor && data.token) {
+        localStorage.setItem('auth_token', data.token);
+        queryClient.setQueryData(['/api/standalone/user'], data.user);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Register mutation
   const registerMutation = useMutation({
-    mutationFn: async (userData: RegisterData) => {
-      const response = await apiRequest('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      });
-      return response;
+    mutationFn: async (credentials: RegisterData) => {
+      const response = await apiRequest("POST", "/api/standalone/register", credentials);
+      return await response.json();
     },
-    onSuccess: (data) => {
-      setStoredToken(data.token);
-      queryClient.setQueryData(['auth', 'user'], data.user);
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
-    }
+    onSuccess: (data: AuthResponse) => {
+      localStorage.setItem('auth_token', data.token);
+      queryClient.setQueryData(['/api/standalone/user'], data.user);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
-  // Simple login mutation (for development)
-  const simpleLoginMutation = useMutation({
-    mutationFn: async (userData: SimpleLoginData) => {
-      const response = await apiRequest('/api/auth/simple-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      });
-      return response;
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/standalone/logout");
     },
-    onSuccess: (data) => {
-      setStoredToken(data.token);
-      queryClient.setQueryData(['auth', 'user'], data.user);
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
-    }
+    onSuccess: () => {
+      localStorage.removeItem('auth_token');
+      queryClient.setQueryData(['/api/standalone/user'], null);
+      queryClient.clear();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
-  const logout = () => {
-    removeStoredToken();
-    queryClient.setQueryData(['auth', 'user'], null);
-    queryClient.clear();
-    window.location.href = '/';
-  };
+  // 2FA setup mutation
+  const setup2FAMutation = useMutation({
+    mutationFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/standalone/2fa/setup', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to setup 2FA');
+      }
+
+      return await response.json();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "2FA setup failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // 2FA enable mutation
+  const enable2FAMutation = useMutation({
+    mutationFn: async (token: string) => {
+      const authToken = localStorage.getItem('auth_token');
+      const response = await fetch('/api/standalone/2fa/enable', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid verification code');
+      }
+
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/standalone/user'] });
+      toast({
+        title: "Two-factor authentication enabled",
+        description: "Your account is now more secure",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to enable 2FA",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // 2FA disable mutation
+  const disable2FAMutation = useMutation({
+    mutationFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/standalone/2fa/disable', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to disable 2FA');
+      }
+
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/standalone/user'] });
+      toast({
+        title: "Two-factor authentication disabled",
+        description: "2FA has been removed from your account",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to disable 2FA",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return {
     user: user || null,
-    isLoading: isLoading || loginMutation.isPending || registerMutation.isPending || simpleLoginMutation.isPending,
-    isAuthenticated: !!user && !error,
-    login: loginMutation.mutateAsync,
-    register: registerMutation.mutateAsync,
-    simpleLogin: simpleLoginMutation.mutateAsync,
-    logout,
-    loginError: loginMutation.error,
-    registerError: registerMutation.error,
-  };
-}
-
-// Query client setup with auth headers
-export function createAuthenticatedQueryClient() {
-  return {
-    defaultOptions: {
-      queries: {
-        queryFn: async ({ queryKey }: { queryKey: any[] }) => {
-          const url = queryKey[0];
-          return apiRequest(url);
-        },
-      },
-    },
-  };
-}
-
-// Custom hook for authenticated API requests
-export function useAuthenticatedRequest() {
-  return {
-    get: (url: string) => apiRequest(url),
-    post: (url: string, data: any) => apiRequest(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
-    put: (url: string, data: any) => apiRequest(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
-    delete: (url: string) => apiRequest(url, { method: 'DELETE' })
+    isLoading,
+    error,
+    isAuthenticated: !!user,
+    loginMutation,
+    registerMutation,
+    logoutMutation,
+    setup2FAMutation,
+    enable2FAMutation,
+    disable2FAMutation,
   };
 }
