@@ -10,7 +10,7 @@ The application serves three primary user roles: claimants who submit claims, in
 
 ## Recent Updates (January 2025)
 
-**TypeScript Compilation & Data Storage Issues Resolved**: Fixed all TypeScript compilation errors in the staff portal and resolved critical data validation issues. The application now properly handles date field validation by transforming string dates to Date objects in the schema. Fixed authentication type casting issues throughout the backend routes. Photo upload functionality has been corrected to properly store AI analysis results. All form data is now being properly captured and stored in the database, ensuring that submitted claims display actual user data rather than placeholder information in the incident details modal.
+**Accident Details Data Storage Fixed**: Resolved critical issue where accident details were not being saved to the database. The form was collecting accident information (date, location, description) but not persisting it due to missing auto-save functionality and incorrect field mapping. Fixed by adding proper accident data mutation in the Vehicle & Accident step component with correct field mapping (form.accident.date → database.accidentDate). Staff portal preview and incident details modals now display actual accident information instead of "Not specified" placeholders. All TypeScript compilation errors also resolved with proper authentication type casting.
 
 ## User Preferences
 
