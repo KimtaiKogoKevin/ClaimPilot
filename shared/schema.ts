@@ -298,14 +298,28 @@ export const detectedDamagesRelations = relations(detectedDamages, ({ one }) => 
   }),
 }));
 
-// Insert schemas
-export const insertClaimSchema = createInsertSchema(claims).omit({
+// Insert schemas with date transformations
+export const insertClaimSchema = createInsertSchema(claims, {
+  accidentDate: z.union([z.string(), z.date()]).transform((val) => 
+    typeof val === 'string' && val ? new Date(val) : val
+  ).optional(),
+  lastPaymentDate: z.union([z.string(), z.date()]).transform((val) => 
+    typeof val === 'string' && val ? new Date(val) : val
+  ).optional(),
+  submittedAt: z.union([z.string(), z.date()]).transform((val) => 
+    typeof val === 'string' && val ? new Date(val) : val
+  ).optional(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertIndividualDetailsSchema = createInsertSchema(individualDetails).omit({
+export const insertIndividualDetailsSchema = createInsertSchema(individualDetails, {
+  dateOfBirth: z.union([z.string(), z.date()]).transform((val) => 
+    typeof val === 'string' && val ? new Date(val) : val
+  ).optional(),
+}).omit({
   id: true,
 });
 

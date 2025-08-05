@@ -128,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Claims routes
   app.post("/api/claims", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       const claimData = insertClaimSchema.parse({
         ...req.body,
         claimantId: userId,
@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/claims/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       
       // Verify user owns this claim
       const existingClaim = await storage.getClaim(id);
@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/claims", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       const claims = await storage.getClaimsByUser(userId);
       res.json(claims);
     } catch (error) {
@@ -176,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/claims/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       
       const claim = await storage.getClaim(id);
       if (!claim || claim.claimantId !== userId) {
@@ -302,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/claims/:id/photos", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       
       if (!req.body.photoUrl) {
         return res.status(400).json({ error: "photoUrl is required" });
@@ -378,7 +378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/claims/:id/pdf", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       
       // Verify user owns this claim
       const claim = await storage.getClaim(id);
@@ -402,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/claims/:id/submit", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       
       // Verify user owns this claim
       const claim = await storage.getClaim(id);
@@ -428,7 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staff portal routes (simplified - would need additional role checking in production)
   app.get("/api/staff/claims", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
       
       // Check if user has staff access (broker or adjudicator)
@@ -448,7 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get claim details for staff
   app.get("/api/staff/claims/:id", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
       
       if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
@@ -471,7 +471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate PDF for claim
   app.get("/api/staff/claims/:id/pdf", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
       
       if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
@@ -499,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update claim status
   app.put("/api/staff/claims/:id/status", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any)?.claims?.sub;
       const user = await storage.getUser(userId);
       
       if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {

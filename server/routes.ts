@@ -114,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new draft claim
   app.post("/api/claims", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/claims/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -331,13 +331,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue without AI analysis
       }
       
-      const photoData = insertDamagedPhotoSchema.parse({
+      const photoData = {
         claimId: id,
         objectPath: imageUrl,
         angle,
         isGoodsPhoto: !!isGoodsPhoto,
-        detectedDamages,
-      });
+        aiAnalysisResults: detectedDamages,
+      };
       
       const photo = await storage.addDamagedPhoto(photoData);
       res.status(201).json(photo);
