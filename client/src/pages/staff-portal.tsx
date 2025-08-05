@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter, Download, FileText, User, Phone, Car, CreditCard, Truck, Building, Edit, Trash2, Info, MapPin, Calendar, AlertCircle, Camera } from "lucide-react";
+import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter, Download, FileText, User, Phone, Car, CreditCard, Truck, Building, Edit, Trash2, MapPin, Calendar, AlertCircle, Camera } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -522,116 +522,131 @@ export default function StaffPortal() {
                   </CardContent>
                 </Card>
 
-                {/* Accident Details */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-lg font-semibold text-red-800">
-                      <AlertCircle className="h-5 w-5 mr-2 text-red-500" />
-                      Accident Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-medium text-red-700 mb-1">Date</label>
-                          <div className="bg-white p-2 rounded border border-red-200">
-                            <div className="flex items-center text-gray-900">
-                              <Calendar className="h-4 w-4 mr-2 text-red-500" />
-                              {selectedClaim.accidentDate ? new Date(selectedClaim.accidentDate).toLocaleDateString() : 'Not specified'}
-                            </div>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-red-700 mb-1">Time</label>
-                          <div className="bg-white p-2 rounded border border-red-200">
-                            <div className="text-gray-900">{selectedClaim.accidentTime || 'Not specified'}</div>
-                          </div>
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-red-700 mb-1">Location</label>
-                          <div className="bg-white p-2 rounded border border-red-200">
-                            <div className="text-gray-900">{selectedClaim.accidentLocation || 'Not specified'}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-red-700 mb-1">Description of Incident</label>
-                        <div className="bg-white p-3 rounded border border-red-200">
-                          <div className="text-gray-900 whitespace-pre-wrap">
-                            {selectedClaim.accidentDescription || 'No description provided'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {/* Vehicle Information */}
                 {selectedClaim.vehicle && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Car className="h-5 w-5" />
+                      <CardTitle className="flex items-center text-lg font-semibold text-blue-800">
+                        <Car className="h-5 w-5 mr-2 text-blue-600" />
                         Vehicle Information
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <strong>Make:</strong> {selectedClaim.vehicle.make}
-                      </div>
-                      <div>
-                        <strong>Model:</strong> {selectedClaim.vehicle.model}
-                      </div>
-                      <div>
-                        <strong>Year:</strong> {selectedClaim.vehicle.yearOfManufacture || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Registration:</strong> {selectedClaim.vehicle.registrationNumber || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Owner:</strong> {selectedClaim.vehicle.ownerName || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Vehicle Use:</strong> {selectedClaim.vehicle.vehicleUse || 'N/A'}
+                    <CardContent>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-blue-700 mb-1">Make</label>
+                            <div className="bg-white p-2 rounded border border-blue-200">
+                              <div className="text-blue-900 font-medium">{selectedClaim.vehicle.make}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-blue-700 mb-1">Model</label>
+                            <div className="bg-white p-2 rounded border border-blue-200">
+                              <div className="text-blue-900 font-medium">{selectedClaim.vehicle.model}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-blue-700 mb-1">Year of Manufacture</label>
+                            <div className="bg-white p-2 rounded border border-blue-200">
+                              <div className="text-blue-900">{selectedClaim.vehicle.yearOfManufacture || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-blue-700 mb-1">Registration Number</label>
+                            <div className="bg-white p-2 rounded border border-blue-200">
+                              <div className="text-blue-900 font-mono">{selectedClaim.vehicle.registrationNumber || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-blue-700 mb-1">Owner Name</label>
+                            <div className="bg-white p-2 rounded border border-blue-200">
+                              <div className="text-blue-900">{selectedClaim.vehicle.ownerName || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-blue-700 mb-1">Vehicle Use</label>
+                            <div className="bg-white p-2 rounded border border-blue-200">
+                              <div className="text-blue-900">{selectedClaim.vehicle.vehicleUse || 'Not specified'}</div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 )}
 
+
+
                 {/* Driver Information */}
                 {selectedClaim.driver && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <User className="h-5 w-5" />
+                      <CardTitle className="flex items-center text-lg font-semibold text-green-800">
+                        <User className="h-5 w-5 mr-2 text-green-600" />
                         Driver Information
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <strong>Name:</strong> {selectedClaim.driver.name}
-                      </div>
-                      <div>
-                        <strong>License Number:</strong> {selectedClaim.driver.licenseNumber || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Years of Driving:</strong> {selectedClaim.driver.yearsOfDriving || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Occupation:</strong> {selectedClaim.driver.occupation || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Address:</strong> {selectedClaim.driver.address || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Telephone:</strong> {selectedClaim.driver.telephone || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Employed by Insured:</strong> {selectedClaim.driver.employedByInsured ? 'Yes' : 'No'}
-                      </div>
-                      <div>
-                        <strong>Previous Accidents:</strong> {selectedClaim.driver.previousAccidents ? 'Yes' : 'No'}
+                    <CardContent>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-green-700 mb-1">Full Name</label>
+                            <div className="bg-white p-2 rounded border border-green-200">
+                              <div className="text-green-900 font-medium">{selectedClaim.driver.name}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-green-700 mb-1">License Number</label>
+                            <div className="bg-white p-2 rounded border border-green-200">
+                              <div className="text-green-900 font-mono">{selectedClaim.driver.licenseNumber || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-green-700 mb-1">Years of Driving</label>
+                            <div className="bg-white p-2 rounded border border-green-200">
+                              <div className="text-green-900">{selectedClaim.driver.yearsOfDriving || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-green-700 mb-1">Occupation</label>
+                            <div className="bg-white p-2 rounded border border-green-200">
+                              <div className="text-green-900">{selectedClaim.driver.occupation || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-green-700 mb-1">Address</label>
+                            <div className="bg-white p-2 rounded border border-green-200">
+                              <div className="text-green-900">{selectedClaim.driver.address || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-green-700 mb-1">Telephone</label>
+                            <div className="bg-white p-2 rounded border border-green-200">
+                              <div className="text-green-900 font-mono">{selectedClaim.driver.telephone || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-green-700 mb-1">Employed by Insured</label>
+                            <div className="bg-white p-2 rounded border border-green-200">
+                              <div className="text-green-900">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${selectedClaim.driver.employedByInsured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                  {selectedClaim.driver.employedByInsured ? 'Yes' : 'No'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-green-700 mb-1">Previous Accidents</label>
+                            <div className="bg-white p-2 rounded border border-green-200">
+                              <div className="text-green-900">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${selectedClaim.driver.previousAccidents ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                                  {selectedClaim.driver.previousAccidents ? 'Yes' : 'No'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -641,29 +656,51 @@ export default function StaffPortal() {
                 {selectedClaim.bankDetails && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5" />
+                      <CardTitle className="flex items-center text-lg font-semibold text-purple-800">
+                        <CreditCard className="h-5 w-5 mr-2 text-purple-600" />
                         Bank Details
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <strong>Bank Name:</strong> {selectedClaim.bankDetails.bankName}
-                      </div>
-                      <div>
-                        <strong>Account Name:</strong> {selectedClaim.bankDetails.accountName}
-                      </div>
-                      <div>
-                        <strong>Account Number:</strong> {selectedClaim.bankDetails.accountNumber}
-                      </div>
-                      <div>
-                        <strong>Branch:</strong> {selectedClaim.bankDetails.branch || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Swift Code:</strong> {selectedClaim.bankDetails.swiftCode || 'N/A'}
-                      </div>
-                      <div>
-                        <strong>Sort Code:</strong> {selectedClaim.bankDetails.sortCode || 'N/A'}
+                    <CardContent>
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-purple-700 mb-1">Bank Name</label>
+                            <div className="bg-white p-2 rounded border border-purple-200">
+                              <div className="text-purple-900 font-medium">{selectedClaim.bankDetails.bankName}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-purple-700 mb-1">Account Name</label>
+                            <div className="bg-white p-2 rounded border border-purple-200">
+                              <div className="text-purple-900">{selectedClaim.bankDetails.accountName}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-purple-700 mb-1">Account Number</label>
+                            <div className="bg-white p-2 rounded border border-purple-200">
+                              <div className="text-purple-900 font-mono">{selectedClaim.bankDetails.accountNumber}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-purple-700 mb-1">Branch</label>
+                            <div className="bg-white p-2 rounded border border-purple-200">
+                              <div className="text-purple-900">{selectedClaim.bankDetails.branch || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-purple-700 mb-1">Swift Code</label>
+                            <div className="bg-white p-2 rounded border border-purple-200">
+                              <div className="text-purple-900 font-mono">{selectedClaim.bankDetails.swiftCode || 'Not specified'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-purple-700 mb-1">Sort Code</label>
+                            <div className="bg-white p-2 rounded border border-purple-200">
+                              <div className="text-purple-900 font-mono">{selectedClaim.bankDetails.sortCode || 'Not specified'}</div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -673,32 +710,49 @@ export default function StaffPortal() {
                 {selectedClaim.otherVehicles && selectedClaim.otherVehicles.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Truck className="h-5 w-5" />
+                      <CardTitle className="flex items-center text-lg font-semibold text-orange-800">
+                        <Truck className="h-5 w-5 mr-2 text-orange-600" />
                         Other Vehicles Involved
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {selectedClaim.otherVehicles.map((vehicle, index) => (
-                          <div key={vehicle.id} className="border rounded-lg p-4 bg-gray-50">
-                            <h4 className="font-medium text-gray-900 mb-2">Vehicle {index + 1}</h4>
-                            <div className="grid md:grid-cols-2 gap-4">
-                              <div>
-                                <strong>Owner Name:</strong> {vehicle.ownerName || 'N/A'}
-                              </div>
-                              <div>
-                                <strong>Registration:</strong> {vehicle.registrationNumber || 'N/A'}
-                              </div>
-                              <div>
-                                <strong>Owner Address:</strong> {vehicle.ownerAddress || 'N/A'}
-                              </div>
-                              <div>
-                                <strong>Insurer:</strong> {vehicle.insurer || 'N/A'}
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <div className="space-y-4">
+                          {selectedClaim.otherVehicles.map((vehicle, index) => (
+                            <div key={vehicle.id} className="bg-white border border-orange-200 rounded-lg p-4">
+                              <h4 className="font-medium text-orange-800 mb-3 flex items-center">
+                                <Car className="h-4 w-4 mr-2 text-orange-600" />
+                                Vehicle {index + 1}
+                              </h4>
+                              <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-orange-700 mb-1">Owner Name</label>
+                                  <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                                    <div className="text-orange-900">{vehicle.ownerName || 'Not specified'}</div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-orange-700 mb-1">Registration Number</label>
+                                  <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                                    <div className="text-orange-900 font-mono">{vehicle.registrationNumber || 'Not specified'}</div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-orange-700 mb-1">Owner Address</label>
+                                  <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                                    <div className="text-orange-900">{vehicle.ownerAddress || 'Not specified'}</div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-orange-700 mb-1">Insurer</label>
+                                  <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                                    <div className="text-orange-900">{vehicle.insurer || 'Not specified'}</div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
