@@ -23,13 +23,10 @@ const SALT_ROUNDS = 12;
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  confirmPassword: z.string().min(8),
+  confirmPassword: z.string().min(8).optional(), // Make optional for server processing
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   role: z.enum(['claimant', 'broker', 'adjudicator']).optional().default('claimant')
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
 });
 
 const loginSchema = z.object({

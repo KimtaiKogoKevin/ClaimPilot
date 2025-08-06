@@ -119,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/claims/:id", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
