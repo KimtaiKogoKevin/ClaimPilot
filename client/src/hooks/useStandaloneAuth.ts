@@ -80,6 +80,7 @@ export function useStandaloneAuth() {
       if (!data.requiresTwoFactor && data.token) {
         localStorage.setItem('auth_token', data.token);
         queryClient.setQueryData(['/api/auth/user'], data.user);
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       }
     },
     onError: (error: Error) => {
@@ -100,6 +101,7 @@ export function useStandaloneAuth() {
     onSuccess: (data: AuthResponse) => {
       localStorage.setItem('auth_token', data.token);
       queryClient.setQueryData(['/api/auth/user'], data.user);
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
     },
     onError: (error: Error) => {
       toast({

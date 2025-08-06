@@ -85,7 +85,8 @@ export default function AuthPage() {
         title: "Login Successful",
         description: "Welcome back!",
       });
-      setLocation("/");
+      // Force page reload to ensure authentication state is updated
+      window.location.href = "/";
     },
     onError: (error: any) => {
       toast({
@@ -107,7 +108,8 @@ export default function AuthPage() {
         title: "Registration Successful",
         description: "Welcome to Motor Claims Platform!",
       });
-      setLocation("/");
+      // Force page reload to ensure authentication state is updated
+      window.location.href = "/";
     },
     onError: (error: any) => {
       toast({
