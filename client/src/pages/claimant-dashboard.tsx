@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Shield, FileText, Clock, CheckCircle, DollarSign, Plus } from "lucide-r
 import type { ClaimWithDetails } from "@shared/schema";
 
 export default function ClaimantDashboard() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useStandaloneAuth();
   const { toast } = useToast();
 
   // Redirect to login if not authenticated
@@ -21,7 +21,7 @@ export default function ClaimantDashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/auth";
       }, 500);
       return;
     }
@@ -37,7 +37,8 @@ export default function ClaimantDashboard() {
   };
 
   const handleLogout = () => {
-    window.location.href = "/api/logout";
+    localStorage.removeItem('auth_token');
+    window.location.href = "/auth";
   };
 
   const handleViewClaim = (claimId: string) => {
@@ -46,9 +47,11 @@ export default function ClaimantDashboard() {
 
   const handleDownloadPDF = async (claimId: string) => {
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/claims/${claimId}/pdf`, {
         method: 'GET',
-        credentials: 'include', // Include session cookies for authentication
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -59,7 +62,7 @@ export default function ClaimantDashboard() {
             variant: "destructive",
           });
           setTimeout(() => {
-            window.location.href = "/api/login";
+            window.location.href = "/auth";
           }, 500);
           return;
         }

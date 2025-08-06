@@ -5,14 +5,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Clock, Eye, CheckCircle, Brain, BarChart3, Filter, Download, FileText, User, Phone, Car, CreditCard, Truck, Building, Edit, Trash2, MapPin, Calendar, AlertCircle, Camera } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ClaimWithDetails } from "@shared/schema";
 import { useState } from "react";
 
 export default function StaffPortal() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useStandaloneAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);

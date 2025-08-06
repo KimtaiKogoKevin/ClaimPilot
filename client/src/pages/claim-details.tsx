@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import type { ClaimWithDetails } from "@shared/schema";
 export default function ClaimDetails() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useStandaloneAuth();
   const { toast } = useToast();
   const [claim, setClaim] = useState<ClaimWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export default function ClaimDetails() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/auth";
       }, 500);
       return;
     }
@@ -47,7 +47,7 @@ export default function ClaimDetails() {
               variant: "destructive",
             });
             setTimeout(() => {
-              window.location.href = "/api/login";
+              window.location.href = "/auth";
             }, 500);
             return;
           }
@@ -64,7 +64,7 @@ export default function ClaimDetails() {
             variant: "destructive",
           });
           setTimeout(() => {
-            window.location.href = "/api/login";
+            window.location.href = "/auth";
           }, 500);
           return;
         }
@@ -99,7 +99,7 @@ export default function ClaimDetails() {
             variant: "destructive",
           });
           setTimeout(() => {
-            window.location.href = "/api/login";
+            window.location.href = "/auth";
           }, 500);
           return;
         }

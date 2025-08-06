@@ -96,7 +96,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new draft claim
   app.post("/api/claims", authenticateToken, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req as any).user?.id;
+
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -142,7 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's claims
   app.get("/api/claims", authenticateToken, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req as any).user?.id;
+
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
