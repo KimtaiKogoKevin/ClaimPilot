@@ -26,6 +26,9 @@ EMAIL_FROM=Motor Claims Platform <your-email@your-domain.com>
 ## Setup Instructions
 
 ### For Gmail:
+**Note: Gmail has been phasing out App Passwords for newer accounts. If you don't see the App Passwords option, use one of the alternatives below.**
+
+If App Passwords are available:
 1. Enable 2-factor authentication on your Gmail account
 2. Generate an App Password:
    - Go to Google Account settings
@@ -33,16 +36,45 @@ EMAIL_FROM=Motor Claims Platform <your-email@your-domain.com>
    - Generate a password for "Mail"
    - Use this app password as `EMAIL_PASS`
 
-### For Other Providers:
-| Provider | SMTP Host | Port | Security |
-|----------|-----------|------|----------|
-| Outlook/Hotmail | smtp-mail.outlook.com | 587 | TLS |
-| Yahoo | smtp.mail.yahoo.com | 587 or 465 | TLS/SSL |
-| SendGrid | smtp.sendgrid.net | 587 | TLS |
-| Mailgun | smtp.mailgun.org | 587 | TLS |
+If App Passwords are NOT available:
+- Use Gmail's SMTP with OAuth2 (complex setup)
+- Or switch to one of the alternative providers below
+
+### Alternative Email Providers (Recommended):
+
+**Option A: Outlook/Hotmail (Free & Easy)**
+```
+EMAIL_HOST=smtp-mail.outlook.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@outlook.com
+EMAIL_PASS=your-outlook-password
+EMAIL_FROM=Motor Claims <your-email@outlook.com>
+```
+- Works with regular password (no app passwords needed)
+- Just use your normal Outlook/Hotmail login
+
+**Option B: Yahoo Mail**
+```
+EMAIL_HOST=smtp.mail.yahoo.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@yahoo.com
+EMAIL_PASS=your-yahoo-app-password
+EMAIL_FROM=Motor Claims <your-email@yahoo.com>
+```
+- Requires app password: Yahoo Account → Security → Generate app password
+
+**Option C: Professional Services**
+| Provider | SMTP Host | Port | Notes |
+|----------|-----------|------|--------|
+| SendGrid | smtp.sendgrid.net | 587 | Free tier: 100 emails/day |
+| Mailgun | smtp.mailgun.org | 587 | Free tier: 5,000 emails/month |
+| AWS SES | email-smtp.region.amazonaws.com | 587 | Pay per email |
 
 ### For Development/Testing:
-You can use Mailtrap or similar services:
+**Mailtrap (Free Email Testing)**
+1. Sign up at mailtrap.io (free account)
+2. Create an inbox
+3. Use these settings:
 ```
 EMAIL_HOST=sandbox.smtp.mailtrap.io
 EMAIL_PORT=2525
@@ -50,6 +82,8 @@ EMAIL_USER=your-mailtrap-username
 EMAIL_PASS=your-mailtrap-password
 EMAIL_FROM=test@example.com
 ```
+- Emails won't be delivered to real addresses
+- Perfect for testing without sending real emails
 
 ## Security Notes
 
