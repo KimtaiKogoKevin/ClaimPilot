@@ -9,7 +9,9 @@ import {
   setup2FA, 
   enable2FA, 
   disable2FA, 
-  authenticateToken
+  authenticateToken,
+  forgotPassword,
+  resetPassword
 } from "./standaloneAuth";
 import {
   ObjectStorageService,
@@ -71,6 +73,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/2fa/setup', authenticateToken, setup2FA);
   app.post('/api/auth/2fa/enable', authenticateToken, enable2FA);
   app.post('/api/auth/2fa/disable', authenticateToken, disable2FA);
+  app.post('/api/auth/forgot-password', forgotPassword);
+  app.post('/api/auth/reset-password', resetPassword);
 
   // Update user role
   app.put('/api/auth/update-role', authenticateToken, async (req: any, res) => {

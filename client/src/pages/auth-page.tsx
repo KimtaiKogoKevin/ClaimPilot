@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, Shield, Mail, Lock, User, UserCheck } from "lucide-react";
+import { Eye, EyeOff, Shield, Mail, Lock, User, UserCheck, ArrowLeft } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -34,8 +34,23 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address")
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(8, "Please confirm your password")
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
+type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -43,6 +58,12 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  
+  // Check if we have a reset token in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const resetToken = urlParams.get('reset');
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -62,6 +83,22 @@ export default function AuthPage() {
       firstName: "",
       lastName: "",
       role: "claimant"
+    }
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordForm>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: ""
+    }
+  });
+
+  const resetPasswordForm = useForm<ResetPasswordForm>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      token: resetToken || "",
+      password: "",
+      confirmPassword: ""
     }
   });
 
@@ -120,6 +157,56 @@ export default function AuthPage() {
     }
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: ForgotPasswordForm) => {
+      const response = await apiRequest("POST", "/api/auth/forgot-password", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Password Reset Email Sent",
+        description: data.message,
+      });
+      // In development, show the reset URL
+      if (data.resetUrl) {
+        console.log('Reset URL:', data.resetUrl);
+        setTimeout(() => {
+          window.location.href = data.resetUrl;
+        }, 2000);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reset email",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: ResetPasswordForm) => {
+      const response = await apiRequest("POST", "/api/auth/reset-password", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Password Reset Successful",
+        description: data.message,
+      });
+      // Clear URL params and show login form
+      window.history.replaceState({}, document.title, "/auth");
+      setShowResetPassword(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Password Reset Failed",
+        description: error.message || "Failed to reset password",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleLogin = (data: LoginForm) => {
     loginMutation.mutate(data);
   };
@@ -127,6 +214,20 @@ export default function AuthPage() {
   const handleRegister = (data: RegisterForm) => {
     registerMutation.mutate(data);
   };
+
+  const handleForgotPassword = (data: ForgotPasswordForm) => {
+    forgotPasswordMutation.mutate(data);
+  };
+
+  const handleResetPassword = (data: ResetPasswordForm) => {
+    resetPasswordMutation.mutate(data);
+  };
+
+  // Show reset password form if we have a token
+  if (resetToken && !showResetPassword) {
+    setShowResetPassword(true);
+    setShowForgotPassword(false);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -271,6 +372,17 @@ export default function AuthPage() {
                     >
                       {loginMutation.isPending ? "Signing In..." : "Sign In"}
                     </Button>
+
+                    <div className="text-center">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Forgot your password?
+                      </Button>
+                    </div>
                   </form>
                 </Form>
               </TabsContent>
@@ -430,6 +542,156 @@ export default function AuthPage() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Forgot Password Modal */}
+        {showForgotPassword && (
+          <Card className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md mx-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Reset Password</CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowForgotPassword(false)}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <CardDescription>
+                    Enter your email address and we'll send you a link to reset your password.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...forgotPasswordForm}>
+                    <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} className="space-y-4">
+                      <FormField
+                        control={forgotPasswordForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email Address</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter your email" 
+                                type="email"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setShowForgotPassword(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          className="flex-1" 
+                          disabled={forgotPasswordMutation.isPending}
+                        >
+                          {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </div>
+          </Card>
+        )}
+
+        {/* Reset Password Modal */}
+        {showResetPassword && (
+          <Card className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md mx-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Set New Password</CardTitle>
+                  <CardDescription>
+                    Enter your new password below.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...resetPasswordForm}>
+                    <form onSubmit={resetPasswordForm.handleSubmit(handleResetPassword)} className="space-y-4">
+                      <FormField
+                        control={resetPasswordForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Password</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Input 
+                                  placeholder="Enter new password" 
+                                  type={showPassword ? "text" : "password"}
+                                  {...field} 
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute right-0 top-0 h-full px-3"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={resetPasswordForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm Password</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Input 
+                                  placeholder="Confirm new password" 
+                                  type={showConfirmPassword ? "text" : "password"}
+                                  {...field} 
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute right-0 top-0 h-full px-3"
+                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                >
+                                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        disabled={resetPasswordMutation.isPending}
+                      >
+                        {resetPasswordMutation.isPending ? "Updating Password..." : "Update Password"}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

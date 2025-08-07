@@ -58,6 +58,9 @@ export interface IStorage {
   updateUser(id: string, updates: Partial<UpsertUser>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(id: string, role: string): Promise<User>;
+  setPasswordResetToken(email: string, token: string, expires: Date): Promise<void>;
+  getUserByPasswordResetToken(token: string): Promise<User | undefined>;
+  clearPasswordResetToken(userId: string): Promise<void>;
   
   // Claim operations
   createClaim(claim: InsertClaim): Promise<Claim>;
@@ -368,6 +371,42 @@ export class DatabaseStorage implements IStorage {
 
   async addDetectedDamage(damage: Omit<DetectedDamage, 'id'>): Promise<void> {
     await db.insert(detectedDamages).values(damage);
+  }
+
+  // Password reset methods
+  async setPasswordResetToken(email: string, token: string, expires: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        passwordResetToken: token, 
+        passwordResetExpires: expires,
+        updatedAt: new Date()
+      })
+      .where(eq(users.email, email));
+  }
+
+  async getUserByPasswordResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.passwordResetToken, token));
+    
+    // Check if token hasn't expired
+    if (user && user.passwordResetExpires && user.passwordResetExpires > new Date()) {
+      return user;
+    }
+    return undefined;
+  }
+
+  async clearPasswordResetToken(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        passwordResetToken: null, 
+        passwordResetExpires: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
   }
 }
 

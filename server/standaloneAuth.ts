@@ -2,10 +2,11 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
+import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { z } from 'zod';
-import { User } from '@shared/schema';
+import { User, forgotPasswordSchema, resetPasswordSchema } from '@shared/schema';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
@@ -332,4 +333,76 @@ export async function getCurrentUser(req: Request, res: Response) {
 // Logout endpoint (client-side token removal)
 export async function logout(req: Request, res: Response) {
   res.json({ message: 'Logged out successfully' });
+}
+
+// Forgot password endpoint
+export async function forgotPassword(req: Request, res: Response) {
+  try {
+    const validatedData = forgotPasswordSchema.parse(req.body);
+    
+    // Check if user exists
+    const user = await storage.getUserByEmail(validatedData.email);
+    if (!user) {
+      // Don't reveal if email exists or not for security
+      return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+    }
+
+    // Generate reset token (32 bytes = 64 character hex string)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 3600000); // 1 hour from now
+
+    // Save token to database
+    await storage.setPasswordResetToken(validatedData.email, resetToken, resetExpires);
+
+    // In a real application, you would send an email here
+    // For now, we'll log the reset link (in production, remove this)
+    const resetUrl = `${req.protocol}://${req.get('host')}/auth?reset=${resetToken}`;
+    console.log('Password reset URL:', resetUrl);
+    
+    // TODO: Send email with reset link
+    // Example:
+    // await sendPasswordResetEmail(validatedData.email, resetUrl);
+
+    res.json({ 
+      message: 'If an account with that email exists, a password reset link has been sent.',
+      // In development only - remove in production
+      ...(process.env.NODE_ENV === 'development' && { resetUrl })
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+// Reset password endpoint
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const validatedData = resetPasswordSchema.parse(req.body);
+    
+    // Find user by reset token
+    const user = await storage.getUserByPasswordResetToken(validatedData.token);
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(validatedData.password);
+    
+    // Update password and clear reset token
+    await storage.updateUser(user.id, {
+      password: hashedPassword
+    });
+    await storage.clearPasswordResetToken(user.id);
+
+    res.json({ message: 'Password has been successfully reset. You can now log in with your new password.' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Validation error', errors: error.errors });
+    }
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 }
