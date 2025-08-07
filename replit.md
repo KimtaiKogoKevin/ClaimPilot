@@ -10,6 +10,8 @@ The application serves three primary user roles: claimants who submit claims, in
 
 ## Recent Updates (January 2025)
 
+**Complete Forgot Password System Implemented**: Added comprehensive forgot password functionality with secure token generation, database schema updates for password reset tokens with expiry timestamps, backend API endpoints for forgot password request and validation, and frontend UI components integrated with existing authentication page. Email service created with support for Gmail, custom SMTP, and development testing. Users can now reset passwords through secure email links with 1-hour expiry. System includes proper security measures and comprehensive email templates.
+
 **Accident Details Data Storage Fixed**: Resolved critical issue where accident details were not being saved to the database. The form was collecting accident information (date, location, description) but not persisting it due to missing auto-save functionality and incorrect field mapping. Fixed by adding proper accident data mutation in the Vehicle & Accident step component with correct field mapping (form.accident.date → database.accidentDate). Staff portal preview and incident details modals now display actual accident information instead of "Not specified" placeholders. All TypeScript compilation errors also resolved with proper authentication type casting.
 
 ## User Preferences

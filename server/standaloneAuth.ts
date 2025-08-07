@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { z } from 'zod';
 import { User, forgotPasswordSchema, resetPasswordSchema } from '@shared/schema';
+import { emailService } from './emailService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
@@ -354,19 +355,26 @@ export async function forgotPassword(req: Request, res: Response) {
     // Save token to database
     await storage.setPasswordResetToken(validatedData.email, resetToken, resetExpires);
 
-    // In a real application, you would send an email here
-    // For now, we'll log the reset link (in production, remove this)
+    // Generate reset URL
     const resetUrl = `${req.protocol}://${req.get('host')}/auth?reset=${resetToken}`;
-    console.log('Password reset URL:', resetUrl);
     
-    // TODO: Send email with reset link
-    // Example:
-    // await sendPasswordResetEmail(validatedData.email, resetUrl);
+    // Try to send email
+    let emailSent = false;
+    if (emailService.isReady()) {
+      emailSent = await emailService.sendPasswordResetEmail(validatedData.email, resetUrl);
+    }
+    
+    // Log for development (remove in production)
+    if (!emailSent) {
+      console.log('Email service not configured. Password reset URL:', resetUrl);
+    }
 
     res.json({ 
-      message: 'If an account with that email exists, a password reset link has been sent.',
+      message: emailSent 
+        ? 'If an account with that email exists, a password reset link has been sent to your email.'
+        : 'If an account with that email exists, a password reset link has been sent.',
       // In development only - remove in production
-      ...(process.env.NODE_ENV === 'development' && { resetUrl })
+      ...(process.env.NODE_ENV === 'development' && !emailSent && { resetUrl })
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
