@@ -42,16 +42,22 @@ If App Passwords are NOT available:
 
 ### Alternative Email Providers (Recommended):
 
-**Option A: Outlook/Hotmail (Free & Easy)**
+**Option A: Outlook/Hotmail (Requires App Password)**
 ```
 EMAIL_HOST=smtp-mail.outlook.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@outlook.com
-EMAIL_PASS=your-outlook-password
+EMAIL_PASS=your-outlook-app-password
 EMAIL_FROM=Motor Claims <your-email@outlook.com>
 ```
-- Works with regular password (no app passwords needed)
-- Just use your normal Outlook/Hotmail login
+
+**To get Outlook App Password:**
+1. Go to Microsoft Account Security settings
+2. Enable two-factor authentication
+3. Go to Security → App passwords → Create new app password
+4. Use the generated app password (not your regular password)
+
+**Note:** Outlook also requires app passwords like Gmail for SMTP access.
 
 **Option B: Yahoo Mail**
 ```

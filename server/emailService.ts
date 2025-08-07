@@ -26,6 +26,13 @@ class EmailService {
     const emailPass = process.env.EMAIL_PASS;
     const emailService = process.env.EMAIL_SERVICE; // e.g., 'gmail', 'outlook', etc.
 
+    console.log('Email configuration check:');
+    console.log('- EMAIL_HOST:', emailHost ? '✓ set' : '✗ not set');
+    console.log('- EMAIL_PORT:', emailPort ? '✓ set' : '✗ not set');
+    console.log('- EMAIL_USER:', emailUser ? '✓ set' : '✗ not set');
+    console.log('- EMAIL_PASS:', emailPass ? '✓ set' : '✗ not set');
+    console.log('- EMAIL_SERVICE:', emailService ? '✓ set' : '✗ not set');
+
     if (!emailUser || !emailPass) {
       console.warn('Email service not configured: EMAIL_USER and EMAIL_PASS environment variables are required');
       return;
@@ -70,6 +77,10 @@ class EmailService {
   }
 
   async sendPasswordResetEmail(to: string, resetUrl: string): Promise<boolean> {
+    console.log('Attempting to send email to:', to);
+    console.log('Email service configured:', this.isConfigured);
+    console.log('Transporter exists:', !!this.transporter);
+    
     if (!this.isConfigured || !this.transporter) {
       console.error('Email service is not configured. Please set up EMAIL_USER and EMAIL_PASS environment variables.');
       return false;
@@ -87,11 +98,16 @@ class EmailService {
     };
 
     try {
+      console.log('Sending email with options:', {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject
+      });
       const info = await this.transporter.sendMail(mailOptions);
-      console.log('Password reset email sent:', info.messageId);
+      console.log('✓ Password reset email sent successfully:', info.messageId);
       return true;
     } catch (error) {
-      console.error('Failed to send password reset email:', error);
+      console.error('✗ Failed to send password reset email:', error);
       return false;
     }
   }
