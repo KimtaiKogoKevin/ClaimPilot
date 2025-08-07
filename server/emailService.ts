@@ -20,18 +20,18 @@ class EmailService {
   }
 
   private initializeTransporter() {
-    const emailHost = process.env.EMAIL_HOST;
-    const emailPort = process.env.EMAIL_PORT;
-    const emailUser = process.env.EMAIL_USER;
-    const emailPass = process.env.EMAIL_PASS;
-    const emailService = process.env.EMAIL_SERVICE; // e.g., 'gmail', 'outlook', etc.
+    const emailHost = process.env.EMAIL_HOST?.trim();
+    const emailPort = process.env.EMAIL_PORT?.trim();
+    const emailUser = process.env.EMAIL_USER?.trim();
+    const emailPass = process.env.EMAIL_PASS?.trim();
+    const emailService = process.env.EMAIL_SERVICE?.trim(); // e.g., 'gmail', 'outlook', etc.
 
     console.log('Email configuration check:');
-    console.log('- EMAIL_HOST:', emailHost ? '✓ set' : '✗ not set');
-    console.log('- EMAIL_PORT:', emailPort ? '✓ set' : '✗ not set');
-    console.log('- EMAIL_USER:', emailUser ? '✓ set' : '✗ not set');
-    console.log('- EMAIL_PASS:', emailPass ? '✓ set' : '✗ not set');
-    console.log('- EMAIL_SERVICE:', emailService ? '✓ set' : '✗ not set');
+    console.log('- EMAIL_HOST:', emailHost ? `✓ set: "${emailHost}"` : '✗ not set');
+    console.log('- EMAIL_PORT:', emailPort ? `✓ set: "${emailPort}"` : '✗ not set');
+    console.log('- EMAIL_USER:', emailUser ? `✓ set: "${emailUser}"` : '✗ not set');
+    console.log('- EMAIL_PASS:', emailPass ? '✓ set (hidden)' : '✗ not set');
+    console.log('- EMAIL_SERVICE:', emailService ? `✓ set: "${emailService}"` : '✗ not set');
 
     if (!emailUser || !emailPass) {
       console.warn('Email service not configured: EMAIL_USER and EMAIL_PASS environment variables are required');
