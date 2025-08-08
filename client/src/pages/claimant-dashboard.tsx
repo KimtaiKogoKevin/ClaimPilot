@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -12,6 +13,7 @@ import type { ClaimWithDetails } from "@shared/schema";
 export default function ClaimantDashboard() {
   const { user, isAuthenticated, isLoading } = useStandaloneAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -198,7 +200,11 @@ export default function ClaimantDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-8">
+        <div className="mb-8 flex space-x-4">
+          <Button variant="outline" onClick={() => setLocation("/drafts")} className="shadow-lg">
+            <FileText className="h-4 w-4 mr-2" />
+            View Drafts
+          </Button>
           <Button onClick={handleNewClaim} className="shadow-lg">
             <Plus className="h-4 w-4 mr-2" />
             Submit New Claim

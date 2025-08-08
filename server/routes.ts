@@ -161,6 +161,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's draft claims
+  app.get("/api/claims/drafts", authenticateToken, async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const draftClaims = await storage.getDraftClaims(userId);
+      res.json(draftClaims);
+    } catch (error) {
+      console.error("Error fetching draft claims:", error);
+      res.status(500).json({ message: "Failed to fetch draft claims" });
+    }
+  });
+
+  // Save draft progress
+  app.put("/api/claims/:id/save-draft", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { step, data, progressPercentage } = req.body;
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      // Verify user owns this claim
+      const existingClaim = await storage.getClaim(id);
+      if (!existingClaim || existingClaim.insuredId !== userId) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+
+      await storage.saveDraftProgress(id, step, data, progressPercentage);
+      res.json({ message: "Draft saved successfully" });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      res.status(500).json({ message: "Failed to save draft" });
+    }
+  });
+
+  // Resume draft claim
+  app.get("/api/claims/:id/resume", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const claim = await storage.resumeDraft(id);
+      if (!claim || claim.insuredId !== userId) {
+        return res.status(404).json({ message: "Draft not found" });
+      }
+
+      res.json(claim);
+    } catch (error) {
+      console.error("Error resuming draft:", error);
+      res.status(500).json({ message: "Failed to resume draft" });
+    }
+  });
+
   // Get claim details
   app.get("/api/claims/:id", authenticateToken, async (req, res) => {
     try {

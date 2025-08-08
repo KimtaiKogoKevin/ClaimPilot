@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import ClaimForm from "@/pages/claim-form";
 import ClaimDetails from "@/pages/claim-details";
+import DraftDashboard from "@/pages/draft-dashboard";
 import ClaimantDashboard from "@/pages/claimant-dashboard";
 import StaffPortal from "@/pages/staff-portal";
 import RoleSelection from "@/pages/role-selection";
@@ -44,8 +45,9 @@ function Router() {
           {user.role === 'insured' ? (
             <>
               <Route path="/" component={ClaimantDashboard} />
-              <Route path="/claim/:id?" component={ClaimForm} />
+              <Route path="/claim-form/:id?" component={ClaimForm} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
+              <Route path="/drafts" component={DraftDashboard} />
             </>
           ) : user.role === 'insurer' ? (
             <>

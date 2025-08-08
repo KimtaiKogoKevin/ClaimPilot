@@ -92,6 +92,12 @@ export const claims = pgTable("claims", {
   // AI Analysis results
   aiAnalysisResults: jsonb("ai_analysis_results"),
   
+  // Draft tracking for step-by-step form saving
+  currentFormStep: integer("current_form_step").default(1), // Track which step user is on
+  completedSteps: jsonb("completed_steps").default([]), // Array of completed step numbers
+  formProgress: decimal("form_progress", { precision: 5, scale: 2 }).default('0'), // Percentage completed
+  lastSavedAt: timestamp("last_saved_at"), // When was this draft last saved
+  
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

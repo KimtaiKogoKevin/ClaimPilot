@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDraftManager } from "@/hooks/useDraftManager";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Save, Clock } from "lucide-react";
 import ProgressBar from "@/components/claim-form/progress-bar";
 import PolicyDetailsStep from "@/components/claim-form/policy-details-step";
 import VehicleAccidentStep from "@/components/claim-form/vehicle-accident-step";
@@ -18,6 +19,17 @@ export default function ClaimForm() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [claimId, setClaimId] = useState<string | null>(id || null);
+  
+  // Draft management
+  const { 
+    currentDraft, 
+    isLoadingDraft, 
+    isSaving, 
+    saveDraft, 
+    getProgress, 
+    getCurrentStep, 
+    getLastSaved 
+  } = useDraftManager(claimId || undefined);
   const [formData, setFormData] = useState({
     // Policy details
     branchName: "",
@@ -135,6 +147,116 @@ export default function ClaimForm() {
     }>,
   });
 
+  // Restore draft data when loading a draft claim
+  useEffect(() => {
+    if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object') {
+      setCurrentStep(getCurrentStep(currentDraft));
+      
+      // Restore form data from draft
+      setFormData({
+        branchName: (currentDraft as any).branchName || "",
+        agentName: (currentDraft as any).agentName || "",
+        policyNumber: (currentDraft as any).policyNumber || "",
+        lastPaymentDate: (currentDraft as any).lastPaymentDate || "",
+        insuredType: (currentDraft as any).insuredType || "individual",
+        individual: {
+          firstName: (currentDraft as any).individualDetails?.firstName || "",
+          middleName: (currentDraft as any).individualDetails?.middleName || "",
+          surname: (currentDraft as any).individualDetails?.surname || "",
+          idNumber: (currentDraft as any).individualDetails?.idNumber || "",
+          nationality: (currentDraft as any).individualDetails?.nationality || "",
+          dateOfBirth: (currentDraft as any).individualDetails?.dateOfBirth || "",
+          pinNumber: (currentDraft as any).individualDetails?.pinNumber || "",
+          occupation: (currentDraft as any).individualDetails?.occupation || "",
+          residentialPhone: (currentDraft as any).individualDetails?.residentialPhone || "",
+          officePhone: (currentDraft as any).individualDetails?.officePhone || "",
+          mobile: (currentDraft as any).individualDetails?.mobile || "",
+          postalAddress: (currentDraft as any).individualDetails?.postalAddress || "",
+          postalCode: (currentDraft as any).individualDetails?.postalCode || "",
+          physicalAddress: (currentDraft as any).individualDetails?.physicalAddress || "",
+          email: (currentDraft as any).individualDetails?.email || "",
+          tradeBusiness: (currentDraft as any).individualDetails?.tradeBusiness || "",
+        },
+        corporate: {
+          registeredName: (currentDraft as any).corporateDetails?.registeredName || "",
+          registrationNumber: (currentDraft as any).corporateDetails?.registrationNumber || "",
+          countryOfRegistration: (currentDraft as any).corporateDetails?.countryOfRegistration || "",
+          pinNumber: (currentDraft as any).corporateDetails?.pinNumber || "",
+          vatRegNumber: (currentDraft as any).corporateDetails?.vatRegNumber || "",
+          officePhone: (currentDraft as any).corporateDetails?.officePhone || "",
+          mobileContact: (currentDraft as any).corporateDetails?.mobileContact || "",
+          postalAddress: (currentDraft as any).corporateDetails?.postalAddress || "",
+          postalCode: (currentDraft as any).corporateDetails?.postalCode || "",
+          physicalAddress: (currentDraft as any).corporateDetails?.physicalAddress || "",
+          email: (currentDraft as any).corporateDetails?.email || "",
+          tradeBusiness: (currentDraft as any).corporateDetails?.tradeBusiness || "",
+          yearsInOperation: (currentDraft as any).corporateDetails?.yearsInOperation || "",
+        },
+        vehicle: {
+          make: (currentDraft as any).vehicle?.make || "",
+          model: (currentDraft as any).vehicle?.model || "",
+          yearOfManufacture: (currentDraft as any).vehicle?.yearOfManufacture || null,
+          registrationNumber: (currentDraft as any).vehicle?.registrationNumber || "",
+          carryingCapacity: (currentDraft as any).vehicle?.carryingCapacity || "",
+          loadingCapacity: (currentDraft as any).vehicle?.loadingCapacity || "",
+          ownerName: (currentDraft as any).vehicle?.ownerName || "",
+          ownerAddress: (currentDraft as any).vehicle?.ownerAddress || "",
+          vehicleUse: (currentDraft as any).vehicle?.vehicleUse || "",
+        },
+        accident: {
+          date: (currentDraft as any).accidentDate || "",
+          time: (currentDraft as any).accidentTime || "",
+          location: (currentDraft as any).accidentLocation || "",
+          description: (currentDraft as any).accidentDescription || "",
+        },
+        damage: {
+          vehicleDescription: (currentDraft as any).vehicleDamageDescription || "",
+          goodsDamaged: (currentDraft as any).goodsDamaged || false,
+          goodsDescription: (currentDraft as any).goodsDescription || "",
+        },
+        driver: {
+          name: (currentDraft as any).driver?.name || "",
+          occupation: (currentDraft as any).driver?.occupation || "",
+          address: (currentDraft as any).driver?.address || "",
+          dateOfBirth: (currentDraft as any).driver?.dateOfBirth || "",
+          telephone: (currentDraft as any).driver?.telephone || "",
+          licenseNumber: (currentDraft as any).driver?.licenseNumber || "",
+          employedByInsured: (currentDraft as any).driver?.employedByInsured || null,
+          drivingWithPermission: (currentDraft as any).driver?.drivingWithPermission || null,
+          yearsOfDriving: (currentDraft as any).driver?.yearsOfDriving || null,
+          blameToBareForAccident: (currentDraft as any).driver?.blameToBareForAccident || null,
+          admittedLiability: (currentDraft as any).driver?.admittedLiability || null,
+          previousAccidents: (currentDraft as any).driver?.previousAccidents || null,
+          previousAccidentsDetails: (currentDraft as any).driver?.previousAccidentsDetails || "",
+          convictions: (currentDraft as any).driver?.convictions || null,
+          convictionsDetails: (currentDraft as any).driver?.convictionsDetails || "",
+          licenseType: (currentDraft as any).driver?.licenseType || "",
+          drivingTestPassedDate: (currentDraft as any).driver?.drivingTestPassedDate || "",
+          ownsMotorVehicle: (currentDraft as any).driver?.ownsMotorVehicle || null,
+          ownVehicleInsurer: (currentDraft as any).driver?.ownVehicleInsurer || "",
+          ownVehiclePolicyNumber: (currentDraft as any).driver?.ownVehiclePolicyNumber || "",
+        },
+        bank: {
+          bankName: (currentDraft as any).bankDetails?.bankName || "",
+          accountName: (currentDraft as any).bankDetails?.accountName || "",
+          accountNumber: (currentDraft as any).bankDetails?.accountNumber || "",
+          branch: (currentDraft as any).bankDetails?.branch || "",
+          swiftCode: (currentDraft as any).bankDetails?.swiftCode || "",
+          sortCode: (currentDraft as any).bankDetails?.sortCode || "",
+        },
+        otherVehicles: (currentDraft as any).otherVehicles || [],
+      });
+
+      if (claimId) {
+        toast({
+          title: "Draft Restored",
+          description: `Continuing from step ${getCurrentStep(currentDraft)} where you left off.`,
+          variant: "default",
+        });
+      }
+    }
+  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast]);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -151,6 +273,42 @@ export default function ClaimForm() {
   }, [isAuthenticated, isLoading, toast]);
 
   const totalSteps = 4;
+  
+  // Calculate progress percentage
+  const calculateProgress = useCallback(() => {
+    return Math.round((currentStep / totalSteps) * 100);
+  }, [currentStep, totalSteps]);
+
+  // Auto-save draft when form data changes
+  const autoSave = useCallback(() => {
+    if (!claimId) return;
+    
+    const progressPercentage = calculateProgress();
+    const dataToSave = {
+      // Policy details
+      branchName: formData.branchName,
+      agentName: formData.agentName,
+      policyNumber: formData.policyNumber,
+      lastPaymentDate: formData.lastPaymentDate,
+      insuredType: formData.insuredType,
+      // Accident details
+      accidentDate: formData.accident.date,
+      accidentTime: formData.accident.time,
+      accidentLocation: formData.accident.location,
+      accidentDescription: formData.accident.description,
+      // Damage details
+      vehicleDamageDescription: formData.damage.vehicleDescription,
+      goodsDamaged: formData.damage.goodsDamaged,
+      goodsDescription: formData.damage.goodsDescription,
+    };
+    
+    saveDraft(claimId, currentStep, dataToSave, progressPercentage);
+  }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
+
+  // Manual save button handler
+  const handleSaveDraft = () => {
+    autoSave();
+  };
 
   const handleBackToLanding = () => {
     setLocation("/");
@@ -158,13 +316,23 @@ export default function ClaimForm() {
 
   const handleNextStep = () => {
     if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      // Auto-save when moving to next step
+      if (claimId) {
+        autoSave();
+      }
     }
   };
 
   const handlePrevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      // Auto-save when moving to previous step
+      if (claimId) {
+        autoSave();
+      }
     }
   };
 
@@ -256,14 +424,50 @@ export default function ClaimForm() {
       <div className="bg-white border-b border-neutral-200 px-6 py-4 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" onClick={handleBackToLanding}>
-                <ArrowLeft className="h-4 w-4" />
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToLanding}
+                className="text-neutral-600 hover:text-neutral-900"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
               </Button>
-              <h2 className="text-xl font-semibold">New Claim Submission</h2>
+              
+              {/* Draft status indicator */}
+              {claimId && (
+                <div className="flex items-center space-x-2 text-sm text-neutral-600">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    {getLastSaved(currentDraft) 
+                      ? `Last saved: ${getLastSaved(currentDraft)?.toLocaleTimeString()}`
+                      : 'Draft not saved'
+                    }
+                  </span>
+                  {isSaving && <span className="text-blue-600">Saving...</span>}
+                </div>
+              )}
             </div>
-            <div className="text-sm text-neutral-600">
-              Auto-saved <span className="text-secondary">2 minutes ago</span>
+            
+            {/* Save draft button */}
+            <div className="flex items-center space-x-2">
+              {claimId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveDraft}
+                  disabled={isSaving}
+                  className="text-neutral-700 hover:text-neutral-900"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSaving ? 'Saving...' : 'Save Draft'}
+                </Button>
+              )}
+              
+              <div className="text-sm text-neutral-600">
+                Step {currentStep} of {totalSteps} ({calculateProgress()}% complete)
+              </div>
             </div>
           </div>
           

@@ -25,7 +25,7 @@ import {
   type DetectedDamage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 
 // Generate a unique claimant reference number in format CLM-YYYY-###
 async function generateClaimantReferenceNumber(): Promise<string> {
@@ -91,6 +91,11 @@ export interface IStorage {
 
   // Analytics methods
   getAnalyticsDashboard(brokerId?: string): Promise<any>;
+  
+  // Draft management methods
+  saveDraftProgress(claimId: string, step: number, data: any, progressPercentage: number): Promise<void>;
+  getDraftClaims(userId: string): Promise<ClaimWithDetails[]>;
+  resumeDraft(claimId: string): Promise<ClaimWithDetails | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -179,18 +184,14 @@ export class DatabaseStorage implements IStorage {
     const result = await db.query.claims.findFirst({
       where: eq(claims.id, id),
       with: {
-        claimant: true,
+        insured: true,
         individualDetails: true,
         corporateDetails: true,
         vehicle: true,
         driver: true,
         bankDetails: true,
         otherVehicles: true,
-        damagedPhotos: {
-          with: {
-            detectedDamages: true,
-          },
-        },
+        damagedPhotos: true,
       },
     });
     return result as ClaimWithDetails | undefined;
@@ -198,21 +199,17 @@ export class DatabaseStorage implements IStorage {
 
   async getClaimsByUser(userId: string): Promise<ClaimWithDetails[]> {
     const result = await db.query.claims.findMany({
-      where: eq(claims.claimantId, userId),
+      where: eq(claims.insuredId, userId),
       orderBy: [desc(claims.createdAt)],
       with: {
-        claimant: true,
+        insured: true,
         individualDetails: true,
         corporateDetails: true,
         vehicle: true,
         driver: true,
         bankDetails: true,
         otherVehicles: true,
-        damagedPhotos: {
-          with: {
-            detectedDamages: true,
-          },
-        },
+        damagedPhotos: true,
       },
     });
     return result as ClaimWithDetails[];
@@ -222,18 +219,14 @@ export class DatabaseStorage implements IStorage {
     const result = await db.query.claims.findMany({
       orderBy: [desc(claims.createdAt)],
       with: {
-        claimant: true,
+        insured: true,
         individualDetails: true,
         corporateDetails: true,
         vehicle: true,
         driver: true,
         bankDetails: true,
         otherVehicles: true,
-        damagedPhotos: {
-          with: {
-            detectedDamages: true,
-          },
-        },
+        damagedPhotos: true,
       },
     });
     return result as ClaimWithDetails[];
@@ -241,6 +234,45 @@ export class DatabaseStorage implements IStorage {
 
   async getUserClaims(userId: string): Promise<ClaimWithDetails[]> {
     return this.getClaimsByUser(userId);
+  }
+
+  // Draft management methods
+  async saveDraftProgress(claimId: string, step: number, data: any, progressPercentage: number): Promise<void> {
+    await db
+      .update(claims)
+      .set({
+        currentFormStep: step,
+        formProgress: progressPercentage.toString(),
+        lastSavedAt: new Date(),
+        updatedAt: new Date(),
+        ...data // Include any form data being saved
+      })
+      .where(eq(claims.id, claimId));
+  }
+
+  async getDraftClaims(userId: string): Promise<ClaimWithDetails[]> {
+    const result = await db.query.claims.findMany({
+      where: and(
+        eq(claims.insuredId, userId),
+        eq(claims.status, 'draft')
+      ),
+      orderBy: [desc(claims.lastSavedAt), desc(claims.updatedAt)],
+      with: {
+        insured: true,
+        individualDetails: true,
+        corporateDetails: true,
+        vehicle: true,
+        driver: true,
+        bankDetails: true,
+        otherVehicles: true,
+        damagedPhotos: true,
+      },
+    });
+    return result as ClaimWithDetails[];
+  }
+
+  async resumeDraft(claimId: string): Promise<ClaimWithDetails | undefined> {
+    return this.getClaim(claimId);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
