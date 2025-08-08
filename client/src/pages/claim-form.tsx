@@ -285,8 +285,12 @@ export default function ClaimForm() {
 
   // Auto-save draft when form data changes
   const autoSave = useCallback(() => {
-    if (!claimId) return;
+    if (!claimId) {
+      console.log("No claimId, skipping auto-save");
+      return;
+    }
     
+    console.log("Auto-saving form data...");
     const progressPercentage = calculateProgress();
     const dataToSave = {
       // Policy details
@@ -306,6 +310,7 @@ export default function ClaimForm() {
       goodsDescription: formData.damage.goodsDescription,
     };
     
+    console.log("Saving data:", dataToSave);
     saveDraft(claimId, currentStep, dataToSave, progressPercentage);
   }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
 
@@ -319,13 +324,19 @@ export default function ClaimForm() {
   };
 
   const handleNextStep = () => {
+    console.log("Next button clicked, current step:", currentStep, "total steps:", totalSteps);
+    
     if (currentStep < totalSteps) {
       const nextStep = currentStep + 1;
+      console.log("Moving to next step:", nextStep);
       setCurrentStep(nextStep);
       // Auto-save when moving to next step
       if (claimId) {
+        console.log("Auto-saving before moving to next step");
         autoSave();
       }
+    } else {
+      console.log("Already at last step, cannot proceed");
     }
   };
 
@@ -501,11 +512,14 @@ export default function ClaimForm() {
             Previous
           </Button>
           <div className="flex space-x-4">
-            <Button variant="outline">
+            <Button variant="outline" onClick={manualSave}>
               Save Draft
             </Button>
             {currentStep < totalSteps ? (
-              <Button onClick={handleNextStep}>
+              <Button 
+                onClick={handleNextStep}
+                className="bg-primary hover:bg-primary/90 text-white"
+              >
                 Next
                 <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
               </Button>
