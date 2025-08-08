@@ -36,10 +36,10 @@ export default function DamageAssessmentStep({
 
   // Photo upload mutation
   const uploadPhotoMutation = useMutation({
-    mutationFn: async ({ photoUrl, angle, isGoodsPhoto }: { photoUrl: string; angle: string; isGoodsPhoto: boolean }) => {
+    mutationFn: async ({ imageUrl, angle, isGoodsPhoto }: { imageUrl: string; angle: string; isGoodsPhoto: boolean }) => {
       if (!claimId) throw new Error("No claim ID");
       const response = await apiRequest("POST", `/api/claims/${claimId}/photos`, {
-        photoUrl,
+        imageUrl,
         angle,
         isGoodsPhoto,
       });
@@ -98,7 +98,7 @@ export default function DamageAssessmentStep({
       if (result.successful && result.successful[0]) {
         const uploadURL = result.successful[0].uploadURL as string;
         uploadPhotoMutation.mutate({
-          photoUrl: uploadURL,
+          imageUrl: uploadURL,
           angle,
           isGoodsPhoto,
         });

@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const photo = await storage.addDamagedPhoto(photoData);
-      res.status(201).json(photo);
+      res.status(201).json({ photo, success: true });
     } catch (error) {
       console.error("Error adding damage photo:", error);
       res.status(500).json({ message: "Failed to add damage photo" });
