@@ -381,15 +381,15 @@ export const detectedDamagesRelations = relations(detectedDamages, ({ one }) => 
 
 // Insert schemas with date transformations
 export const insertClaimSchema = createInsertSchema(claims, {
-  accidentDate: z.union([z.string(), z.date()]).transform((val) => 
+  accidentDate: z.union([z.string(), z.date(), z.null()]).transform((val) => 
     typeof val === 'string' && val ? new Date(val) : val
-  ).optional(),
-  lastPaymentDate: z.union([z.string(), z.date()]).transform((val) => 
+  ).optional().nullable(),
+  lastPaymentDate: z.union([z.string(), z.date(), z.null()]).transform((val) => 
     typeof val === 'string' && val ? new Date(val) : val
-  ).optional(),
-  submittedAt: z.union([z.string(), z.date()]).transform((val) => 
+  ).optional().nullable(),
+  submittedAt: z.union([z.string(), z.date(), z.null()]).transform((val) => 
     typeof val === 'string' && val ? new Date(val) : val
-  ).optional(),
+  ).optional().nullable(),
 }).omit({
   id: true,
   createdAt: true,
