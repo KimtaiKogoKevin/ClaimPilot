@@ -107,7 +107,7 @@ export const claims = pgTable("claims", {
 // Individual insured details
 export const individualDetails = pgTable("individual_details", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  claimId: varchar("claim_id").notNull().references(() => claims.id).unique(),
   firstName: varchar("first_name").notNull(),
   middleName: varchar("middle_name"),
   surname: varchar("surname").notNull(),
@@ -129,7 +129,7 @@ export const individualDetails = pgTable("individual_details", {
 // Corporate insured details
 export const corporateDetails = pgTable("corporate_details", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  claimId: varchar("claim_id").notNull().references(() => claims.id).unique(),
   registeredName: varchar("registered_name").notNull(),
   registrationNumber: varchar("registration_number").notNull(),
   countryOfRegistration: varchar("country_of_registration"),
@@ -163,7 +163,7 @@ export const vehicles = pgTable("vehicles", {
 // Driver details
 export const drivers = pgTable("drivers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  claimId: varchar("claim_id").notNull().references(() => claims.id).unique(),
   name: varchar("name").notNull(),
   occupation: varchar("occupation"),
   address: text("address"),

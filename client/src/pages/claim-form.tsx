@@ -386,12 +386,13 @@ export default function ClaimForm() {
 
   // Auto-save functionality
   useEffect(() => {
-    const autoSave = setInterval(() => {
-      // Auto-save logic would be implemented here
-      console.log("Auto-saving form data...");
-    }, 30000);
+    // Auto-save disabled temporarily to prevent form clearing
+    // const autoSave = setInterval(() => {
+    //   // Auto-save logic would be implemented here
+    //   console.log("Auto-saving form data...");
+    // }, 30000);
 
-    return () => clearInterval(autoSave);
+    // return () => clearInterval(autoSave);
   }, [formData]);
 
   if (isLoading) {
