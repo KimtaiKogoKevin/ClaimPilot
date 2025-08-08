@@ -10,6 +10,7 @@ import { ArrowLeft, Save, Clock } from "lucide-react";
 import ProgressBar from "@/components/claim-form/progress-bar";
 import { DraftPersistenceManager } from "@/lib/draftPersistence";
 import { calculateFormProgress, transformFormDataForAPI, restoreFormDataFromAPI } from "@/lib/formPersistenceUtils";
+import { validateStep, calculateProgress } from "@/lib/formValidation";
 import PolicyDetailsStep from "@/components/claim-form/policy-details-step";
 import VehicleAccidentStep from "@/components/claim-form/vehicle-accident-step";
 import DamageAssessmentStep from "@/components/claim-form/damage-assessment-step";
@@ -397,6 +398,17 @@ export default function ClaimForm() {
   const handleNextStep = () => {
     console.log("Next button clicked, current step:", currentStep, "total steps:", totalSteps);
     
+    // Validate current step before proceeding
+    const validation = validateStep(currentStep, formData);
+    if (!validation.isValid) {
+      toast({
+        title: "Validation Error",
+        description: validation.errors.join(", "),
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (currentStep < totalSteps) {
       const nextStep = currentStep + 1;
       console.log("Moving to next step:", nextStep);
@@ -430,6 +442,20 @@ export default function ClaimForm() {
         variant: "destructive",
       });
       return;
+    }
+    
+    // Validate all steps before submission
+    for (let step = 1; step <= totalSteps; step++) {
+      const validation = validateStep(step, formData);
+      if (!validation.isValid) {
+        toast({
+          title: `Step ${step} Validation Error`,
+          description: validation.errors.join(", "),
+          variant: "destructive",
+        });
+        setCurrentStep(step);
+        return;
+      }
     }
 
     try {

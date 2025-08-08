@@ -35,7 +35,8 @@ import { generateClaimPDF } from "./pdfGenerator";
 async function analyzeImageWithRoboflow(imageUrl: string, isGoodsPhoto: boolean = false) {
   const apiKey = process.env.ROBOFLOW_API_KEY;
   if (!apiKey) {
-    throw new Error("ROBOFLOW_API_KEY not configured");
+    console.warn("ROBOFLOW_API_KEY not configured - AI analysis will be skipped");
+    return { predictions: [] };
   }
 
   const modelId = isGoodsPhoto 
@@ -369,23 +370,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Image URL and angle are required" });
       }
       
-      // Analyze image with Roboflow
+      // Analyze image with Roboflow (optional - continues without if API key not set)
       let detectedDamages = [];
-      try {
-        const analysisResult = await analyzeImageWithRoboflow(imageUrl, isGoodsPhoto);
-        detectedDamages = analysisResult.predictions?.map((prediction: any) => ({
-          damageType: prediction.class,
-          confidence: prediction.confidence,
-          boundingBox: {
-            x: prediction.x,
-            y: prediction.y,
-            width: prediction.width,
-            height: prediction.height,
-          },
-        })) || [];
-      } catch (analysisError) {
-        console.error("AI analysis failed:", analysisError);
-        // Continue without AI analysis
+      const apiKey = process.env.ROBOFLOW_API_KEY;
+      
+      if (apiKey) {
+        try {
+          const analysisResult = await analyzeImageWithRoboflow(imageUrl, isGoodsPhoto);
+          detectedDamages = analysisResult.predictions?.map((prediction: any) => ({
+            damageType: prediction.class,
+            confidence: prediction.confidence,
+            boundingBox: {
+              x: prediction.x,
+              y: prediction.y,
+              width: prediction.width,
+              height: prediction.height,
+            },
+          })) || [];
+        } catch (analysisError) {
+          console.error("AI analysis failed (continuing without):", analysisError);
+          // Continue without AI analysis
+        }
+      } else {
+        console.log("ROBOFLOW_API_KEY not set - photo saved without AI analysis");
       }
       
       const photoData = {
