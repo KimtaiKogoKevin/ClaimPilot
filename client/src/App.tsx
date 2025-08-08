@@ -33,67 +33,92 @@ function Router() {
     );
   }
 
+  // Unauthenticated routes
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/auth" component={AuthPage} />
+        <Route path="/staff-portal" component={Landing} />
+        <Route path="/broker-signup" component={BrokerSignup} />
+        <Route path="/adjudicator-signup" component={AdjudicatorSignup} />
+        <Route path="/claimant-signup" component={ClaimantSignup} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  // No role assigned - redirect to role selection
+  if (!user?.role) {
+    return (
+      <Switch>
+        <Route path="*" component={RoleSelection} />
+      </Switch>
+    );
+  }
+
+  // Authenticated routes based on role
+  if (user.role === 'insured') {
+    return (
+      <Switch>
+        <Route path="/" component={ClaimantDashboard} />
+        <Route path="/claim-form/:id" component={ClaimForm} />
+        <Route path="/claim-form" component={ClaimForm} />
+        <Route path="/claim-details/:id" component={ClaimDetails} />
+        <Route path="/drafts" component={DraftDashboard} />
+        <Route path="/role-selection" component={RoleSelection} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  if (user.role === 'insurer') {
+    return (
+      <Switch>
+        <Route path="/" component={AnalyticsDashboard} />
+        <Route path="/analytics" component={AnalyticsDashboard} />
+        <Route path="/claims-review" component={StaffPortal} />
+        <Route path="/claim-details/:id" component={ClaimDetails} />
+        <Route path="/role-selection" component={RoleSelection} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  if (user.role === 'broker') {
+    return (
+      <Switch>
+        <Route path="/" component={AnalyticsDashboard} />
+        <Route path="/analytics" component={AnalyticsDashboard} />
+        <Route path="/client-claims" component={StaffPortal} />
+        <Route path="/claim-form/:id" component={ClaimForm} />
+        <Route path="/claim-form" component={ClaimForm} />
+        <Route path="/claim-details/:id" component={ClaimDetails} />
+        <Route path="/role-selection" component={RoleSelection} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  if (user.role === 'service_provider') {
+    return (
+      <Switch>
+        <Route path="/" component={StaffPortal} />
+        <Route path="/assigned-claims" component={StaffPortal} />
+        <Route path="/claim-details/:id" component={ClaimDetails} />
+        <Route path="/role-selection" component={RoleSelection} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  // Default fallback
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/staff-portal" component={Landing} />
-          <Route path="/broker-signup" component={BrokerSignup} />
-          <Route path="/adjudicator-signup" component={AdjudicatorSignup} />
-          <Route path="/claimant-signup" component={ClaimantSignup} />
-          <Route component={NotFound} />
-        </>
-      ) : !user?.role ? (
-        // Redirect to role selection if authenticated but no role set
-        <Route path="*" component={RoleSelection} />
-      ) : user.role === 'insured' ? (
-        <>
-          <Route path="/" component={ClaimantDashboard} />
-          <Route path="/claim-form/:id" component={ClaimForm} />
-          <Route path="/claim-form" component={ClaimForm} />
-          <Route path="/claim-details/:id" component={ClaimDetails} />
-          <Route path="/drafts" component={DraftDashboard} />
-          <Route path="/role-selection" component={RoleSelection} />
-          <Route component={NotFound} />
-        </>
-      ) : user.role === 'insurer' ? (
-        <>
-          <Route path="/" component={AnalyticsDashboard} />
-          <Route path="/analytics" component={AnalyticsDashboard} />
-          <Route path="/claims-review" component={StaffPortal} />
-          <Route path="/claim-details/:id" component={ClaimDetails} />
-          <Route path="/role-selection" component={RoleSelection} />
-          <Route component={NotFound} />
-        </>
-      ) : user.role === 'broker' ? (
-        <>
-          <Route path="/" component={AnalyticsDashboard} />
-          <Route path="/analytics" component={AnalyticsDashboard} />
-          <Route path="/client-claims" component={StaffPortal} />
-          <Route path="/claim-form/:id" component={ClaimForm} />
-          <Route path="/claim-form" component={ClaimForm} />
-          <Route path="/claim-details/:id" component={ClaimDetails} />
-          <Route path="/role-selection" component={RoleSelection} />
-          <Route component={NotFound} />
-        </>
-      ) : user.role === 'service_provider' ? (
-        <>
-          <Route path="/" component={StaffPortal} />
-          <Route path="/assigned-claims" component={StaffPortal} />
-          <Route path="/claim-details/:id" component={ClaimDetails} />
-          <Route path="/role-selection" component={RoleSelection} />
-          <Route component={NotFound} />
-        </>
-      ) : (
-        <>
-          <Route path="/" component={StaffPortal} />
-          <Route path="/staff-portal" component={StaffPortal} />
-          <Route path="/role-selection" component={RoleSelection} />
-          <Route component={NotFound} />
-        </>
-      )}
+      <Route path="/" component={StaffPortal} />
+      <Route path="/staff-portal" component={StaffPortal} />
+      <Route path="/role-selection" component={RoleSelection} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
