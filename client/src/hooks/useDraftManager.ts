@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect, useRef } from "react";
+import { DraftPersistenceManager } from "@/lib/draftPersistence";
 
 export interface DraftData {
   step: number;
@@ -11,6 +13,23 @@ export interface DraftData {
 export function useDraftManager(claimId?: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const persistenceManagerRef = useRef<DraftPersistenceManager | null>(null);
+  
+  // Initialize persistence manager
+  useEffect(() => {
+    if (claimId) {
+      persistenceManagerRef.current = new DraftPersistenceManager({
+        claimId,
+        autoSaveDelay: 2000, // 2 second debounce
+        enableLocalBackup: true,
+        conflictResolution: 'merge'
+      });
+    }
+    
+    return () => {
+      persistenceManagerRef.current?.destroy();
+    };
+  }, [claimId]);
 
   // Get user's draft claims
   const { data: draftClaims, isLoading: isLoadingDrafts } = useQuery({
@@ -18,10 +37,24 @@ export function useDraftManager(claimId?: string) {
     enabled: !claimId, // Only fetch when not working on a specific claim
   });
 
-  // Get specific draft for resuming
+  // Get specific draft for resuming with intelligent loading
   const { data: currentDraft, isLoading: isLoadingDraft } = useQuery({
     queryKey: ['/api/claims', claimId, 'resume'],
+    queryFn: async () => {
+      if (!claimId) return null;
+      
+      // Use the persistence manager for intelligent loading
+      if (persistenceManagerRef.current) {
+        return await persistenceManagerRef.current.loadDraft();
+      }
+      
+      // Fallback to direct API call
+      const response = await apiRequest('GET', `/api/claims/${claimId}/resume`);
+      return response.json();
+    },
     enabled: !!claimId,
+    staleTime: 5000, // Consider data fresh for 5 seconds only
+    refetchOnWindowFocus: false, // Prevent excessive refetching
   });
 
   // Save draft mutation
@@ -56,16 +89,51 @@ export function useDraftManager(claimId?: string) {
     },
   });
 
-  // Auto-save function with debouncing
-  const autoSaveDraft = (claimId: string, step: number, data: any, progressPercentage: number) => {
-    if (!claimId) return;
+  // Smart save function that uses persistence manager
+  const saveDraft = (claimId: string, step: number, data: any, progressPercentage: number) => {
+    if (!claimId || !persistenceManagerRef.current) return;
     
-    saveDraftMutation.mutate({
-      claimId,
-      step,
-      data,
-      progressPercentage,
-    });
+    // Use persistence manager for intelligent saving
+    persistenceManagerRef.current.saveDraft(data, step);
+  };
+
+  // Manual save with immediate feedback
+  const manualSave = async (claimId: string, step: number, data: any, progressPercentage: number) => {
+    if (!claimId) {
+      toast({
+        title: "Save Failed",
+        description: "No claim ID available for saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (persistenceManagerRef.current) {
+        // Force immediate save through persistence manager
+        await persistenceManagerRef.current.forceSave();
+      } else {
+        // Fallback to direct mutation
+        await saveDraftMutation.mutateAsync({
+          claimId,
+          step,
+          data,
+          progressPercentage,
+        });
+      }
+      
+      toast({
+        title: "Draft Saved",
+        description: "Your progress has been saved successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return {
@@ -79,7 +147,8 @@ export function useDraftManager(claimId?: string) {
     isSaving: saveDraftMutation.isPending,
     
     // Actions
-    saveDraft: autoSaveDraft,
+    saveDraft,
+    manualSave,
     
     // Progress helpers
     getProgress: (claim: any) => parseFloat(claim?.formProgress || '0'),

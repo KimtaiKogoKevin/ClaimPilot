@@ -44,7 +44,7 @@ export default function DriverDeclarationStep({
     },
   });
 
-  // Auto-save driver details when they change
+  // Auto-save driver details when key fields change (for immediate feedback)
   useEffect(() => {
     if (claimId && formData.driver.name && formData.driver.licenseNumber) {
       const driverData = {
@@ -53,14 +53,16 @@ export default function DriverDeclarationStep({
       };
       saveDriverMutation.mutate(driverData);
     }
-  }, [claimId, formData.driver]);
+  }, [claimId, formData.driver.name, formData.driver.licenseNumber]); // Only trigger on key fields
 
-  // Auto-save bank details when they change
+  // Auto-save bank details when key fields change (for immediate feedback)
   useEffect(() => {
     if (claimId && formData.bank.bankName && formData.bank.accountName && formData.bank.accountNumber) {
       saveBankMutation.mutate(formData.bank);
     }
-  }, [claimId, formData.bank]);
+  }, [claimId, formData.bank.bankName, formData.bank.accountName, formData.bank.accountNumber]); // Only trigger on key fields
+
+  // Note: Complete form data is auto-saved through the main persistence system
 
   const handleDriverChange = (field: string, value: any) => {
     setFormData((prev: any) => ({

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Clock } from "lucide-react";
 import ProgressBar from "@/components/claim-form/progress-bar";
+import { DraftPersistenceManager } from "@/lib/draftPersistence";
+import { calculateFormProgress, transformFormDataForAPI, restoreFormDataFromAPI } from "@/lib/formPersistenceUtils";
 import PolicyDetailsStep from "@/components/claim-form/policy-details-step";
 import VehicleAccidentStep from "@/components/claim-form/vehicle-accident-step";
 import DamageAssessmentStep from "@/components/claim-form/damage-assessment-step";
@@ -23,8 +25,9 @@ export default function ClaimForm() {
   const [claimId, setClaimId] = useState<string | null>(id || null);
   const [hasShownRestoreNotification, setHasShownRestoreNotification] = useState(false);
   const [hasRestoredFromDraft, setHasRestoredFromDraft] = useState(false);
+  const persistenceManagerRef = useRef<DraftPersistenceManager | null>(null);
   
-  // Draft management
+  // Draft management with enterprise-grade persistence
   const { 
     currentDraft, 
     isLoadingDraft, 
@@ -284,9 +287,21 @@ export default function ClaimForm() {
     }
   }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification, hasRestoredFromDraft]);
 
-  // Remove authentication redirect - handled by App.tsx router
-  // The App.tsx router already handles authentication routing, so this is redundant
-  // and was causing conflicts between different auth hooks
+  // Initialize persistence manager
+  useEffect(() => {
+    if (claimId && !persistenceManagerRef.current) {
+      persistenceManagerRef.current = new DraftPersistenceManager({
+        claimId,
+        autoSaveDelay: 2000, // 2 second debounce
+        enableLocalBackup: true,
+        conflictResolution: 'merge'
+      });
+    }
+    
+    return () => {
+      persistenceManagerRef.current?.destroy();
+    };
+  }, [claimId]);
 
   const totalSteps = 4;
   
@@ -358,7 +373,7 @@ export default function ClaimForm() {
   }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
 
   // Manual save button handler
-  const manualSave = () => {
+  const handleManualSave = () => {
     console.log("Manual save triggered");
     if (!claimId) {
       console.log("No claimId for manual save");
@@ -568,7 +583,7 @@ export default function ClaimForm() {
             Previous
           </Button>
           <div className="flex space-x-4">
-            <Button variant="outline" onClick={manualSave}>
+            <Button variant="outline" onClick={handleManualSave}>
               Save Draft
             </Button>
             {currentStep < totalSteps ? (

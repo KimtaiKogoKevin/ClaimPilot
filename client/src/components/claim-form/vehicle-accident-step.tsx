@@ -67,7 +67,11 @@ export default function VehicleAccidentStep({
     },
   });
 
-  // Auto-save vehicle details when they change
+  // Auto-save is now handled by the parent claim-form component
+  // This prevents form clearing and provides enterprise-grade persistence
+  // with local backup, conflict resolution, and debounced saves
+  
+  // Save vehicle details when they change (individual API call for immediate feedback)
   useEffect(() => {
     if (claimId && formData.vehicle.make) {
       const vehicleData = {
@@ -76,21 +80,9 @@ export default function VehicleAccidentStep({
       };
       saveVehicleMutation.mutate(vehicleData);
     }
-  }, [claimId, formData.vehicle]);
+  }, [claimId, formData.vehicle.make, formData.vehicle.model]); // Only trigger on key fields
 
-  // Auto-save accident details when they change
-  useEffect(() => {
-    if (claimId && (formData.accident.date || formData.accident.location || formData.accident.description)) {
-      saveAccidentMutation.mutate(formData.accident);
-    }
-  }, [claimId, formData.accident]);
-
-  // Auto-save accident details when they change
-  useEffect(() => {
-    if (claimId && (formData.accident.date || formData.accident.location || formData.accident.description)) {
-      saveAccidentMutation.mutate(formData.accident);
-    }
-  }, [claimId, formData.accident]);
+  // Note: Accident details are auto-saved through the main persistence system
 
   const handleVehicleChange = (field: string, value: any) => {
     setFormData((prev: any) => ({
