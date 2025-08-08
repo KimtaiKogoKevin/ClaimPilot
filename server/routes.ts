@@ -85,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { role } = req.body;
       
-      if (!['claimant', 'broker', 'adjudicator'].includes(role)) {
+      if (!['insured', 'broker', 'insurer', 'service_provider'].includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
       

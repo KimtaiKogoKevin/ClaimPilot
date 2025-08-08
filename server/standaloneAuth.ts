@@ -28,7 +28,7 @@ const registerSchema = z.object({
   confirmPassword: z.string().min(8).optional(), // Make optional for server processing
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  role: z.enum(['claimant', 'broker', 'adjudicator']).optional().default('claimant')
+  role: z.enum(['insured', 'broker', 'insurer', 'service_provider']).optional().default('insured')
 });
 
 const loginSchema = z.object({
