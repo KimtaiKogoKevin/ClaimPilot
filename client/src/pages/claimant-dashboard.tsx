@@ -36,7 +36,7 @@ export default function ClaimantDashboard() {
   });
 
   const handleNewClaim = () => {
-    setLocation("/claim");
+    setLocation("/claim-form");
   };
 
   const handleLogout = () => {

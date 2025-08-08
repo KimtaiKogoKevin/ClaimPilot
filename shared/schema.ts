@@ -397,9 +397,9 @@ export const insertClaimSchema = createInsertSchema(claims, {
 });
 
 export const insertIndividualDetailsSchema = createInsertSchema(individualDetails, {
-  dateOfBirth: z.union([z.string(), z.date()]).transform((val) => 
+  dateOfBirth: z.union([z.string(), z.date(), z.null()]).transform((val) => 
     typeof val === 'string' && val ? new Date(val) : val
-  ).optional(),
+  ).optional().nullable(),
 }).omit({
   id: true,
 });

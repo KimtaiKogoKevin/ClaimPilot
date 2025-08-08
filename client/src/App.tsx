@@ -28,7 +28,6 @@ function Router() {
           <Route path="/" component={Landing} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/staff-portal" component={Landing} />
-          <Route path="/claim" component={ClaimForm} />
           <Route path="/broker-signup" component={BrokerSignup} />
           <Route path="/adjudicator-signup" component={AdjudicatorSignup} />
           <Route path="/claimant-signup" component={ClaimantSignup} />

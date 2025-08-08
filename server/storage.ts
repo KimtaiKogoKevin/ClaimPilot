@@ -144,13 +144,13 @@ export class DatabaseStorage implements IStorage {
   // Claim operations
   async createClaim(claim: InsertClaim): Promise<Claim> {
     // Auto-generate claimant reference number if not provided
-    const claimantReferenceNumber = claim.claimantReferenceNumber || await generateClaimantReferenceNumber();
+    const claimReferenceNumber = claim.claimReferenceNumber || await generateClaimantReferenceNumber();
     
     const [newClaim] = await db
       .insert(claims)
       .values({
         ...claim,
-        claimReferenceNumber: claimantReferenceNumber
+        claimReferenceNumber: claimReferenceNumber
       })
       .returning();
     return newClaim;
@@ -160,15 +160,15 @@ export class DatabaseStorage implements IStorage {
     // Process date fields to ensure they're properly formatted
     const processedClaim = {
       ...claim,
-      lastPaymentDate: claim.lastPaymentDate && typeof claim.lastPaymentDate === 'string' 
+      lastPaymentDate: claim.lastPaymentDate && typeof claim.lastPaymentDate === 'string' && claim.lastPaymentDate.trim() !== ''
         ? new Date(claim.lastPaymentDate) 
-        : claim.lastPaymentDate,
-      accidentDate: claim.accidentDate && typeof claim.accidentDate === 'string' 
+        : claim.lastPaymentDate === '' ? null : claim.lastPaymentDate,
+      accidentDate: claim.accidentDate && typeof claim.accidentDate === 'string' && claim.accidentDate.trim() !== ''
         ? new Date(claim.accidentDate) 
-        : claim.accidentDate,
-      submittedAt: claim.submittedAt && typeof claim.submittedAt === 'string' 
+        : claim.accidentDate === '' ? null : claim.accidentDate,
+      submittedAt: claim.submittedAt && typeof claim.submittedAt === 'string' && claim.submittedAt.trim() !== ''
         ? new Date(claim.submittedAt) 
-        : claim.submittedAt,
+        : claim.submittedAt === '' ? null : claim.submittedAt,
       updatedAt: new Date()
     };
 
@@ -299,12 +299,12 @@ export class DatabaseStorage implements IStorage {
 
   // Claim details operations
   async upsertIndividualDetails(details: InsertIndividualDetails): Promise<void> {
-    // Convert string dates to Date objects for proper insertion
+    // Convert string dates to Date objects for proper insertion, handle null values
     const processedDetails = {
       ...details,
-      dateOfBirth: details.dateOfBirth && typeof details.dateOfBirth === 'string' 
+      dateOfBirth: details.dateOfBirth && typeof details.dateOfBirth === 'string' && details.dateOfBirth.trim() !== ''
         ? new Date(details.dateOfBirth) 
-        : details.dateOfBirth
+        : details.dateOfBirth === '' ? null : details.dateOfBirth
     };
 
     await db
