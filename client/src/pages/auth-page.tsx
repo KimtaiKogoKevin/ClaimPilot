@@ -458,9 +458,10 @@ export default function AuthPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="claimant">Claimant</SelectItem>
-                              <SelectItem value="broker">Broker</SelectItem>
-                              <SelectItem value="adjudicator">Adjudicator</SelectItem>
+                              <SelectItem value="insured">Insured/Client</SelectItem>
+                              <SelectItem value="broker">Broker/Agent</SelectItem>
+                              <SelectItem value="insurer">Insurer/Underwriter</SelectItem>
+                              <SelectItem value="service_provider">Service Provider</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
