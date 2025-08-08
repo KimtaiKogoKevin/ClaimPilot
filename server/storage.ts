@@ -241,16 +241,34 @@ export class DatabaseStorage implements IStorage {
     // Convert date strings to Date objects for timestamp fields
     const processedData = { ...data };
     
-    // Convert string dates to Date objects for timestamp fields
-    if (processedData.accidentDate && typeof processedData.accidentDate === 'string') {
-      processedData.accidentDate = new Date(processedData.accidentDate);
+    // Helper function to safely convert string dates to Date objects
+    const convertToDate = (value: any): Date | null => {
+      if (!value) return null;
+      if (value instanceof Date) return value;
+      if (typeof value === 'string') {
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? null : date;
+      }
+      return null;
+    };
+    
+    // Convert all potential timestamp fields
+    if (processedData.accidentDate) {
+      processedData.accidentDate = convertToDate(processedData.accidentDate);
     }
-    if (processedData.lastPaymentDate && typeof processedData.lastPaymentDate === 'string') {
-      processedData.lastPaymentDate = new Date(processedData.lastPaymentDate);
+    if (processedData.lastPaymentDate) {
+      processedData.lastPaymentDate = convertToDate(processedData.lastPaymentDate);
     }
-    if (processedData.submittedAt && typeof processedData.submittedAt === 'string') {
-      processedData.submittedAt = new Date(processedData.submittedAt);
+    if (processedData.submittedAt) {
+      processedData.submittedAt = convertToDate(processedData.submittedAt);
     }
+    
+    // Remove any undefined/null values that shouldn't be set
+    Object.keys(processedData).forEach(key => {
+      if (processedData[key] === undefined || processedData[key] === '') {
+        delete processedData[key];
+      }
+    });
     
     await db
       .update(claims)

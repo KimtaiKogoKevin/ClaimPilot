@@ -195,10 +195,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Claim not found" });
       }
 
+      // Debug logging to identify timestamp issues
+      console.log("Save draft data received:", JSON.stringify(data, null, 2));
+      
       await storage.saveDraftProgress(id, step, data, progressPercentage);
       res.json({ message: "Draft saved successfully" });
     } catch (error) {
       console.error("Error saving draft:", error);
+      console.error("Draft data that caused error:", JSON.stringify(req.body.data, null, 2));
       res.status(500).json({ message: "Failed to save draft" });
     }
   });
