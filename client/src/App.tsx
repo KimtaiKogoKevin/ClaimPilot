@@ -50,46 +50,39 @@ function Router() {
         <Route path="*" component={RoleSelection} />
       ) : (
         <>
+          <Route path="/role-selection" component={RoleSelection} />
           
-          {user.role === 'insured' && (
+          {user.role === 'insured' ? (
             <>
               <Route path="/" component={ClaimantDashboard} />
-              <Route path="/claim-form/:id?" component={ClaimForm} />
+              <Route path="/claim-form/:id" component={ClaimForm} />
               <Route path="/claim-form" component={ClaimForm} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
               <Route path="/drafts" component={DraftDashboard} />
             </>
-          )}
-          
-          {user.role === 'insurer' && (
+          ) : user.role === 'insurer' ? (
             <>
               <Route path="/" component={AnalyticsDashboard} />
               <Route path="/analytics" component={AnalyticsDashboard} />
               <Route path="/claims-review" component={StaffPortal} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
             </>
-          )}
-          
-          {user.role === 'broker' && (
+          ) : user.role === 'broker' ? (
             <>
               <Route path="/" component={AnalyticsDashboard} />
               <Route path="/analytics" component={AnalyticsDashboard} />
               <Route path="/client-claims" component={StaffPortal} />
-              <Route path="/claim-form/:id?" component={ClaimForm} />
+              <Route path="/claim-form/:id" component={ClaimForm} />
               <Route path="/claim-form" component={ClaimForm} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
             </>
-          )}
-          
-          {user.role === 'service_provider' && (
+          ) : user.role === 'service_provider' ? (
             <>
               <Route path="/" component={StaffPortal} />
               <Route path="/assigned-claims" component={StaffPortal} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
             </>
-          )}
-          
-          {(!user.role || (user.role !== 'insured' && user.role !== 'insurer' && user.role !== 'broker' && user.role !== 'service_provider')) && (
+          ) : (
             <>
               <Route path="/" component={StaffPortal} />
               <Route path="/staff-portal" component={StaffPortal} />

@@ -277,7 +277,7 @@ export default function ClaimantDashboard() {
                         {claim.status === 'draft' ? (
                           <Button
                             size="sm"
-                            onClick={() => window.location.href = `/claim/${claim.id}`}
+                            onClick={() => setLocation(`/claim-form/${claim.id}`)}
                             className="bg-primary hover:bg-blue-600 mr-3"
                           >
                             Continue
