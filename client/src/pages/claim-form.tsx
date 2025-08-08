@@ -151,9 +151,10 @@ export default function ClaimForm() {
   // Restore draft data when loading a draft claim
   useEffect(() => {
     if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object') {
+      console.log("Loading draft data:", currentDraft); // Debug log
       setCurrentStep(getCurrentStep(currentDraft));
       
-      // Restore form data from draft
+      // Restore form data from draft - corrected property paths
       setFormData({
         branchName: (currentDraft as any).branchName || "",
         agentName: (currentDraft as any).agentName || "",
