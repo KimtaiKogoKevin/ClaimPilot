@@ -238,9 +238,6 @@ export class DatabaseStorage implements IStorage {
 
   // Draft management methods
   async saveDraftProgress(claimId: string, step: number, data: any, progressPercentage: number): Promise<void> {
-    // Convert date strings to Date objects for timestamp fields
-    const processedData = { ...data };
-    
     // Helper function to safely convert string dates to Date objects
     const convertToDate = (value: any): Date | null => {
       if (!value) return null;
@@ -252,34 +249,78 @@ export class DatabaseStorage implements IStorage {
       return null;
     };
     
-    // Convert all potential timestamp fields
-    if (processedData.accidentDate) {
-      processedData.accidentDate = convertToDate(processedData.accidentDate);
-    }
-    if (processedData.lastPaymentDate) {
-      processedData.lastPaymentDate = convertToDate(processedData.lastPaymentDate);
-    }
-    if (processedData.submittedAt) {
-      processedData.submittedAt = convertToDate(processedData.submittedAt);
-    }
+    // Extract claim-level fields
+    const claimData: any = {
+      currentFormStep: step,
+      formProgress: progressPercentage.toString(),
+      lastSavedAt: new Date(),
+      updatedAt: new Date(),
+      branchName: data.branchName || null,
+      agentName: data.agentName || null,
+      policyNumber: data.policyNumber || null,
+      lastPaymentDate: convertToDate(data.lastPaymentDate),
+      insuredType: data.insuredType || 'individual',
+      accidentDate: convertToDate(data.accidentDate),
+      accidentTime: data.accidentTime || null,
+      accidentLocation: data.accidentLocation || null,
+      accidentDescription: data.accidentDescription || null,
+      vehicleDamageDescription: data.vehicleDamageDescription || null,
+      goodsDamaged: data.goodsDamaged || false,
+      goodsDescription: data.goodsDescription || null,
+    };
     
-    // Remove any undefined/null values that shouldn't be set
-    Object.keys(processedData).forEach(key => {
-      if (processedData[key] === undefined || processedData[key] === '') {
-        delete processedData[key];
-      }
-    });
-    
+    // Update the main claim
     await db
       .update(claims)
-      .set({
-        currentFormStep: step,
-        formProgress: progressPercentage.toString(),
-        lastSavedAt: new Date(),
-        updatedAt: new Date(),
-        ...processedData // Include processed form data
-      })
+      .set(claimData)
       .where(eq(claims.id, claimId));
+    
+    // Save individual details if present
+    if (data.insuredType === 'individual' && (data.individualFirstName || data.individualSurname)) {
+      const individualData = {
+        claimId,
+        firstName: data.individualFirstName || null,
+        middleName: data.individualMiddleName || null,
+        surname: data.individualSurname || null,
+        idNumber: data.individualIdNumber || null,
+        nationality: data.individualNationality || null,
+        dateOfBirth: convertToDate(data.individualDateOfBirth),
+        pinNumber: data.individualPinNumber || null,
+        occupation: data.individualOccupation || null,
+        residentialPhone: data.individualResidentialPhone || null,
+        officePhone: data.individualOfficePhone || null,
+        mobile: data.individualMobile || null,
+        postalAddress: data.individualPostalAddress || null,
+        postalCode: data.individualPostalCode || null,
+        physicalAddress: data.individualPhysicalAddress || null,
+        email: data.individualEmail || null,
+        tradeBusiness: data.individualTradeBusiness || null,
+      };
+      
+      await this.upsertIndividualDetails(individualData);
+    }
+    
+    // Save corporate details if present
+    if (data.insuredType === 'corporate' && data.corporateRegisteredName) {
+      const corporateData = {
+        claimId,
+        registeredName: data.corporateRegisteredName || null,
+        registrationNumber: data.corporateRegistrationNumber || null,
+        countryOfRegistration: data.corporateCountryOfRegistration || null,
+        pinNumber: data.corporatePinNumber || null,
+        vatRegNumber: data.corporateVatRegNumber || null,
+        officePhone: data.corporateOfficePhone || null,
+        mobileContact: data.corporateMobileContact || null,
+        postalAddress: data.corporatePostalAddress || null,
+        postalCode: data.corporatePostalCode || null,
+        physicalAddress: data.corporatePhysicalAddress || null,
+        email: data.corporateEmail || null,
+        tradeBusiness: data.corporateTradeBusiness || null,
+        yearsInOperation: data.corporateYearsInOperation ? parseInt(data.corporateYearsInOperation) : null,
+      };
+      
+      await this.upsertCorporateDetails(corporateData);
+    }
   }
 
   async getDraftClaims(userId: string): Promise<ClaimWithDetails[]> {

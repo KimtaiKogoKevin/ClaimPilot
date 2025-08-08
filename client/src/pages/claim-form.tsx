@@ -155,24 +155,24 @@ export default function ClaimForm() {
   useEffect(() => {
     // Only restore if we haven't already restored from this draft
     if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object' && !hasRestoredFromDraft) {
-      console.log("Loading draft data:", JSON.stringify(currentDraft, null, 2)); // Enhanced debug log
-      console.log("Current form data before restore:", JSON.stringify(formData, null, 2)); // Current form state
+      console.log("=== RESTORING DRAFT DATA ===");
+      console.log("Loading draft data:", JSON.stringify(currentDraft, null, 2));
+      console.log("Current form data before restore:", JSON.stringify(formData, null, 2));
       
       const savedStep = getCurrentStep(currentDraft);
       console.log("Restoring to step:", savedStep);
       setCurrentStep(savedStep);
       setHasRestoredFromDraft(true); // Mark that we've restored from this draft
       
-      // Only restore the basic claim fields, not the detailed sections if they're null
-      // This prevents overwriting user input with empty strings
+      // Restore ALL the saved data from the draft
       setFormData(prev => ({
         ...prev,
         // Restore basic policy fields - these are saved directly on the claims table
-        branchName: (currentDraft as any).branchName || "",
-        agentName: (currentDraft as any).agentName || "",
-        policyNumber: (currentDraft as any).policyNumber || "",
-        lastPaymentDate: (currentDraft as any).lastPaymentDate ? new Date((currentDraft as any).lastPaymentDate).toISOString().split('T')[0] : "",
-        insuredType: (currentDraft as any).insuredType || "individual",
+        branchName: (currentDraft as any).branchName || prev.branchName || "",
+        agentName: (currentDraft as any).agentName || prev.agentName || "",
+        policyNumber: (currentDraft as any).policyNumber || prev.policyNumber || "",
+        lastPaymentDate: (currentDraft as any).lastPaymentDate ? new Date((currentDraft as any).lastPaymentDate).toISOString().split('T')[0] : prev.lastPaymentDate || "",
+        insuredType: (currentDraft as any).insuredType || prev.insuredType || "individual",
         // Only restore individual details if they exist in the draft
         individual: (currentDraft as any).individualDetails ? {
           firstName: (currentDraft as any).individualDetails.firstName || "",
@@ -264,13 +264,19 @@ export default function ClaimForm() {
         otherVehicles: (currentDraft as any).otherVehicles || [],
       }));
       
-      console.log("Form data after restoration:", JSON.stringify(formData, null, 2)); // Form state after restore
+      console.log("=== RESTORATION COMPLETE ===");
+      
+      
+      // Log the restored form data after state update
+      setTimeout(() => {
+        console.log("=== FORM DATA AFTER RESTORATION (delayed check) ===");
+      }, 100);
 
       // Show restoration notification only once
       if (claimId && !hasShownRestoreNotification) {
         toast({
           title: "Draft Restored",
-          description: `Continuing from step ${getCurrentStep(currentDraft)} where you left off.`,
+          description: `Continuing from step ${savedStep} where you left off.`,
           variant: "default",
         });
         setHasShownRestoreNotification(true);
@@ -305,6 +311,37 @@ export default function ClaimForm() {
       policyNumber: formData.policyNumber,
       lastPaymentDate: formData.lastPaymentDate,
       insuredType: formData.insuredType,
+      // Individual details (save all individual form fields)
+      individualFirstName: formData.individual.firstName,
+      individualMiddleName: formData.individual.middleName,
+      individualSurname: formData.individual.surname,
+      individualIdNumber: formData.individual.idNumber,
+      individualNationality: formData.individual.nationality,
+      individualDateOfBirth: formData.individual.dateOfBirth,
+      individualPinNumber: formData.individual.pinNumber,
+      individualOccupation: formData.individual.occupation,
+      individualResidentialPhone: formData.individual.residentialPhone,
+      individualOfficePhone: formData.individual.officePhone,
+      individualMobile: formData.individual.mobile,
+      individualPostalAddress: formData.individual.postalAddress,
+      individualPostalCode: formData.individual.postalCode,
+      individualPhysicalAddress: formData.individual.physicalAddress,
+      individualEmail: formData.individual.email,
+      individualTradeBusiness: formData.individual.tradeBusiness,
+      // Corporate details (save all corporate form fields)
+      corporateRegisteredName: formData.corporate.registeredName,
+      corporateRegistrationNumber: formData.corporate.registrationNumber,
+      corporateCountryOfRegistration: formData.corporate.countryOfRegistration,
+      corporatePinNumber: formData.corporate.pinNumber,
+      corporateVatRegNumber: formData.corporate.vatRegNumber,
+      corporateOfficePhone: formData.corporate.officePhone,
+      corporateMobileContact: formData.corporate.mobileContact,
+      corporatePostalAddress: formData.corporate.postalAddress,
+      corporatePostalCode: formData.corporate.postalCode,
+      corporatePhysicalAddress: formData.corporate.physicalAddress,
+      corporateEmail: formData.corporate.email,
+      corporateTradeBusiness: formData.corporate.tradeBusiness,
+      corporateYearsInOperation: formData.corporate.yearsInOperation,
       // Accident details
       accidentDate: formData.accident.date,
       accidentTime: formData.accident.time,
