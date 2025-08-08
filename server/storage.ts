@@ -275,14 +275,17 @@ export class DatabaseStorage implements IStorage {
       .set(claimData)
       .where(eq(claims.id, claimId));
     
-    // Save individual details if present
-    if (data.insuredType === 'individual' && (data.individualFirstName || data.individualSurname)) {
+    // Only save individual details if the required fields are filled
+    if (data.insuredType === 'individual' && 
+        data.individualFirstName && 
+        data.individualSurname && 
+        data.individualIdNumber) {
       const individualData = {
         claimId,
-        firstName: data.individualFirstName || null,
+        firstName: data.individualFirstName,
         middleName: data.individualMiddleName || null,
-        surname: data.individualSurname || null,
-        idNumber: data.individualIdNumber || null,
+        surname: data.individualSurname,
+        idNumber: data.individualIdNumber,
         nationality: data.individualNationality || null,
         dateOfBirth: convertToDate(data.individualDateOfBirth),
         pinNumber: data.individualPinNumber || null,
@@ -300,12 +303,14 @@ export class DatabaseStorage implements IStorage {
       await this.upsertIndividualDetails(individualData);
     }
     
-    // Save corporate details if present
-    if (data.insuredType === 'corporate' && data.corporateRegisteredName) {
+    // Only save corporate details if the required fields are filled
+    if (data.insuredType === 'corporate' && 
+        data.corporateRegisteredName && 
+        data.corporateRegistrationNumber) {
       const corporateData = {
         claimId,
-        registeredName: data.corporateRegisteredName || null,
-        registrationNumber: data.corporateRegistrationNumber || null,
+        registeredName: data.corporateRegisteredName,
+        registrationNumber: data.corporateRegistrationNumber,
         countryOfRegistration: data.corporateCountryOfRegistration || null,
         pinNumber: data.corporatePinNumber || null,
         vatRegNumber: data.corporateVatRegNumber || null,
