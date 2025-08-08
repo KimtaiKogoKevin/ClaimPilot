@@ -21,9 +21,21 @@ import AnalyticsDashboard from "@/pages/analytics-dashboard";
 function Router() {
   const { user, isAuthenticated, isLoading } = useStandaloneAuth();
 
+  // Show loading while authentication state is being determined
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
+      {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
           <Route path="/auth" component={AuthPage} />
@@ -31,6 +43,7 @@ function Router() {
           <Route path="/broker-signup" component={BrokerSignup} />
           <Route path="/adjudicator-signup" component={AdjudicatorSignup} />
           <Route path="/claimant-signup" component={ClaimantSignup} />
+          <Route component={NotFound} />
         </>
       ) : !user?.role ? (
         // Redirect to role selection if authenticated but no role set
@@ -76,9 +89,9 @@ function Router() {
               <Route path="/staff-portal" component={StaffPortal} />
             </>
           )}
+          <Route component={NotFound} />
         </>
       )}
-      <Route component={NotFound} />
     </Switch>
   );
 }
