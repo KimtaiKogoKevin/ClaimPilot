@@ -45,6 +45,7 @@ function Router() {
           {user.role === 'insured' ? (
             <>
               <Route path="/" component={ClaimantDashboard} />
+              <Route path="/claim/:id?" component={ClaimForm} />
               <Route path="/claim-form/:id?" component={ClaimForm} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
               <Route path="/drafts" component={DraftDashboard} />

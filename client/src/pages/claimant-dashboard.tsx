@@ -36,16 +36,16 @@ export default function ClaimantDashboard() {
   });
 
   const handleNewClaim = () => {
-    window.location.href = "/claim";
+    setLocation("/claim");
   };
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
-    window.location.href = "/auth";
+    setLocation("/auth");
   };
 
   const handleViewClaim = (claimId: string) => {
-    window.location.href = `/claim-details/${claimId}`;
+    setLocation(`/claim-details/${claimId}`);
   };
 
   const handleDownloadPDF = async (claimId: string) => {
