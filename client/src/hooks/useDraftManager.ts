@@ -35,14 +35,17 @@ export function useDraftManager(claimId?: string) {
       return response;
     },
     onSuccess: () => {
-      toast({
-        title: "Draft Saved",
-        description: "Your progress has been saved automatically.",
-        variant: "default",
-      });
-      // Invalidate draft queries to refresh the list
+      // Don't show toast for auto-saves, it's too disruptive
+      // toast({
+      //   title: "Draft Saved",
+      //   description: "Your progress has been saved automatically.",
+      //   variant: "default",
+      // });
+      // Don't invalidate the current draft query to prevent re-loading
+      // Only invalidate the list queries
       queryClient.invalidateQueries({ queryKey: ['/api/claims/drafts'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/claims'] });
+      // Don't invalidate the current draft to prevent restoration loop
+      // queryClient.invalidateQueries({ queryKey: ['/api/claims'] });
     },
     onError: (error: Error) => {
       toast({

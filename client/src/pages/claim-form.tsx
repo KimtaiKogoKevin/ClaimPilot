@@ -22,6 +22,7 @@ export default function ClaimForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [claimId, setClaimId] = useState<string | null>(id || null);
   const [hasShownRestoreNotification, setHasShownRestoreNotification] = useState(false);
+  const [hasRestoredFromDraft, setHasRestoredFromDraft] = useState(false);
   
   // Draft management
   const { 
@@ -152,10 +153,15 @@ export default function ClaimForm() {
 
   // Restore draft data when loading a draft claim
   useEffect(() => {
-    if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object') {
+    // Only restore if we haven't already restored from this draft
+    if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object' && !hasRestoredFromDraft) {
       console.log("Loading draft data:", JSON.stringify(currentDraft, null, 2)); // Enhanced debug log
       console.log("Current form data before restore:", JSON.stringify(formData, null, 2)); // Current form state
-      setCurrentStep(getCurrentStep(currentDraft));
+      
+      const savedStep = getCurrentStep(currentDraft);
+      console.log("Restoring to step:", savedStep);
+      setCurrentStep(savedStep);
+      setHasRestoredFromDraft(true); // Mark that we've restored from this draft
       
       // Only restore the basic claim fields, not the detailed sections if they're null
       // This prevents overwriting user input with empty strings
@@ -270,7 +276,7 @@ export default function ClaimForm() {
         setHasShownRestoreNotification(true);
       }
     }
-  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification]);
+  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification, hasRestoredFromDraft]);
 
   // Remove authentication redirect - handled by App.tsx router
   // The App.tsx router already handles authentication routing, so this is redundant
@@ -310,7 +316,7 @@ export default function ClaimForm() {
       goodsDescription: formData.damage.goodsDescription,
     };
     
-    console.log("Saving data:", dataToSave);
+    console.log("Saving data with step:", currentStep, dataToSave);
     saveDraft(claimId, currentStep, dataToSave, progressPercentage);
   }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
 
