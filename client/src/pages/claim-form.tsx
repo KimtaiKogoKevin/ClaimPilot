@@ -16,7 +16,8 @@ import DriverDeclarationStep from "@/components/claim-form/driver-declaration-st
 export default function ClaimForm() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading } = useStandaloneAuth();
+  // Remove duplicate auth hook usage - auth is handled by App.tsx
+  // const { isAuthenticated, isLoading } = useStandaloneAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [claimId, setClaimId] = useState<string | null>(id || null);
@@ -264,20 +265,9 @@ export default function ClaimForm() {
     }
   }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast]);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to submit a claim.",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
+  // Remove authentication redirect - handled by App.tsx router
+  // The App.tsx router already handles authentication routing, so this is redundant
+  // and was causing conflicts between different auth hooks
 
   const totalSteps = 4;
   
@@ -401,20 +391,8 @@ export default function ClaimForm() {
     // return () => clearInterval(autoSave);
   }, [formData]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null; // Will redirect
-  }
+  // Remove duplicate authentication checks - handled by App.tsx router
+  // The Router in App.tsx already ensures only authenticated users reach this component
 
   return (
     <div className="min-h-screen bg-neutral-50">
