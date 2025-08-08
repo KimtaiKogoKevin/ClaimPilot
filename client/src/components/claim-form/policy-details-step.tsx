@@ -73,24 +73,28 @@ export default function PolicyDetailsStep({
     }
   }, [formData.policyNumber, claimId, isCreatingClaim]);
 
-  // Auto-save details when claim ID is available
-  useEffect(() => {
-    if (claimId && formData.insuredType === 'individual' && formData.individual.firstName) {
-      saveDetailsMutation.mutate({
-        endpoint: `/api/claims/${claimId}/individual-details`,
-        data: formData.individual,
-      });
-    }
-  }, [claimId, formData.individual]);
+  // Auto-save details when claim ID is available - DISABLED to prevent form clearing
+  // These useEffect hooks were causing form inputs to clear on every keystroke
+  // because they trigger API calls that could interfere with form state
+  // TODO: Implement proper debounced auto-save later
+  
+  // useEffect(() => {
+  //   if (claimId && formData.insuredType === 'individual' && formData.individual.firstName) {
+  //     saveDetailsMutation.mutate({
+  //       endpoint: `/api/claims/${claimId}/individual-details`,
+  //       data: formData.individual,
+  //     });
+  //   }
+  // }, [claimId, formData.individual]);
 
-  useEffect(() => {
-    if (claimId && formData.insuredType === 'corporate' && formData.corporate.registeredName) {
-      saveDetailsMutation.mutate({
-        endpoint: `/api/claims/${claimId}/corporate-details`,
-        data: formData.corporate,
-      });
-    }
-  }, [claimId, formData.corporate]);
+  // useEffect(() => {
+  //   if (claimId && formData.insuredType === 'corporate' && formData.corporate.registeredName) {
+  //     saveDetailsMutation.mutate({
+  //       endpoint: `/api/claims/${claimId}/corporate-details`,
+  //       data: formData.corporate,
+  //     });
+  //   }
+  // }, [claimId, formData.corporate]);
 
   const handleInputChange = (section: string, field: string, value: any) => {
     setFormData((prev: any) => ({
