@@ -8,28 +8,36 @@ import { useToast } from "@/hooks/use-toast";
 
 const roles = [
   {
-    id: 'claimant',
-    title: 'Claimant',
-    description: 'Submit and track your insurance claims',
+    id: 'insured',
+    title: 'Insured/Client',
+    description: 'Submit and manage your insurance claims with AI-powered damage assessment',
     icon: Users,
     color: 'bg-blue-100 text-blue-800',
-    features: ['Submit new claims', 'Upload damage photos', 'Track claim status', 'View claim history']
+    features: ['Submit new claims', 'AI damage analysis', 'Upload vehicle photos', 'Track claim progress', 'Real-time updates']
+  },
+  {
+    id: 'insurer',
+    title: 'Insurer/Underwriter',
+    description: 'Review claims, assess risks, and make settlement decisions',
+    icon: Shield,
+    color: 'bg-purple-100 text-purple-800',
+    features: ['Review AI assessments', 'Approve/reject claims', 'Risk evaluation', 'Settlement approval', 'Fraud detection']
   },
   {
     id: 'broker',
-    title: 'Insurance Broker',
-    description: 'Review and manage client claims',
+    title: 'Broker/Agent',
+    description: 'Assist clients and coordinate between parties',
     icon: Building,
     color: 'bg-green-100 text-green-800', 
-    features: ['Review submitted claims', 'Assist clients', 'Process documentation', 'Preliminary assessment']
+    features: ['Client assistance', 'Claim coordination', 'Documentation support', 'Communication hub', 'Status updates']
   },
   {
-    id: 'adjudicator',
-    title: 'Claims Adjudicator',
-    description: 'Assess and decide on insurance claims',
-    icon: Shield,
-    color: 'bg-purple-100 text-purple-800',
-    features: ['Final claim assessment', 'Approve/reject claims', 'AI analysis review', 'Settlement decisions']
+    id: 'service_provider',
+    title: 'Service Provider',
+    description: 'Provide repair estimates and services based on AI analysis',
+    icon: CheckCircle,
+    color: 'bg-orange-100 text-orange-800',
+    features: ['AI damage review', 'Repair estimates', 'Service scheduling', 'Progress reporting', 'Quality assessment']
   }
 ];
 
@@ -59,10 +67,7 @@ export default function RoleSelection() {
 
     setIsUpdating(true);
     try {
-      await apiRequest('/api/auth/update-role', {
-        method: 'PUT',
-        body: { role: selectedRole }
-      });
+      await apiRequest('PUT', '/api/auth/update-role', { role: selectedRole });
 
       toast({
         title: "Role Updated",
@@ -71,7 +76,7 @@ export default function RoleSelection() {
 
       // Redirect based on role
       setTimeout(() => {
-        if (selectedRole === 'claimant') {
+        if (selectedRole === 'insured') {
           window.location.href = '/';
         } else {
           window.location.href = '/staff-portal';

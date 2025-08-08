@@ -26,8 +26,8 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User roles enum
-export const userRoleEnum = pgEnum('user_role', ['claimant', 'broker', 'adjudicator', 'admin']);
+// User roles enum - Claims Management System
+export const userRoleEnum = pgEnum('user_role', ['insured', 'insurer', 'broker', 'service_provider', 'admin']);
 
 // User storage table (supports both Replit Auth and standalone auth)
 export const users = pgTable("users", {
@@ -37,7 +37,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   password: varchar("password"), // For standalone auth
-  role: userRoleEnum("role").default('claimant').notNull(),
+  role: userRoleEnum("role").default('insured').notNull(),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
   twoFactorSecret: varchar("two_factor_secret"),
   passwordResetToken: varchar("password_reset_token"),
@@ -48,23 +48,35 @@ export const users = pgTable("users", {
 
 // Enums
 export const insuredTypeEnum = pgEnum('insured_type', ['individual', 'corporate']);
-export const claimStatusEnum = pgEnum('claim_status', ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'paid']);
-export const damageTypeEnum = pgEnum('damage_type', ['dent', 'scratch', 'crack', 'broken', 'missing']);
+export const claimStatusEnum = pgEnum('claim_status', ['draft', 'submitted', 'under_review', 'investigating', 'assessment_pending', 'approved', 'rejected', 'settlement_pending', 'paid', 'closed']);
+export const damageTypeEnum = pgEnum('damage_type', ['dent', 'scratch', 'crack', 'broken', 'missing', 'paint_damage', 'glass_damage', 'structural_damage']);
 export const photoAngleEnum = pgEnum('photo_angle', ['FRONT_VIEW', 'REAR_VIEW', 'LEFT_SIDE', 'RIGHT_SIDE', 'DAMAGE_CLOSEUP']);
+export const assessmentStatusEnum = pgEnum('assessment_status', ['pending', 'in_progress', 'completed', 'requires_review']);
+export const severityLevelEnum = pgEnum('severity_level', ['minor', 'moderate', 'major', 'total_loss']);
 
 // Claims table
 export const claims = pgTable("claims", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  claimantId: varchar("claimant_id").notNull().references(() => users.id),
-  claimantReferenceNumber: varchar("claimant_reference_number").unique(),
+  insuredId: varchar("insured_id").notNull().references(() => users.id),
+  claimReferenceNumber: varchar("claim_reference_number").unique(),
   status: claimStatusEnum("status").default('draft').notNull(),
   
   // Policy details
   branchName: varchar("branch_name"),
   agentName: varchar("agent_name"),
+  brokerId: varchar("broker_id").references(() => users.id), // Assigned broker
   policyNumber: varchar("policy_number").notNull(),
   lastPaymentDate: timestamp("last_payment_date"),
   insuredType: insuredTypeEnum("insured_type").notNull(),
+  
+  // Assessment and AI Analysis
+  assessmentStatus: assessmentStatusEnum("assessment_status").default('pending'),
+  assignedServiceProviderId: varchar("assigned_service_provider_id").references(() => users.id),
+  estimatedRepairCost: decimal("estimated_repair_cost", { precision: 10, scale: 2 }),
+  finalSettlementAmount: decimal("final_settlement_amount", { precision: 10, scale: 2 }),
+  aiAnalysisSummary: text("ai_analysis_summary"),
+  insurerNotes: text("insurer_notes"),
+  brokerNotes: text("broker_notes"),
   
   // Accident details
   accidentDate: timestamp("accident_date"),
@@ -204,12 +216,61 @@ export const damagedPhotos = pgTable("damaged_photos", {
 // Detected damages (from AI analysis)
 export const detectedDamages = pgTable("detected_damages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
   photoId: varchar("photo_id").notNull().references(() => damagedPhotos.id),
   damageType: damageTypeEnum("damage_type").notNull(),
-  confidence: decimal("confidence", { precision: 5, scale: 4 }),
-  boundingBox: jsonb("bounding_box"), // {x, y, width, height}
-  severity: varchar("severity"), // 'minor', 'moderate', 'severe'
+  confidence: decimal("confidence", { precision: 5, scale: 4 }).notNull(),
+  boundingBox: jsonb("bounding_box").notNull(), // {x, y, width, height}
+  severity: severityLevelEnum("severity").notNull(),
   estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  description: text("description"),
+  aiExplanation: text("ai_explanation"), // LLM explanation of the damage
+  repairRecommendations: text("repair_recommendations"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// AI Analysis Results table for comprehensive assessments
+export const aiAnalysisResults = pgTable("ai_analysis_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  modelVersion: varchar("model_version").notNull(),
+  totalDamageCount: integer("total_damage_count").notNull(),
+  overallSeverity: severityLevelEnum("overall_severity").notNull(),
+  totalEstimatedCost: decimal("total_estimated_cost", { precision: 10, scale: 2 }),
+  repairability: varchar("repairability"), // repairable, total_loss, questionable
+  aiSummary: text("ai_summary"), // LLM generated summary
+  recommendedActions: text("recommended_actions"), // Next steps suggested by AI
+  confidenceScore: decimal("confidence_score", { precision: 5, scale: 4 }),
+  processingTime: integer("processing_time_ms"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Workflow tracking table for multi-role collaboration
+export const claimWorkflows = pgTable("claim_workflows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  currentStage: varchar("current_stage").notNull(), // submission, investigation, assessment, review, settlement
+  assignedToUserId: varchar("assigned_to_user_id").references(() => users.id),
+  assignedByUserId: varchar("assigned_by_user_id").references(() => users.id),
+  dueDate: timestamp("due_date"),
+  priority: varchar("priority").default('medium'), // low, medium, high, urgent
+  notes: text("notes"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Communication logs between different roles
+export const claimCommunications = pgTable("claim_communications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  fromUserId: varchar("from_user_id").notNull().references(() => users.id),
+  toUserId: varchar("to_user_id").references(() => users.id), // null for broadcast messages
+  messageType: varchar("message_type").notNull(), // note, question, approval_request, decision
+  subject: varchar("subject"),
+  content: text("content").notNull(),
+  attachments: jsonb("attachments"), // file references
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Relations
@@ -218,8 +279,16 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const claimsRelations = relations(claims, ({ one, many }) => ({
-  claimant: one(users, {
-    fields: [claims.claimantId],
+  insured: one(users, {
+    fields: [claims.insuredId],
+    references: [users.id],
+  }),
+  broker: one(users, {
+    fields: [claims.brokerId],
+    references: [users.id],
+  }),
+  serviceProvider: one(users, {
+    fields: [claims.assignedServiceProviderId],
     references: [users.id],
   }),
   individualDetails: one(individualDetails, {

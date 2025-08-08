@@ -2,17 +2,21 @@
 
 ## Overview
 
-This is a modern, AI-powered web application designed to streamline the motor accident insurance claims process. The platform replaces traditional paper-based forms with an intelligent, multi-step digital workflow that guides users through claim submission while automatically analyzing vehicle damage using computer vision technology.
+This is a comprehensive, AI-powered claims management system that revolutionizes the motor accident insurance claims process. The platform connects Computer Vision models with LLM explanations to create an intelligent, multi-stakeholder workflow for managing and resolving insurance claims through advanced damage analysis and AI-powered insights.
 
-The application serves three primary user roles: claimants who submit claims, insurance brokers who review submissions, and adjusters who make final decisions. The core innovation lies in its guided photo upload system and AI-powered damage assessment that provides instant analysis of vehicle damage through integrated computer vision models.
+The application serves four primary user roles: **Insured/Clients** who submit claims with AI-guided damage assessment, **Insurers/Underwriters** who review AI analysis and make settlement decisions, **Brokers/Agents** who coordinate between parties and assist clients, and **Service Providers** who provide repair estimates and services based on AI analysis results. The core innovation lies in its integration of Roboflow Computer Vision API for automated damage detection combined with LLM-generated explanations and recommendations for each stakeholder in the claims process.
 
 **Deployment Flexibility**: The platform now supports both Replit-hosted deployment and completely standalone local deployment, allowing users to run the application independently without any Replit service dependencies.
 
 ## Recent Updates (January 2025)
 
-**Complete Forgot Password System Implemented**: Added comprehensive forgot password functionality with secure token generation, database schema updates for password reset tokens with expiry timestamps, backend API endpoints for forgot password request and validation, and frontend UI components integrated with existing authentication page. Email service created with support for Gmail, custom SMTP, and development testing. Users can now reset passwords through secure email links with 1-hour expiry. System includes proper security measures and comprehensive email templates.
+**MAJOR ARCHITECTURAL PIVOT - AI-Powered Claims Management System (January 8, 2025)**: Completely transformed the platform from a simple claims form into a comprehensive, multi-stakeholder claims management system. Database has been cleaned and restructured with new user roles: insured (client), insurer (underwriter), broker (agent), and service_provider. Added advanced AI integration capabilities with new tables for AI analysis results, workflow tracking, and cross-role communication. Created Roboflow Computer Vision API integration for automated vehicle damage detection and assessment. The platform now supports comprehensive claim workflows with role-based dashboards, AI-powered damage analysis, and LLM explanations for results.
 
-**Accident Details Data Storage Fixed**: Resolved critical issue where accident details were not being saved to the database. The form was collecting accident information (date, location, description) but not persisting it due to missing auto-save functionality and incorrect field mapping. Fixed by adding proper accident data mutation in the Vehicle & Accident step component with correct field mapping (form.accident.date → database.accidentDate). Staff portal preview and incident details modals now display actual accident information instead of "Not specified" placeholders. All TypeScript compilation errors also resolved with proper authentication type casting.
+**Database Schema Redesign**: Completely overhauled database structure to support the new AI-integrated claims management system. Added tables for AI analysis results, workflow tracking, claim communications, and enhanced user role management. Updated all foreign key relationships and enums to support the new multi-stakeholder workflow.
+
+**Role-Based Authentication System**: Redesigned authentication and routing system to support four distinct user roles with specialized dashboards and workflows. Each role has access to different features and claim management capabilities tailored to their responsibilities in the insurance ecosystem.
+
+**Complete Forgot Password System Implemented**: Added comprehensive forgot password functionality with secure token generation, database schema updates for password reset tokens with expiry timestamps, backend API endpoints for forgot password request and validation, and frontend UI components integrated with existing authentication page. Email service created with support for Gmail, custom SMTP, and development testing. Users can now reset passwords through secure email links with 1-hour expiry. System includes proper security measures and comprehensive email templates.
 
 ## User Preferences
 
@@ -39,10 +43,17 @@ The platform implements flexible file upload systems:
 
 Both modes include the ObjectUploader component for modal-based file selection, preview, and upload progress tracking.
 
-### AI Integration
-The core innovation is the integration with Roboflow's computer vision API for automated damage assessment. When users upload vehicle photos, the system automatically triggers AI analysis to detect and classify damage types (dents, scratches, cracks, etc.).
+### AI Integration and Computer Vision
+The platform integrates with Roboflow Universe computer vision models for comprehensive vehicle damage detection and assessment. The system automatically analyzes uploaded vehicle photos to detect and classify various damage types including dents, scratches, cracks, structural damage, paint damage, and glass damage.
 
-The AI analysis results include bounding boxes, confidence scores, and damage classifications, which are stored in the database and displayed to users through interactive visualizations. The system calculates damage severity estimates and cost ranges based on the AI predictions.
+The AI analysis workflow includes:
+- **Damage Detection**: Automated identification of damage with bounding boxes and confidence scores
+- **Severity Assessment**: Classification of damage as minor, moderate, major, or total loss
+- **Cost Estimation**: Intelligent cost calculation based on damage type, location, and severity
+- **LLM Explanations**: Detailed explanations and recommendations generated for each stakeholder
+- **Workflow Integration**: AI results guide decision-making across all user roles
+
+Results are stored in comprehensive database tables with support for detailed damage tracking, AI analysis summaries, and cross-role communication about findings.
 
 ### Authentication and Authorization
 The platform supports dual authentication modes:
@@ -51,12 +62,18 @@ The platform supports dual authentication modes:
 
 **Standalone Mode**: Implements JWT-based authentication with bcrypt password hashing for independent local deployment. Includes simple email-based registration and login flows.
 
-Both modes maintain user sessions and support role-based access control differentiating between claimants, brokers, and adjusters, with each role having access to specific dashboards and functionalities.
+Both modes maintain user sessions and support comprehensive role-based access control differentiating between insured clients, insurers/underwriters, brokers/agents, and service providers. Each role has access to specialized dashboards and workflows tailored to their responsibilities in the claims management ecosystem.
 
 ### Database Design
-The PostgreSQL database schema includes comprehensive tables for users, claims, individual/corporate details, vehicles, drivers, bank information, damage photos, and AI analysis results. The schema uses foreign key relationships to maintain data integrity and supports complex queries for claim processing workflows.
+The PostgreSQL database schema supports a comprehensive claims management ecosystem with tables for users (with enhanced role management), claims (with AI analysis integration), individual/corporate details, vehicles, drivers, bank information, damage photos, detailed AI analysis results, workflow tracking, and cross-role communications. 
 
-Drizzle Kit handles database migrations and schema synchronization, ensuring type safety between the database and application code.
+Key new additions include:
+- **AI Analysis Results**: Comprehensive storage of computer vision analysis including damage classifications, confidence scores, cost estimates, and LLM-generated summaries
+- **Workflow Tracking**: Multi-stage claim progression with assignment tracking across different roles
+- **Communications Log**: Cross-role messaging system for coordinated claim resolution
+- **Enhanced Claims Table**: Integration points for brokers, service providers, and AI analysis status
+
+The schema uses comprehensive foreign key relationships to maintain data integrity and supports complex queries for advanced claim processing workflows and AI-powered insights.
 
 ## External Dependencies
 

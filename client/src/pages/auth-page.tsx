@@ -28,7 +28,7 @@ const registerSchema = z.object({
   confirmPassword: z.string().min(8, "Please confirm your password"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  role: z.enum(['claimant', 'broker', 'adjudicator']).default('claimant')
+  role: z.enum(['insured', 'insurer', 'broker', 'service_provider']).default('insured')
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -82,7 +82,7 @@ export default function AuthPage() {
       confirmPassword: "",
       firstName: "",
       lastName: "",
-      role: "claimant"
+      role: "insured"
     }
   });
 

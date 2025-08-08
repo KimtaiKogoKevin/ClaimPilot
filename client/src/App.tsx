@@ -39,19 +39,36 @@ function Router() {
           {/* Role selection route */}
           <Route path="/role-selection" component={RoleSelection} />
           
-          {/* Main routes based on user role */}
-          {user.role === 'claimant' ? (
+          {/* Role-based dashboard routes */}
+          {user.role === 'insured' ? (
             <>
               <Route path="/" component={ClaimantDashboard} />
               <Route path="/claim/:id?" component={ClaimForm} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
-              <Route path="/staff-portal" component={() => <div className="p-8 text-center">Access denied. You don't have staff permissions.</div>} />
+            </>
+          ) : user.role === 'insurer' ? (
+            <>
+              <Route path="/" component={StaffPortal} />
+              <Route path="/claims-review" component={StaffPortal} />
+              <Route path="/claim-details/:id" component={ClaimDetails} />
+            </>
+          ) : user.role === 'broker' ? (
+            <>
+              <Route path="/" component={StaffPortal} />
+              <Route path="/client-claims" component={StaffPortal} />
+              <Route path="/claim/:id?" component={ClaimForm} />
+              <Route path="/claim-details/:id" component={ClaimDetails} />
+            </>
+          ) : user.role === 'service_provider' ? (
+            <>
+              <Route path="/" component={StaffPortal} />
+              <Route path="/assigned-claims" component={StaffPortal} />
+              <Route path="/claim-details/:id" component={ClaimDetails} />
             </>
           ) : (
             <>
               <Route path="/" component={StaffPortal} />
               <Route path="/staff-portal" component={StaffPortal} />
-              <Route path="/claim/:id?" component={ClaimForm} />
             </>
           )}
         </>
