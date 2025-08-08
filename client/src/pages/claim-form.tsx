@@ -315,6 +315,19 @@ export default function ClaimForm() {
   }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
 
   // Manual save button handler
+  const manualSave = () => {
+    console.log("Manual save triggered");
+    if (!claimId) {
+      console.log("No claimId for manual save");
+      return;
+    }
+    
+    autoSave();
+    toast({
+      title: "Draft Saved",
+      description: "Your progress has been saved successfully.",
+    });
+  };
   const handleSaveDraft = () => {
     autoSave();
   };
