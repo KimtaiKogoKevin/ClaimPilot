@@ -1,0 +1,1 @@
+console.log('Auth token:', localStorage.getItem('auth_token')); console.log('Standalone auth working check:', JSON.stringify({user: localStorage.getItem('auth_token') ? 'authenticated' : 'not authenticated'}));

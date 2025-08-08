@@ -147,7 +147,7 @@ export class DraftPersistenceManager {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
         body: JSON.stringify({
           data: this.pendingChanges,
@@ -179,7 +179,7 @@ export class DraftPersistenceManager {
   private async loadFromServer(): Promise<DraftData | null> {
     const response = await fetch(`/api/claims/${this.config.claimId}/resume`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
       }
     });
     
