@@ -165,19 +165,8 @@ export default function AppHeader() {
           ) : (
             /* Non-authenticated Navigation */
             <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setLocation("/auth")}
-                className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-              >
-                Broker Portal
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setLocation("/auth")}
-                className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
-              >
-                Staff Portal
+              <Button variant="ghost" className="text-neutral-600 hover:text-primary">
+                Contact Us
               </Button>
             </div>
           )}
