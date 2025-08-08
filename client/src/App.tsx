@@ -57,10 +57,10 @@ function Router() {
           {user.role === 'insured' ? (
             <>
               <Route path="/" component={ClaimantDashboard} />
-              <Route path="/claim/:id?" component={ClaimForm} />
               <Route path="/claim-form/:id?" component={ClaimForm} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
               <Route path="/drafts" component={DraftDashboard} />
+              <Route component={NotFound} />
             </>
           ) : user.role === 'insurer' ? (
             <>
@@ -68,28 +68,31 @@ function Router() {
               <Route path="/analytics" component={AnalyticsDashboard} />
               <Route path="/claims-review" component={StaffPortal} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
+              <Route component={NotFound} />
             </>
           ) : user.role === 'broker' ? (
             <>
               <Route path="/" component={AnalyticsDashboard} />
               <Route path="/analytics" component={AnalyticsDashboard} />
               <Route path="/client-claims" component={StaffPortal} />
-              <Route path="/claim/:id?" component={ClaimForm} />
+              <Route path="/claim-form/:id?" component={ClaimForm} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
+              <Route component={NotFound} />
             </>
           ) : user.role === 'service_provider' ? (
             <>
               <Route path="/" component={StaffPortal} />
               <Route path="/assigned-claims" component={StaffPortal} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
+              <Route component={NotFound} />
             </>
           ) : (
             <>
               <Route path="/" component={StaffPortal} />
               <Route path="/staff-portal" component={StaffPortal} />
+              <Route component={NotFound} />
             </>
           )}
-          <Route component={NotFound} />
         </>
       )}
     </Switch>
