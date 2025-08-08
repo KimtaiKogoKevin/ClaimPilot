@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import AIAnalysisDisplay from "@/components/ai-analysis-display";
+
 import { Camera, Brain } from "lucide-react";
 import type { UploadResult } from "@uppy/core";
 
@@ -252,7 +252,19 @@ export default function DamageAssessmentStep({
 
           {/* AI Analysis Results */}
           {aiAnalysis && (
-            <AIAnalysisDisplay analysis={aiAnalysis} />
+            <Card className="bg-blue-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="h-5 w-5 mr-2 text-blue-600" />
+                  AI Analysis Complete
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-blue-700">
+                  Analysis ready - {aiAnalysis.predictions?.length || 0} damage(s) detected
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
