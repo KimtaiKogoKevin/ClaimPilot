@@ -21,6 +21,7 @@ export default function ClaimForm() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [claimId, setClaimId] = useState<string | null>(id || null);
+  const [hasShownRestoreNotification, setHasShownRestoreNotification] = useState(false);
   
   // Draft management
   const { 
@@ -255,15 +256,17 @@ export default function ClaimForm() {
         otherVehicles: (currentDraft as any).otherVehicles || [],
       }));
 
-      if (claimId) {
+      // Show restoration notification only once
+      if (claimId && !hasShownRestoreNotification) {
         toast({
           title: "Draft Restored",
           description: `Continuing from step ${getCurrentStep(currentDraft)} where you left off.`,
           variant: "default",
         });
+        setHasShownRestoreNotification(true);
       }
     }
-  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast]);
+  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification]);
 
   // Remove authentication redirect - handled by App.tsx router
   // The App.tsx router already handles authentication routing, so this is redundant
