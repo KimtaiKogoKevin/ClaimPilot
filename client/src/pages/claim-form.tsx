@@ -4,6 +4,7 @@ import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftManager } from "@/hooks/useDraftManager";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Clock } from "lucide-react";
 import ProgressBar from "@/components/claim-form/progress-bar";
@@ -348,17 +349,7 @@ export default function ClaimForm() {
 
     try {
       // Submit the claim (change status from draft to submitted)
-      const response = await fetch(`/api/claims/${claimId}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      const response = await apiRequest('POST', `/api/claims/${claimId}/submit`);
       const result = await response.json();
       
       toast({
