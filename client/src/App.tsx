@@ -15,6 +15,7 @@ import BrokerSignup from "@/pages/broker-signup";
 import AdjudicatorSignup from "@/pages/adjudicator-signup";
 import ClaimantSignup from "@/pages/claimant-signup";
 import AuthPage from "@/pages/auth-page";
+import AnalyticsDashboard from "@/pages/analytics-dashboard";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useStandaloneAuth();
@@ -48,13 +49,15 @@ function Router() {
             </>
           ) : user.role === 'insurer' ? (
             <>
-              <Route path="/" component={StaffPortal} />
+              <Route path="/" component={AnalyticsDashboard} />
+              <Route path="/analytics" component={AnalyticsDashboard} />
               <Route path="/claims-review" component={StaffPortal} />
               <Route path="/claim-details/:id" component={ClaimDetails} />
             </>
           ) : user.role === 'broker' ? (
             <>
-              <Route path="/" component={StaffPortal} />
+              <Route path="/" component={AnalyticsDashboard} />
+              <Route path="/analytics" component={AnalyticsDashboard} />
               <Route path="/client-claims" component={StaffPortal} />
               <Route path="/claim/:id?" component={ClaimForm} />
               <Route path="/claim-details/:id" component={ClaimDetails} />

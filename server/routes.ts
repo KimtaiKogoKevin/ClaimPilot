@@ -617,6 +617,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics dashboard endpoint with role-based permissions
+  app.get("/api/analytics/dashboard", authenticateToken, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      
+      // Check if user has permission to access analytics
+      if (!user || !['broker', 'insurer'].includes(user.role)) {
+        return res.status(403).json({ 
+          error: "Access denied. Analytics available only for Broker and Insurer roles." 
+        });
+      }
+
+      const hasFullAccess = user.role === 'insurer';
+
+      // Get analytics data based on role permissions
+      let analyticsData;
+
+      if (hasFullAccess) {
+        // Insurers can see all claims across all brokers
+        analyticsData = await storage.getAnalyticsDashboard();
+      } else {
+        // Brokers can only see their assigned clients' claims
+        analyticsData = await storage.getAnalyticsDashboard(userId);
+      }
+
+      res.json(analyticsData);
+    } catch (error) {
+      console.error("Error fetching analytics dashboard:", error);
+      res.status(500).json({ error: "Failed to load analytics data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
