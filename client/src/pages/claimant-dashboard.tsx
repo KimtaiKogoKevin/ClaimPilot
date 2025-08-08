@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, FileText, Clock, CheckCircle, DollarSign, Plus } from "lucide-react";
+import { FileText, Clock, CheckCircle, DollarSign, Plus } from "lucide-react";
+import AppHeader from "@/components/AppHeader";
 import type { ClaimWithDetails } from "@shared/schema";
 
 export default function ClaimantDashboard() {
@@ -132,29 +133,7 @@ export default function ClaimantDashboard() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {/* Dashboard Header */}
-      <nav className="bg-white border-b border-neutral-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="text-white h-4 w-4" />
-            </div>
-            <span className="text-xl font-bold text-neutral-800">ClaimFlow AI</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <img
-              src={user?.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32"}
-              alt="User avatar"
-              className="w-8 h-8 rounded-full object-cover"
-            />
-            <span className="font-medium">{user?.firstName} {user?.lastName}</span>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </nav>
-
+      <AppHeader />
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Dashboard Overview */}
         <div className="mb-8">

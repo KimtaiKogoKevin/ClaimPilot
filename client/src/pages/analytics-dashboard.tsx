@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AppHeader from "@/components/AppHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -170,8 +171,9 @@ export default function AnalyticsDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      <AppHeader />
+      <div className="max-w-7xl mx-auto p-8 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

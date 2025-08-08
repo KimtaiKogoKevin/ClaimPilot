@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Brain, Smartphone, Clock } from "lucide-react";
+import { Brain, Smartphone, Clock } from "lucide-react";
 import { useLocation } from "wouter";
+import AppHeader from "@/components/AppHeader";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -21,37 +22,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Header */}
-      <nav className="bg-white border-b border-neutral-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="text-white h-4 w-4" />
-            </div>
-            <span className="text-xl font-bold text-neutral-800">ClaimFlow AI</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" className="text-neutral-600 hover:text-primary">
-              Help
-            </Button>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setLocation("/auth")}
-                className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-              >
-                Broker Portal
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setLocation("/auth")}
-                className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
-              >
-                Adjudicator Portal
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <AppHeader />
 
       {/* Hero Section */}
       <div className="relative bg-gradient-to-br from-primary to-blue-700 text-white">
