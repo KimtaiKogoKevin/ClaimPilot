@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user role
   app.put('/api/auth/update-role', authenticateToken, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/claims/:id", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -229,7 +229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/claims/:id", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -347,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/claims/:id/photos", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -403,7 +403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/claims/:id/pdf", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -430,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/claims/:id/submit", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -459,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staff portal routes (simplified - would need additional role checking in production)
   app.get("/api/staff/claims", authenticateToken, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -482,7 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get claim details for staff
   app.get("/api/staff/claims/:id", authenticateToken, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -508,7 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate PDF for claim - Staff version
   app.get("/api/staff/claims/:id/pdf", authenticateToken, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
@@ -612,7 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.path,
       );
       
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.id;
       const canAccess = await objectStorageService.canAccessObjectEntity({
         objectFile,
         userId: userId,
@@ -642,7 +642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "photoURL is required" });
     }
 
-    const userId = req.user?.claims?.sub;
+    const userId = (req.user as any)?.id;
     if (!userId) {
       return res.status(401).json({ message: "User ID not found" });
     }
@@ -684,7 +684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics dashboard endpoint with role-based permissions
   app.get("/api/analytics/dashboard", authenticateToken, async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
