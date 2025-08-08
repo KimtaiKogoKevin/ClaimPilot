@@ -108,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const claimData = insertClaimSchema.parse({
         ...req.body,
-        claimantId: userId,
+        insuredId: userId,
         status: "draft"
       });
       
@@ -131,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user owns this claim
       const existingClaim = await storage.getClaim(id);
-      if (!existingClaim || existingClaim.claimantId !== userId) {
+      if (!existingClaim || existingClaim.insuredId !== userId) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -229,13 +229,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/claims/:id", authenticateToken, async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
       
       const claim = await storage.getClaim(id);
-      if (!claim || claim.claimantId !== userId) {
+      if (!claim || claim.insuredId !== userId) {
         return res.status(404).json({ message: "Claim not found" });
       }
 
@@ -354,7 +354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user owns this claim
       const claim = await storage.getClaim(id);
-      if (!claim || claim.claimantId !== userId) {
+      if (!claim || claim.insuredId !== userId) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -410,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user owns this claim
       const claim = await storage.getClaim(id);
-      if (!claim || claim.claimantId !== userId) {
+      if (!claim || claim.insuredId !== userId) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -437,7 +437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user owns this claim
       const claim = await storage.getClaim(id);
-      if (!claim || claim.claimantId !== userId) {
+      if (!claim || claim.insuredId !== userId) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -465,8 +465,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      // Check if user has staff access (broker or adjudicator)
-      if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
+      // Check if user has staff access (broker or insurer)
+      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
@@ -488,7 +488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
+      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
@@ -514,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
+      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
@@ -545,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'adjudicator', 'admin'].includes(user.role))) {
+      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
         return res.status(403).json({ message: "Access denied. Staff access required." });
       }
       
@@ -562,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Edit claim (adjudicator only)
+  // Edit claim (insurer only)
   app.put("/api/staff/claims/:id/edit", authenticateToken, async (req, res) => {
     try {
       const userId = (req.user as any)?.claims?.sub;
@@ -571,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'adjudicator') {
+      if (!user || user.role !== 'insurer') {
         return res.status(403).json({ message: "Access denied. Adjudicator access required." });
       }
       
@@ -583,7 +583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete claim (adjudicator only)
+  // Delete claim (insurer only)
   app.delete("/api/staff/claims/:id", authenticateToken, async (req, res) => {
     try {
       const userId = (req.user as any)?.claims?.sub;
@@ -592,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'adjudicator') {
+      if (!user || user.role !== 'insurer') {
         return res.status(403).json({ message: "Access denied. Adjudicator access required." });
       }
       

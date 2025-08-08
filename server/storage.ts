@@ -32,17 +32,17 @@ async function generateClaimantReferenceNumber(): Promise<string> {
   const currentYear = new Date().getFullYear();
   const prefix = `CLM-${currentYear}-`;
   
-  // Get the latest claimant reference number for this year
+  // Get the latest claim reference number for this year
   const [latestClaim] = await db
-    .select({ claimantReferenceNumber: claims.claimantReferenceNumber })
+    .select({ claimReferenceNumber: claims.claimReferenceNumber })
     .from(claims)
-    .where(sql`${claims.claimantReferenceNumber} LIKE ${prefix + '%'}`)
-    .orderBy(desc(claims.claimantReferenceNumber))
+    .where(sql`${claims.claimReferenceNumber} LIKE ${prefix + '%'}`)
+    .orderBy(desc(claims.claimReferenceNumber))
     .limit(1);
   
   let nextNumber = 1;
-  if (latestClaim?.claimantReferenceNumber) {
-    const parts = latestClaim.claimantReferenceNumber.split('-');
+  if (latestClaim?.claimReferenceNumber) {
+    const parts = latestClaim.claimReferenceNumber.split('-');
     const lastNumber = parseInt(parts[2] || '0');
     nextNumber = lastNumber + 1;
   }
@@ -150,7 +150,7 @@ export class DatabaseStorage implements IStorage {
       .insert(claims)
       .values({
         ...claim,
-        claimantReferenceNumber
+        claimReferenceNumber: claimantReferenceNumber
       })
       .returning();
     return newClaim;
