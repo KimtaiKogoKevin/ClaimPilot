@@ -48,47 +48,49 @@ function Router() {
       ) : !user?.role ? (
         // Redirect to role selection if authenticated but no role set
         <Route path="*" component={RoleSelection} />
+      ) : user.role === 'insured' ? (
+        <>
+          <Route path="/" component={ClaimantDashboard} />
+          <Route path="/claim-form/:id" component={ClaimForm} />
+          <Route path="/claim-form" component={ClaimForm} />
+          <Route path="/claim-details/:id" component={ClaimDetails} />
+          <Route path="/drafts" component={DraftDashboard} />
+          <Route path="/role-selection" component={RoleSelection} />
+          <Route component={NotFound} />
+        </>
+      ) : user.role === 'insurer' ? (
+        <>
+          <Route path="/" component={AnalyticsDashboard} />
+          <Route path="/analytics" component={AnalyticsDashboard} />
+          <Route path="/claims-review" component={StaffPortal} />
+          <Route path="/claim-details/:id" component={ClaimDetails} />
+          <Route path="/role-selection" component={RoleSelection} />
+          <Route component={NotFound} />
+        </>
+      ) : user.role === 'broker' ? (
+        <>
+          <Route path="/" component={AnalyticsDashboard} />
+          <Route path="/analytics" component={AnalyticsDashboard} />
+          <Route path="/client-claims" component={StaffPortal} />
+          <Route path="/claim-form/:id" component={ClaimForm} />
+          <Route path="/claim-form" component={ClaimForm} />
+          <Route path="/claim-details/:id" component={ClaimDetails} />
+          <Route path="/role-selection" component={RoleSelection} />
+          <Route component={NotFound} />
+        </>
+      ) : user.role === 'service_provider' ? (
+        <>
+          <Route path="/" component={StaffPortal} />
+          <Route path="/assigned-claims" component={StaffPortal} />
+          <Route path="/claim-details/:id" component={ClaimDetails} />
+          <Route path="/role-selection" component={RoleSelection} />
+          <Route component={NotFound} />
+        </>
       ) : (
         <>
+          <Route path="/" component={StaffPortal} />
+          <Route path="/staff-portal" component={StaffPortal} />
           <Route path="/role-selection" component={RoleSelection} />
-          
-          {user.role === 'insured' ? (
-            <>
-              <Route path="/" component={ClaimantDashboard} />
-              <Route path="/claim-form/:id" component={ClaimForm} />
-              <Route path="/claim-form" component={ClaimForm} />
-              <Route path="/claim-details/:id" component={ClaimDetails} />
-              <Route path="/drafts" component={DraftDashboard} />
-            </>
-          ) : user.role === 'insurer' ? (
-            <>
-              <Route path="/" component={AnalyticsDashboard} />
-              <Route path="/analytics" component={AnalyticsDashboard} />
-              <Route path="/claims-review" component={StaffPortal} />
-              <Route path="/claim-details/:id" component={ClaimDetails} />
-            </>
-          ) : user.role === 'broker' ? (
-            <>
-              <Route path="/" component={AnalyticsDashboard} />
-              <Route path="/analytics" component={AnalyticsDashboard} />
-              <Route path="/client-claims" component={StaffPortal} />
-              <Route path="/claim-form/:id" component={ClaimForm} />
-              <Route path="/claim-form" component={ClaimForm} />
-              <Route path="/claim-details/:id" component={ClaimDetails} />
-            </>
-          ) : user.role === 'service_provider' ? (
-            <>
-              <Route path="/" component={StaffPortal} />
-              <Route path="/assigned-claims" component={StaffPortal} />
-              <Route path="/claim-details/:id" component={ClaimDetails} />
-            </>
-          ) : (
-            <>
-              <Route path="/" component={StaffPortal} />
-              <Route path="/staff-portal" component={StaffPortal} />
-            </>
-          )}
-          
           <Route component={NotFound} />
         </>
       )}
