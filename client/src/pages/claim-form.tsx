@@ -153,18 +153,20 @@ export default function ClaimForm() {
   // Restore draft data when loading a draft claim
   useEffect(() => {
     if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object') {
-      console.log("Loading draft data:", currentDraft); // Debug log
+      console.log("Loading draft data:", JSON.stringify(currentDraft, null, 2)); // Enhanced debug log
+      console.log("Current form data before restore:", JSON.stringify(formData, null, 2)); // Current form state
       setCurrentStep(getCurrentStep(currentDraft));
       
       // Only restore the basic claim fields, not the detailed sections if they're null
       // This prevents overwriting user input with empty strings
       setFormData(prev => ({
         ...prev,
-        branchName: (currentDraft as any).branchName || prev.branchName,
-        agentName: (currentDraft as any).agentName || prev.agentName,
-        policyNumber: (currentDraft as any).policyNumber || prev.policyNumber,
-        lastPaymentDate: (currentDraft as any).lastPaymentDate || prev.lastPaymentDate,
-        insuredType: (currentDraft as any).insuredType || prev.insuredType,
+        // Restore basic policy fields - these are saved directly on the claims table
+        branchName: (currentDraft as any).branchName || "",
+        agentName: (currentDraft as any).agentName || "",
+        policyNumber: (currentDraft as any).policyNumber || "",
+        lastPaymentDate: (currentDraft as any).lastPaymentDate ? new Date((currentDraft as any).lastPaymentDate).toISOString().split('T')[0] : "",
+        insuredType: (currentDraft as any).insuredType || "individual",
         // Only restore individual details if they exist in the draft
         individual: (currentDraft as any).individualDetails ? {
           firstName: (currentDraft as any).individualDetails.firstName || "",
@@ -213,7 +215,7 @@ export default function ClaimForm() {
           vehicleUse: (currentDraft as any).vehicle.vehicleUse || "",
         } : prev.vehicle,
         accident: {
-          date: (currentDraft as any).accidentDate || "",
+          date: (currentDraft as any).accidentDate ? new Date((currentDraft as any).accidentDate).toISOString().split('T')[0] : "",
           time: (currentDraft as any).accidentTime || "",
           location: (currentDraft as any).accidentLocation || "",
           description: (currentDraft as any).accidentDescription || "",
@@ -255,6 +257,8 @@ export default function ClaimForm() {
         },
         otherVehicles: (currentDraft as any).otherVehicles || [],
       }));
+      
+      console.log("Form data after restoration:", JSON.stringify(formData, null, 2)); // Form state after restore
 
       // Show restoration notification only once
       if (claimId && !hasShownRestoreNotification) {
