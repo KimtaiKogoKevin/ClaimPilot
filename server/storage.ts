@@ -238,6 +238,20 @@ export class DatabaseStorage implements IStorage {
 
   // Draft management methods
   async saveDraftProgress(claimId: string, step: number, data: any, progressPercentage: number): Promise<void> {
+    // Convert date strings to Date objects for timestamp fields
+    const processedData = { ...data };
+    
+    // Convert string dates to Date objects for timestamp fields
+    if (processedData.accidentDate && typeof processedData.accidentDate === 'string') {
+      processedData.accidentDate = new Date(processedData.accidentDate);
+    }
+    if (processedData.lastPaymentDate && typeof processedData.lastPaymentDate === 'string') {
+      processedData.lastPaymentDate = new Date(processedData.lastPaymentDate);
+    }
+    if (processedData.submittedAt && typeof processedData.submittedAt === 'string') {
+      processedData.submittedAt = new Date(processedData.submittedAt);
+    }
+    
     await db
       .update(claims)
       .set({
@@ -245,7 +259,7 @@ export class DatabaseStorage implements IStorage {
         formProgress: progressPercentage.toString(),
         lastSavedAt: new Date(),
         updatedAt: new Date(),
-        ...data // Include any form data being saved
+        ...processedData // Include processed form data
       })
       .where(eq(claims.id, claimId));
   }
