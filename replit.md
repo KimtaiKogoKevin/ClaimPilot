@@ -6,7 +6,7 @@ This is a comprehensive, AI-powered claims management system that revolutionizes
 
 The application serves four primary user roles: **Insured/Clients** who submit claims with AI-guided damage assessment, **Insurers/Underwriters** who review AI analysis and make settlement decisions, **Brokers/Agents** who coordinate between parties and assist clients, and **Service Providers** who provide repair estimates and services based on AI analysis results. The core innovation lies in its integration of Roboflow Computer Vision API for automated damage detection combined with LLM-generated explanations and recommendations for each stakeholder in the claims process.
 
-**Deployment Flexibility**: The platform now supports both Replit-hosted deployment and completely standalone local deployment, allowing users to run the application independently without any Replit service dependencies.
+**Deployment Flexibility**: The platform now supports both Replit-hosted deployment and completely standalone local deployment, allowing users to run the application independently without any Replit service dependencies. Database connection has been updated to use standard PostgreSQL for local development instead of Neon's serverless driver to avoid WebSocket connection issues.
 
 ## Recent Updates (January 2025)
 
