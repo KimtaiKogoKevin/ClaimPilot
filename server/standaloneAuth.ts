@@ -99,27 +99,37 @@ function verifyToken(token: string): any {
 
 // Authentication middleware
 export async function authenticateToken(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-  if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
+    if (!token) {
+      return res.status(401).json({ message: 'Access token required' });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+
+    // Get fresh user data
+    const user = await storage.getUser(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Attach user to request - ensure consistent structure
+    const authUser = toAuthUser(user);
+    (req as any).user = authUser;
+    
+    // Also set individual properties for compatibility
+    (req as any).userId = authUser.id;
+    
+    next();
+  } catch (error) {
+    console.error("Authentication error:", error);
+    return res.status(401).json({ message: 'Authentication failed' });
   }
-
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
-  }
-
-  // Get fresh user data
-  const user = await storage.getUser(decoded.id);
-  if (!user) {
-    return res.status(401).json({ message: 'User not found' });
-  }
-
-  // Attach user to request in the same format as AuthUser
-  (req as any).user = toAuthUser(user);
-  next();
 }
 
 // Register endpoint

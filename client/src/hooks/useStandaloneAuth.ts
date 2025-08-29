@@ -47,10 +47,12 @@ export function useStandaloneAuth() {
       }
 
       try {
-        const response = await fetch('/api/auth/user', {
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/api/auth/user`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -63,11 +65,13 @@ export function useStandaloneAuth() {
 
         return await response.json();
       } catch (error) {
+        console.error('Auth error:', error);
         localStorage.removeItem('auth_token');
         return null;
       }
     },
     retry: false,
+    refetchOnWindowFocus: false,
   });
 
   // Login mutation

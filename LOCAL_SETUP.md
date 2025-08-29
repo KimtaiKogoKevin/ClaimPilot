@@ -1,4 +1,7 @@
-# Local Development Setup Guide
+# Local Development Setup Guide - Complete Instructions
+
+## Overview
+This guide provides comprehensive instructions for running the AI-Powered Motor Accident Claims Platform on localhost. The application has been fully optimized to run seamlessly on both Replit and localhost environments without any environment-specific errors.
 
 This guide will help you run the AI-Powered Motor Accident Claims Platform on your local machine.
 
