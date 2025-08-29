@@ -64,7 +64,14 @@ Open terminal in the project folder and run:
 npm install
 ```
 
-This will install all required packages listed in package.json.
+**Important:** You also need to install the PostgreSQL driver for local development:
+
+```bash
+npm install pg
+npm install --save-dev @types/pg
+```
+
+This will install all required packages listed in package.json plus the local PostgreSQL driver.
 
 ## Step 4: Configure Environment Variables
 
