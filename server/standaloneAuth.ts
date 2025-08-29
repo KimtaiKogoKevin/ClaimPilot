@@ -125,6 +125,9 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
 // Register endpoint
 export async function register(req: Request, res: Response) {
   try {
+    // Log the incoming request for debugging
+    console.log('Registration request body:', JSON.stringify(req.body, null, 2));
+    
     const validatedData = registerSchema.parse(req.body);
     
     // Check if user already exists
@@ -155,9 +158,11 @@ export async function register(req: Request, res: Response) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error:', error.errors);
       return res.status(400).json({ message: 'Validation error', errors: error.errors });
     }
-    console.error('Registration error:', error);
+    console.error('Registration error details:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     res.status(500).json({ message: 'Internal server error' });
   }
 }
