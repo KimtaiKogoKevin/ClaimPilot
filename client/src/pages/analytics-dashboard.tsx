@@ -76,7 +76,7 @@ export default function AnalyticsDashboard() {
   const hasBrokerAccess = user?.role === 'broker'; // Brokers see their clients only
 
   const { data: analytics, isLoading, error } = useQuery<DashboardAnalytics>({
-    queryKey: ['/api/analytics/dashboard', user?.id],
+    queryKey: ['/api/analytics/dashboard'],
     enabled: !!user && canAccessAnalytics,
   });
 
