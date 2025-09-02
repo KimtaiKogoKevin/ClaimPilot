@@ -781,21 +781,7 @@ export default function PolicyDetailsStep({
                   }
                 />
               </div>
-              <div>
-                <Label htmlFor="yearsInOperation">Years in Operation</Label>
-                <Input
-                  id="yearsInOperation"
-                  type="number"
-                  value={formData.corporate.yearsInOperation || ""}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "corporate",
-                      "yearsInOperation",
-                      e.target.value
-                    )
-                  }
-                />
-              </div>
+            
               <div>
                 <Label htmlFor="pinNumber">PIN Number</Label>
                 <Input
