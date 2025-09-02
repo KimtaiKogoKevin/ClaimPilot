@@ -53,51 +53,97 @@ export const damageTypeEnum = pgEnum('damage_type', ['dent', 'scratch', 'crack',
 export const photoAngleEnum = pgEnum('photo_angle', ['FRONT_VIEW', 'REAR_VIEW', 'LEFT_SIDE', 'RIGHT_SIDE', 'DAMAGE_CLOSEUP']);
 export const assessmentStatusEnum = pgEnum('assessment_status', ['pending', 'in_progress', 'completed', 'requires_review']);
 export const severityLevelEnum = pgEnum('severity_level', ['minor', 'moderate', 'major', 'total_loss']);
+export const ageBandEnum = pgEnum("age_band", [
+  "18-21",
+  "22-40",
+  "41-69",
+  "70+",
+]);
+export const operationYearsEnum = pgEnum("operation_years", [
+  "0-1",
+  "2-3",
+  "4-5",
+  "5+",
+]);
+
 
 // Claims table
 export const claims = pgTable("claims", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  insuredId: varchar("insured_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  insuredId: varchar("insured_id")
+    .notNull()
+    .references(() => users.id),
   claimReferenceNumber: varchar("claim_reference_number").unique(),
-  status: claimStatusEnum("status").default('draft').notNull(),
-  
+  status: claimStatusEnum("status").default("draft").notNull(),
+
   // Policy details
   branchName: varchar("branch_name"),
   agentName: varchar("agent_name"),
   brokerId: varchar("broker_id").references(() => users.id), // Assigned broker
   policyNumber: varchar("policy_number").notNull(),
   lastPaymentDate: timestamp("last_payment_date"),
+  typeOfCover: varchar("type_of_cover").notNull().default(""),
   insuredType: insuredTypeEnum("insured_type").notNull(),
-  
+  financeCompanyName: varchar("finance_company_name"),
+  hasOtherInsurance: boolean("has_other_insurance").default(false),
+  otherInsuranceDetails: text("other_insurance_details"),
+  hasLoanRepaymentCover: boolean("has_loan_repayment_cover").default(false),
+  loanPrincipalAmount: decimal("loan_principal_amount", {
+    precision: 12,
+    scale: 2,
+  }),
+  loanInterestAmount: decimal("loan_interest_amount", {
+    precision: 12,
+    scale: 2,
+  }),
+  monthlyInstalment: decimal("monthly_instalment", { precision: 12, scale: 2 }),
+  loanCoveragePercentage: decimal("loan_coverage_percentage", {
+    precision: 5,
+    scale: 2,
+  }),
+
   // Assessment and AI Analysis
-  assessmentStatus: assessmentStatusEnum("assessment_status").default('pending'),
-  assignedServiceProviderId: varchar("assigned_service_provider_id").references(() => users.id),
-  estimatedRepairCost: decimal("estimated_repair_cost", { precision: 10, scale: 2 }),
-  finalSettlementAmount: decimal("final_settlement_amount", { precision: 10, scale: 2 }),
+  assessmentStatus:
+    assessmentStatusEnum("assessment_status").default("pending"),
+  assignedServiceProviderId: varchar("assigned_service_provider_id").references(
+    () => users.id
+  ),
+  estimatedRepairCost: decimal("estimated_repair_cost", {
+    precision: 10,
+    scale: 2,
+  }),
+  finalSettlementAmount: decimal("final_settlement_amount", {
+    precision: 10,
+    scale: 2,
+  }),
   aiAnalysisSummary: text("ai_analysis_summary"),
   insurerNotes: text("insurer_notes"),
   brokerNotes: text("broker_notes"),
-  
+
   // Accident details
   accidentDate: timestamp("accident_date"),
   accidentTime: varchar("accident_time"),
   accidentLocation: text("accident_location"),
   accidentDescription: text("accident_description"),
-  
+
   // Damage details
   vehicleDamageDescription: text("vehicle_damage_description"),
   goodsDamaged: boolean("goods_damaged").default(false),
   goodsDescription: text("goods_description"),
-  
+
   // AI Analysis results
   aiAnalysisResults: jsonb("ai_analysis_results"),
-  
+
   // Draft tracking for step-by-step form saving
   currentFormStep: integer("current_form_step").default(1), // Track which step user is on
   completedSteps: jsonb("completed_steps").default([]), // Array of completed step numbers
-  formProgress: decimal("form_progress", { precision: 5, scale: 2 }).default('0'), // Percentage completed
+  formProgress: decimal("form_progress", { precision: 5, scale: 2 }).default(
+    "0"
+  ), // Percentage completed
   lastSavedAt: timestamp("last_saved_at"), // When was this draft last saved
-  
+
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -106,8 +152,13 @@ export const claims = pgTable("claims", {
 
 // Individual insured details
 export const individualDetails = pgTable("individual_details", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  claimId: varchar("claim_id").notNull().references(() => claims.id).unique(),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id")
+    .notNull()
+    .references(() => claims.id)
+    .unique(),
   firstName: varchar("first_name").notNull(),
   middleName: varchar("middle_name"),
   surname: varchar("surname").notNull(),
@@ -124,6 +175,7 @@ export const individualDetails = pgTable("individual_details", {
   physicalAddress: text("physical_address"),
   email: varchar("email"),
   tradeBusiness: varchar("trade_business"),
+  ageBand: ageBandEnum("age_band").notNull(),
 });
 
 // Corporate insured details

@@ -1,0 +1,1 @@
+ALTER TABLE "claims" ADD COLUMN "loan_coverage_percentage" numeric(5, 2);

@@ -138,7 +138,7 @@ mkdir -p uploads/public
 ## Step 6: Initialize the Database
 
 Run database migrations to create all required tables:
-
+https://www.youtube.com/shorts/L-8b8Mot_P4
 ```bash
 npx drizzle-kit push:pg
 ```

@@ -364,7 +364,7 @@ export default function ClaimDetails() {
                                           <strong>Damage {damageIndex + 1}:</strong> {damage.damageType || 'Unspecified type'}
                                         </div>
                                         <div className="text-sm text-purple-600 mt-1">
-                                          Confidence: {damage.confidence ? (damage.confidence * 100).toFixed(1) + '%' : 'N/A'}
+                                          Confidence: {damage.confidence ? (parseFloat(damage.confidence)* 100).toFixed(1) + '%' : 'N/A'}
                                         </div>
                                       </div>
                                     ))}
@@ -414,7 +414,7 @@ export default function ClaimDetails() {
                   <p className="text-gray-900 capitalize">{claim.insuredType}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Branch Name</p>
                   <p className="text-gray-900">{claim.branchName || 'N/A'}</p>
@@ -423,7 +423,14 @@ export default function ClaimDetails() {
                   <p className="text-sm font-medium text-gray-500">Agent Name</p>
                   <p className="text-gray-900">{claim.agentName || 'N/A'}</p>
                 </div>
+                  {/* NEW: Type of Cover Display */}
+              <div> {/* You can integrate this into the grid above if it fits better */}
+                <p className="text-sm font-medium text-gray-500">Type of Cover</p>
+                <p className="text-gray-900">{claim.typeOfCover || 'N/A'}</p>
               </div>
+              
+              </div>
+              
               <div>
                 <p className="text-sm font-medium text-gray-500">Last Payment Date</p>
                 <p className="text-gray-900">
@@ -787,7 +794,7 @@ export default function ClaimDetails() {
                         <div className="space-y-1">
                           {photo.detectedDamages.map((damage, damageIndex) => (
                             <div key={damageIndex} className="text-xs bg-gray-100 rounded px-2 py-1">
-                              {damage.damageType}: {Math.round((damage.confidence || 0) * 100)}% confidence
+                              {damage.damageType}: {Math.round(parseFloat(damage.confidence || '0') * 100)}% confidence
                             </div>
                           ))}
                         </div>

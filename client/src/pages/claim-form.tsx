@@ -6,7 +6,7 @@ import { useDraftManager } from "@/hooks/useDraftManager";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Clock } from "lucide-react";
+import { ArrowLeft, Save, Clock, Type } from "lucide-react";
 import ProgressBar from "@/components/claim-form/progress-bar";
 import { DraftPersistenceManager } from "@/lib/draftPersistence";
 import { calculateFormProgress, transformFormDataForAPI, restoreFormDataFromAPI } from "@/lib/formPersistenceUtils";
@@ -44,8 +44,17 @@ export default function ClaimForm() {
     agentName: "",
     policyNumber: "",
     lastPaymentDate: "",
+    TypeofCover: "",
     insuredType: "individual" as "individual" | "corporate",
-    
+    financeCompanyName: "",
+    hasOtherInsurance: false,
+    otherInsuranceDetails: "",
+    hasLoanRepaymentCover: false,
+    loanPrincipalAmount: null as number | null,
+    loanInterestAmount: null as number | null,
+    monthlyInstalment: null as number | null,
+    loanCoveragePercentage: null as number | null,
+
     // Individual details
     individual: {
       firstName: "",
@@ -64,8 +73,9 @@ export default function ClaimForm() {
       physicalAddress: "",
       email: "",
       tradeBusiness: "",
+      ageBand: "",
     },
-    
+
     // Corporate details
     corporate: {
       registeredName: "",
@@ -82,7 +92,7 @@ export default function ClaimForm() {
       tradeBusiness: "",
       yearsInOperation: "",
     },
-    
+
     // Vehicle details
     vehicle: {
       make: "",
@@ -95,7 +105,7 @@ export default function ClaimForm() {
       ownerAddress: "",
       vehicleUse: "",
     },
-    
+
     // Accident details
     accident: {
       date: "",
@@ -103,14 +113,14 @@ export default function ClaimForm() {
       location: "",
       description: "",
     },
-    
+
     // Damage details
     damage: {
       vehicleDescription: "",
       goodsDamaged: false,
       goodsDescription: "",
     },
-    
+
     // Driver details
     driver: {
       name: "",
@@ -134,7 +144,7 @@ export default function ClaimForm() {
       ownVehicleInsurer: "",
       ownVehiclePolicyNumber: "",
     },
-    
+
     // Bank details
     bank: {
       bankName: "",
@@ -144,7 +154,7 @@ export default function ClaimForm() {
       swiftCode: "",
       sortCode: "",
     },
-    
+
     // Other vehicles
     otherVehicles: [] as Array<{
       id?: string;
@@ -169,71 +179,226 @@ export default function ClaimForm() {
       setHasRestoredFromDraft(true); // Mark that we've restored from this draft
       
       // Restore ALL the saved data from the draft
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         // Restore basic policy fields - these are saved directly on the claims table
         branchName: (currentDraft as any).branchName || prev.branchName || "",
         agentName: (currentDraft as any).agentName || prev.agentName || "",
-        policyNumber: (currentDraft as any).policyNumber || prev.policyNumber || "",
-        lastPaymentDate: (currentDraft as any).lastPaymentDate ? new Date((currentDraft as any).lastPaymentDate).toISOString().split('T')[0] : prev.lastPaymentDate || "",
-        insuredType: (currentDraft as any).insuredType || prev.insuredType || "individual",
+        policyNumber:
+          (currentDraft as any).policyNumber || prev.policyNumber || "",
+        lastPaymentDate: (currentDraft as any).lastPaymentDate
+          ? new Date((currentDraft as any).lastPaymentDate)
+              .toISOString()
+              .split("T")[0]
+          : prev.lastPaymentDate || "",
+        TypeofCover:
+          (currentDraft as any).TypeofCover || prev.TypeofCover || "",
+
+        insuredType:
+          (currentDraft as any).insuredType || prev.insuredType || "individual",
         // Restore individual details from the database relation OR from saved claim fields
         individual: {
-          firstName: (currentDraft as any).individualDetails?.firstName || (currentDraft as any).individualFirstName || prev.individual.firstName || "",
-          middleName: (currentDraft as any).individualDetails?.middleName || (currentDraft as any).individualMiddleName || prev.individual.middleName || "",
-          surname: (currentDraft as any).individualDetails?.surname || (currentDraft as any).individualSurname || prev.individual.surname || "",
-          idNumber: (currentDraft as any).individualDetails?.idNumber || (currentDraft as any).individualIdNumber || prev.individual.idNumber || "",
-          nationality: (currentDraft as any).individualDetails?.nationality || (currentDraft as any).individualNationality || prev.individual.nationality || "",
-          dateOfBirth: (currentDraft as any).individualDetails?.dateOfBirth || (currentDraft as any).individualDateOfBirth || prev.individual.dateOfBirth || "",
-          pinNumber: (currentDraft as any).individualDetails?.pinNumber || (currentDraft as any).individualPinNumber || prev.individual.pinNumber || "",
-          occupation: (currentDraft as any).individualDetails?.occupation || (currentDraft as any).individualOccupation || prev.individual.occupation || "",
-          residentialPhone: (currentDraft as any).individualDetails?.residentialPhone || (currentDraft as any).individualResidentialPhone || prev.individual.residentialPhone || "",
-          officePhone: (currentDraft as any).individualDetails?.officePhone || (currentDraft as any).individualOfficePhone || prev.individual.officePhone || "",
-          mobile: (currentDraft as any).individualDetails?.mobile || (currentDraft as any).individualMobile || prev.individual.mobile || "",
-          postalAddress: (currentDraft as any).individualDetails?.postalAddress || (currentDraft as any).individualPostalAddress || prev.individual.postalAddress || "",
-          postalCode: (currentDraft as any).individualDetails?.postalCode || (currentDraft as any).individualPostalCode || prev.individual.postalCode || "",
-          physicalAddress: (currentDraft as any).individualDetails?.physicalAddress || (currentDraft as any).individualPhysicalAddress || prev.individual.physicalAddress || "",
-          email: (currentDraft as any).individualDetails?.email || (currentDraft as any).individualEmail || prev.individual.email || "",
-          tradeBusiness: (currentDraft as any).individualDetails?.tradeBusiness || (currentDraft as any).individualTradeBusiness || prev.individual.tradeBusiness || "",
+          firstName:
+            (currentDraft as any).individualDetails?.firstName ||
+            (currentDraft as any).individualFirstName ||
+            prev.individual.firstName ||
+            "",
+          middleName:
+            (currentDraft as any).individualDetails?.middleName ||
+            (currentDraft as any).individualMiddleName ||
+            prev.individual.middleName ||
+            "",
+          surname:
+            (currentDraft as any).individualDetails?.surname ||
+            (currentDraft as any).individualSurname ||
+            prev.individual.surname ||
+            "",
+          idNumber:
+            (currentDraft as any).individualDetails?.idNumber ||
+            (currentDraft as any).individualIdNumber ||
+            prev.individual.idNumber ||
+            "",
+          nationality:
+            (currentDraft as any).individualDetails?.nationality ||
+            (currentDraft as any).individualNationality ||
+            prev.individual.nationality ||
+            "",
+          dateOfBirth:
+            (currentDraft as any).individualDetails?.dateOfBirth ||
+            (currentDraft as any).individualDateOfBirth ||
+            prev.individual.dateOfBirth ||
+            "",
+          pinNumber:
+            (currentDraft as any).individualDetails?.pinNumber ||
+            (currentDraft as any).individualPinNumber ||
+            prev.individual.pinNumber ||
+            "",
+          occupation:
+            (currentDraft as any).individualDetails?.occupation ||
+            (currentDraft as any).individualOccupation ||
+            prev.individual.occupation ||
+            "",
+          residentialPhone:
+            (currentDraft as any).individualDetails?.residentialPhone ||
+            (currentDraft as any).individualResidentialPhone ||
+            prev.individual.residentialPhone ||
+            "",
+          officePhone:
+            (currentDraft as any).individualDetails?.officePhone ||
+            (currentDraft as any).individualOfficePhone ||
+            prev.individual.officePhone ||
+            "",
+          mobile:
+            (currentDraft as any).individualDetails?.mobile ||
+            (currentDraft as any).individualMobile ||
+            prev.individual.mobile ||
+            "",
+          postalAddress:
+            (currentDraft as any).individualDetails?.postalAddress ||
+            (currentDraft as any).individualPostalAddress ||
+            prev.individual.postalAddress ||
+            "",
+          postalCode:
+            (currentDraft as any).individualDetails?.postalCode ||
+            (currentDraft as any).individualPostalCode ||
+            prev.individual.postalCode ||
+            "",
+          physicalAddress:
+            (currentDraft as any).individualDetails?.physicalAddress ||
+            (currentDraft as any).individualPhysicalAddress ||
+            prev.individual.physicalAddress ||
+            "",
+          email:
+            (currentDraft as any).individualDetails?.email ||
+            (currentDraft as any).individualEmail ||
+            prev.individual.email ||
+            "",
+          tradeBusiness:
+            (currentDraft as any).individualDetails?.tradeBusiness ||
+            (currentDraft as any).individualTradeBusiness ||
+            prev.individual.tradeBusiness ||
+            "",
+          ageBand:
+            (currentDraft as any).individualDetails?.ageBand ||
+            (currentDraft as any).individualAgeBand ||
+            prev.individual.ageBand ||
+            "",
         },
         // Restore corporate details from the database relation OR from saved claim fields
         corporate: {
-          registeredName: (currentDraft as any).corporateDetails?.registeredName || (currentDraft as any).corporateRegisteredName || prev.corporate.registeredName || "",
-          registrationNumber: (currentDraft as any).corporateDetails?.registrationNumber || (currentDraft as any).corporateRegistrationNumber || prev.corporate.registrationNumber || "",
-          countryOfRegistration: (currentDraft as any).corporateDetails?.countryOfRegistration || (currentDraft as any).corporateCountryOfRegistration || prev.corporate.countryOfRegistration || "",
-          pinNumber: (currentDraft as any).corporateDetails?.pinNumber || (currentDraft as any).corporatePinNumber || prev.corporate.pinNumber || "",
-          vatRegNumber: (currentDraft as any).corporateDetails?.vatRegNumber || (currentDraft as any).corporateVatRegNumber || prev.corporate.vatRegNumber || "",
-          officePhone: (currentDraft as any).corporateDetails?.officePhone || (currentDraft as any).corporateOfficePhone || prev.corporate.officePhone || "",
-          mobileContact: (currentDraft as any).corporateDetails?.mobileContact || (currentDraft as any).corporateMobileContact || prev.corporate.mobileContact || "",
-          postalAddress: (currentDraft as any).corporateDetails?.postalAddress || (currentDraft as any).corporatePostalAddress || prev.corporate.postalAddress || "",
-          postalCode: (currentDraft as any).corporateDetails?.postalCode || (currentDraft as any).corporatePostalCode || prev.corporate.postalCode || "",
-          physicalAddress: (currentDraft as any).corporateDetails?.physicalAddress || (currentDraft as any).corporatePhysicalAddress || prev.corporate.physicalAddress || "",
-          email: (currentDraft as any).corporateDetails?.email || (currentDraft as any).corporateEmail || prev.corporate.email || "",
-          tradeBusiness: (currentDraft as any).corporateDetails?.tradeBusiness || (currentDraft as any).corporateTradeBusiness || prev.corporate.tradeBusiness || "",
-          yearsInOperation: (currentDraft as any).corporateDetails?.yearsInOperation || (currentDraft as any).corporateYearsInOperation || prev.corporate.yearsInOperation || "",
+          registeredName:
+            (currentDraft as any).corporateDetails?.registeredName ||
+            (currentDraft as any).corporateRegisteredName ||
+            prev.corporate.registeredName ||
+            "",
+          registrationNumber:
+            (currentDraft as any).corporateDetails?.registrationNumber ||
+            (currentDraft as any).corporateRegistrationNumber ||
+            prev.corporate.registrationNumber ||
+            "",
+          countryOfRegistration:
+            (currentDraft as any).corporateDetails?.countryOfRegistration ||
+            (currentDraft as any).corporateCountryOfRegistration ||
+            prev.corporate.countryOfRegistration ||
+            "",
+          pinNumber:
+            (currentDraft as any).corporateDetails?.pinNumber ||
+            (currentDraft as any).corporatePinNumber ||
+            prev.corporate.pinNumber ||
+            "",
+          vatRegNumber:
+            (currentDraft as any).corporateDetails?.vatRegNumber ||
+            (currentDraft as any).corporateVatRegNumber ||
+            prev.corporate.vatRegNumber ||
+            "",
+          officePhone:
+            (currentDraft as any).corporateDetails?.officePhone ||
+            (currentDraft as any).corporateOfficePhone ||
+            prev.corporate.officePhone ||
+            "",
+          mobileContact:
+            (currentDraft as any).corporateDetails?.mobileContact ||
+            (currentDraft as any).corporateMobileContact ||
+            prev.corporate.mobileContact ||
+            "",
+          postalAddress:
+            (currentDraft as any).corporateDetails?.postalAddress ||
+            (currentDraft as any).corporatePostalAddress ||
+            prev.corporate.postalAddress ||
+            "",
+          postalCode:
+            (currentDraft as any).corporateDetails?.postalCode ||
+            (currentDraft as any).corporatePostalCode ||
+            prev.corporate.postalCode ||
+            "",
+          physicalAddress:
+            (currentDraft as any).corporateDetails?.physicalAddress ||
+            (currentDraft as any).corporatePhysicalAddress ||
+            prev.corporate.physicalAddress ||
+            "",
+          email:
+            (currentDraft as any).corporateDetails?.email ||
+            (currentDraft as any).corporateEmail ||
+            prev.corporate.email ||
+            "",
+          tradeBusiness:
+            (currentDraft as any).corporateDetails?.tradeBusiness ||
+            (currentDraft as any).corporateTradeBusiness ||
+            prev.corporate.tradeBusiness ||
+            "",
+          yearsInOperation:
+            (currentDraft as any).corporateDetails?.yearsInOperation ||
+            (currentDraft as any).corporateYearsInOperation ||
+            prev.corporate.yearsInOperation ||
+            "",
         },
         // Only restore vehicle details if they exist in the draft
-        vehicle: (currentDraft as any).vehicle ? {
-          make: (currentDraft as any).vehicle.make || "",
-          model: (currentDraft as any).vehicle.model || "",
-          yearOfManufacture: (currentDraft as any).vehicle.yearOfManufacture || null,
-          registrationNumber: (currentDraft as any).vehicle.registrationNumber || "",
-          carryingCapacity: (currentDraft as any).vehicle.carryingCapacity || "",
-          loadingCapacity: (currentDraft as any).vehicle.loadingCapacity || "",
-          ownerName: (currentDraft as any).vehicle.ownerName || "",
-          ownerAddress: (currentDraft as any).vehicle.ownerAddress || "",
-          vehicleUse: (currentDraft as any).vehicle.vehicleUse || "",
-        } : prev.vehicle,
+        vehicle: (currentDraft as any).vehicle
+          ? {
+              make: (currentDraft as any).vehicle.make || "",
+              model: (currentDraft as any).vehicle.model || "",
+              yearOfManufacture:
+                (currentDraft as any).vehicle.yearOfManufacture || null,
+              registrationNumber:
+                (currentDraft as any).vehicle.registrationNumber || "",
+              carryingCapacity:
+                (currentDraft as any).vehicle.carryingCapacity || "",
+              loadingCapacity:
+                (currentDraft as any).vehicle.loadingCapacity || "",
+              ownerName: (currentDraft as any).vehicle.ownerName || "",
+              ownerAddress: (currentDraft as any).vehicle.ownerAddress || "",
+              vehicleUse: (currentDraft as any).vehicle.vehicleUse || "",
+            }
+          : prev.vehicle,
         accident: {
-          date: (currentDraft as any).accidentDate ? new Date((currentDraft as any).accidentDate).toISOString().split('T')[0] : prev.accident.date || "",
+          date: (currentDraft as any).accidentDate
+            ? new Date((currentDraft as any).accidentDate)
+                .toISOString()
+                .split("T")[0]
+            : prev.accident.date || "",
           time: (currentDraft as any).accidentTime || prev.accident.time || "",
-          location: (currentDraft as any).accidentLocation || prev.accident.location || "",
-          description: (currentDraft as any).accidentDescription || prev.accident.description || "",
+          location:
+            (currentDraft as any).accidentLocation ||
+            prev.accident.location ||
+            "",
+          description:
+            (currentDraft as any).accidentDescription ||
+            prev.accident.description ||
+            "",
         },
         damage: {
-          vehicleDescription: (currentDraft as any).vehicleDamageDescription || prev.damage.vehicleDescription || "",
-          goodsDamaged: (currentDraft as any).goodsDamaged || prev.damage.goodsDamaged || false,
-          goodsDescription: (currentDraft as any).goodsDescription || prev.damage.goodsDescription || "",
+          vehicleDescription:
+            (currentDraft as any).vehicleDamageDescription ||
+            prev.damage.vehicleDescription ||
+            "",
+          goodsDamaged:
+            (currentDraft as any).goodsDamaged ||
+            prev.damage.goodsDamaged ||
+            false,
+          goodsDescription:
+            (currentDraft as any).goodsDescription ||
+            prev.damage.goodsDescription ||
+            "",
         },
         driver: {
           name: (currentDraft as any).driver?.name || "",
@@ -242,20 +407,31 @@ export default function ClaimForm() {
           dateOfBirth: (currentDraft as any).driver?.dateOfBirth || "",
           telephone: (currentDraft as any).driver?.telephone || "",
           licenseNumber: (currentDraft as any).driver?.licenseNumber || "",
-          employedByInsured: (currentDraft as any).driver?.employedByInsured || null,
-          drivingWithPermission: (currentDraft as any).driver?.drivingWithPermission || null,
+          employedByInsured:
+            (currentDraft as any).driver?.employedByInsured || null,
+          drivingWithPermission:
+            (currentDraft as any).driver?.drivingWithPermission || null,
           yearsOfDriving: (currentDraft as any).driver?.yearsOfDriving || null,
-          blameToBareForAccident: (currentDraft as any).driver?.blameToBareForAccident || null,
-          admittedLiability: (currentDraft as any).driver?.admittedLiability || null,
-          previousAccidents: (currentDraft as any).driver?.previousAccidents || null,
-          previousAccidentsDetails: (currentDraft as any).driver?.previousAccidentsDetails || "",
+          blameToBareForAccident:
+            (currentDraft as any).driver?.blameToBareForAccident || null,
+          admittedLiability:
+            (currentDraft as any).driver?.admittedLiability || null,
+          previousAccidents:
+            (currentDraft as any).driver?.previousAccidents || null,
+          previousAccidentsDetails:
+            (currentDraft as any).driver?.previousAccidentsDetails || "",
           convictions: (currentDraft as any).driver?.convictions || null,
-          convictionsDetails: (currentDraft as any).driver?.convictionsDetails || "",
+          convictionsDetails:
+            (currentDraft as any).driver?.convictionsDetails || "",
           licenseType: (currentDraft as any).driver?.licenseType || "",
-          drivingTestPassedDate: (currentDraft as any).driver?.drivingTestPassedDate || "",
-          ownsMotorVehicle: (currentDraft as any).driver?.ownsMotorVehicle || null,
-          ownVehicleInsurer: (currentDraft as any).driver?.ownVehicleInsurer || "",
-          ownVehiclePolicyNumber: (currentDraft as any).driver?.ownVehiclePolicyNumber || "",
+          drivingTestPassedDate:
+            (currentDraft as any).driver?.drivingTestPassedDate || "",
+          ownsMotorVehicle:
+            (currentDraft as any).driver?.ownsMotorVehicle || null,
+          ownVehicleInsurer:
+            (currentDraft as any).driver?.ownVehicleInsurer || "",
+          ownVehiclePolicyNumber:
+            (currentDraft as any).driver?.ownVehiclePolicyNumber || "",
         },
         bank: {
           bankName: (currentDraft as any).bankDetails?.bankName || "",
@@ -326,7 +502,10 @@ export default function ClaimForm() {
       agentName: formData.agentName,
       policyNumber: formData.policyNumber,
       lastPaymentDate: formData.lastPaymentDate,
+      TypeofCover: formData.TypeofCover,
       insuredType: formData.insuredType,
+
+
       // Individual details (save all individual form fields)
       individualFirstName: formData.individual.firstName,
       individualMiddleName: formData.individual.middleName,
