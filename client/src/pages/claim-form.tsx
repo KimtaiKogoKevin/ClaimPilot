@@ -98,7 +98,8 @@ export default function ClaimForm() {
       make: "",
       model: "",
       yearOfManufacture: null as number | null,
-      registrationNumber: "",
+      registrationNumber_primemover: "",
+      registrationNumber_trailer:"",
       carryingCapacity: "",
       loadingCapacity: "",
       ownerName: "",
@@ -112,6 +113,13 @@ export default function ClaimForm() {
       time: "",
       location: "",
       description: "",
+      roadSurface: "", // 'dry', 'murram', 'wet'
+      visibility: "", // 'clear', 'poor', 'dark'
+      driverWarningGiven: "",
+      vehicleLightsOn: "",
+      policeTookParticulars: false,
+      policeConstableNumber: "",
+      policeStation: "",
     },
 
     // Damage details
@@ -359,8 +367,10 @@ export default function ClaimForm() {
               model: (currentDraft as any).vehicle.model || "",
               yearOfManufacture:
                 (currentDraft as any).vehicle.yearOfManufacture || null,
-              registrationNumber:
-                (currentDraft as any).vehicle.registrationNumber || "",
+              registrationNumber_primemover:
+                (currentDraft as any).vehicle.registrationNumber_primeMover || "",
+              registrationNumber_trailer:
+                (currentDraft as any).vehicle.registrationNumber_trailer || "",
               carryingCapacity:
                 (currentDraft as any).vehicle.carryingCapacity || "",
               loadingCapacity:
@@ -371,6 +381,8 @@ export default function ClaimForm() {
             }
           : prev.vehicle,
         accident: {
+          ...prev.accident,
+          // Base accident details (these might be at the top level of the draft)
           date: (currentDraft as any).accidentDate
             ? new Date((currentDraft as any).accidentDate)
                 .toISOString()
@@ -384,6 +396,42 @@ export default function ClaimForm() {
           description:
             (currentDraft as any).accidentDescription ||
             prev.accident.description ||
+            "",
+
+          // New detailed fields (these might be at the top level OR nested in an `accident` object)
+          roadSurface:
+            (currentDraft as any).roadSurface ||
+            (currentDraft as any).accident?.roadSurface ||
+            prev.accident.roadSurface ||
+            "",
+          visibility:
+            (currentDraft as any).visibility ||
+            (currentDraft as any).accident?.visibility ||
+            prev.accident.visibility ||
+            "",
+          driverWarningGiven:
+            (currentDraft as any).driverWarningGiven ||
+            (currentDraft as any).accident?.driverWarningGiven ||
+            prev.accident.driverWarningGiven ||
+            "",
+          vehicleLightsOn:
+            (currentDraft as any).vehicleLightsOn ||
+            (currentDraft as any).accident?.vehicleLightsOn ||
+            prev.accident.vehicleLightsOn ||
+            "",
+          policeTookParticulars:
+            (currentDraft as any).policeTookParticulars ??
+            (currentDraft as any).accident?.policeTookParticulars ??
+            prev.accident.policeTookParticulars,
+          policeConstableNumber:
+            (currentDraft as any).policeConstableNumber ||
+            (currentDraft as any).accident?.policeConstableNumber ||
+            prev.accident.policeConstableNumber ||
+            "",
+          policeStation:
+            (currentDraft as any).policeStation ||
+            (currentDraft as any).accident?.policeStation ||
+            prev.accident.policeStation ||
             "",
         },
         damage: {

@@ -1,0 +1,1 @@
+ALTER TABLE "claims" ADD COLUMN "accident_sketch_path" varchar;

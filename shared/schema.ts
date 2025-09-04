@@ -65,6 +65,8 @@ export const operationYearsEnum = pgEnum("operation_years", [
   "4-5",
   "5+",
 ]);
+export const roadSurfaceEnum = pgEnum("road_surface", ["dry", "murram", "wet"]);
+export const visibilityEnum = pgEnum("visibility", ["clear", "poor", "dark"]);
 
 
 // Claims table
@@ -127,6 +129,14 @@ export const claims = pgTable("claims", {
   accidentTime: varchar("accident_time"),
   accidentLocation: text("accident_location"),
   accidentDescription: text("accident_description"),
+  roadSurface: roadSurfaceEnum("road_surface"),
+  visibility: visibilityEnum("visibility"),
+  driverWarningGiven: text("driver_warning_given"),
+  vehicleLightsOn: text("vehicle_lights_on"),
+  policeTookParticulars: boolean("police_took_particulars").default(false),
+  policeConstableNumber: varchar("police_constable_number"),
+  policeStation: varchar("police_station"),
+  accidentSketchPath: varchar("accident_sketch_path"),
 
   // Damage details
   vehicleDamageDescription: text("vehicle_damage_description"),
@@ -204,7 +214,8 @@ export const vehicles = pgTable("vehicles", {
   make: varchar("make").notNull(),
   model: varchar("model").notNull(),
   yearOfManufacture: integer("year_of_manufacture"),
-  registrationNumber: varchar("registration_number"),
+  registrationNumber_primemover: varchar("registration_number_primemover"),
+  registrationNumber_trailer: varchar("registration_no_trailer"),
   carryingCapacity: varchar("carrying_capacity"),
   loadingCapacity: varchar("loading_capacity"),
   ownerName: varchar("owner_name"),
