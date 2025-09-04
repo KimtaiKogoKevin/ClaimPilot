@@ -411,6 +411,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add document for a claim
+  app.post("/api/claims/:id/documents", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user owns this claim
+      const claim = await storage.getClaim(id);
+      if (!claim || claim.insuredId !== userId) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      const { documentUrl, documentType } = req.body;
+      
+      if (!documentUrl || !documentType) {
+        return res.status(400).json({ message: "Document URL and type are required" });
+      }
+      
+      // Save document metadata - using the damaged_photos table which can store any files
+      const documentData = {
+        claimId: id,
+        objectPath: documentUrl,
+        angle: documentType, // Using angle field to store document type
+        isGoodsPhoto: false,
+        aiAnalysisResults: null,
+      };
+      
+      const document = await storage.addDamagedPhoto(documentData);
+      res.status(201).json({ document, success: true });
+    } catch (error) {
+      console.error("Error adding document:", error);
+      res.status(500).json({ message: "Failed to add document" });
+    }
+  });
+
   // Generate PDF for claim
   app.get("/api/claims/:id/pdf", authenticateToken, async (req: any, res) => {
     try {
