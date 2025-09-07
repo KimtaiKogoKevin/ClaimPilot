@@ -44,7 +44,7 @@ export default function ClaimForm() {
     agentName: "",
     policyNumber: "",
     lastPaymentDate: "",
-    TypeofCover: "",
+    typeOfCover: "",
     insuredType: "individual" as "individual" | "corporate",
     financeCompanyName: "",
     hasOtherInsurance: false,
@@ -199,8 +199,8 @@ export default function ClaimForm() {
               .toISOString()
               .split("T")[0]
           : prev.lastPaymentDate || "",
-        TypeofCover:
-          (currentDraft as any).TypeofCover || prev.TypeofCover || "",
+        typeOfCover:
+          (currentDraft as any).typeOfCover || prev.typeOfCover || "",
 
         insuredType:
           (currentDraft as any).insuredType || prev.insuredType || "individual",
@@ -551,7 +551,7 @@ export default function ClaimForm() {
       agentName: formData.agentName,
       policyNumber: formData.policyNumber,
       lastPaymentDate: formData.lastPaymentDate,
-      TypeofCover: formData.TypeofCover,
+      typeOfCover: formData.typeOfCover,
       insuredType: formData.insuredType,
 
 
