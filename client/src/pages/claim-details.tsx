@@ -643,7 +643,7 @@ export default function ClaimDetails() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">
-                      Registration (Prime Mover / Truck)
+                      Registration (Trailer)
                     </p>
                     <p className="text-gray-900">
                       {claim.vehicle.registrationNumber_trailer|| "N/A"}

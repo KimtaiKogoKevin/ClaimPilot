@@ -50,10 +50,12 @@ export const corporateDetailsSchema = z.object({
 
 // Section B: Vehicle & Accident Validation
 export const vehicleDetailsSchema = z.object({
-  registrationNumber: z.string().min(1, "Vehicle registration is required"),
+  registrationNumber_primemover: z
+    .string()
+    .min(1, "Vehicle registration is required"),
   make: z.string().min(1, "Vehicle make is required"),
   model: z.string().min(1, "Vehicle model is required"),
-  yearOfManufacture: z.string().optional(),
+  yearOfManufacture: z.number().optional(),
   engineNumber: z.string().optional(),
   chassisNumber: z.string().optional(),
   color: z.string().optional(),
@@ -62,13 +64,22 @@ export const vehicleDetailsSchema = z.object({
 });
 
 export const accidentDetailsSchema = z.object({
-  accidentDate: z.string().min(1, "Accident date is required"),
-  accidentTime: z.string().min(1, "Accident time is required"),
-  accidentLocation: z.string().min(1, "Accident location is required"),
-  accidentDescription: z.string().min(10, "Please provide a detailed description (min 10 characters)"),
-  vehicleDamageDescription: z.string().optional(),
-  goodsDamaged: z.boolean(),
-  goodsDescription: z.string().optional(),
+  date: z.string().min(1, "Accident date is required"),
+  time: z.string().optional(),
+  location: z.string().min(1, "Accident location is required"),
+  description: z
+    .string()
+    .min(10, "Please provide a detailed description (min 10 characters)"),
+
+  // Add all the new fields here (mostly optional)
+  roadSurface: z.enum(["dry", "murram", "wet"]).optional().or(z.literal("")),
+  visibility: z.enum(["clear", "poor", "dark"]).optional().or(z.literal("")),
+  driverWarningGiven: z.string().optional(),
+  vehicleLightsOn: z.string().optional(),
+  policeTookParticulars: z.boolean(),
+  policeConstableNumber: z.string().optional(),
+  policeStation: z.string().optional(),
+  accidentSketchPath: z.string().optional(),
 });
 
 // Section C: Damage Assessment Validation
@@ -169,15 +180,7 @@ export function validateStep(step: number, formData: any): { isValid: boolean; e
         
       case 2: // Vehicle & Accident
         vehicleDetailsSchema.parse(formData.vehicle);
-        accidentDetailsSchema.parse({
-          accidentDate: formData.accidentDate,
-          accidentTime: formData.accidentTime,
-          accidentLocation: formData.accidentLocation,
-          accidentDescription: formData.accidentDescription,
-          vehicleDamageDescription: formData.vehicleDamageDescription,
-          goodsDamaged: formData.goodsDamaged,
-          goodsDescription: formData.goodsDescription,
-        });
+        accidentDetailsSchema.parse(formData.accident);
         break;
         
       case 3: // Damage Assessment
@@ -221,7 +224,7 @@ export function getRequiredFields(step: number, insuredType?: 'individual' | 'co
       
     case 2:
       return [
-        'vehicle.registrationNumber',
+        'vehicle.registrationNumber_primemover',
         'vehicle.make',
         'vehicle.model',
         'accidentDate',

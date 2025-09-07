@@ -368,7 +368,7 @@ export default function ClaimForm() {
               yearOfManufacture:
                 (currentDraft as any).vehicle.yearOfManufacture || null,
               registrationNumber_primemover:
-                (currentDraft as any).vehicle.registrationNumber_primeMover || "",
+                (currentDraft as any).vehicle.registrationNumber_primemover || "",
               registrationNumber_trailer:
                 (currentDraft as any).vehicle.registrationNumber_trailer || "",
               carryingCapacity:
@@ -397,6 +397,7 @@ export default function ClaimForm() {
             (currentDraft as any).accidentDescription ||
             prev.accident.description ||
             "",
+
 
           // New detailed fields (these might be at the top level OR nested in an `accident` object)
           roadSurface:
