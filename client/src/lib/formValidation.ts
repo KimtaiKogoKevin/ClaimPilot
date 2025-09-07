@@ -45,7 +45,7 @@ export const corporateDetailsSchema = z.object({
   physicalAddress: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   tradeBusiness: z.string().optional(),
-  yearsInOperation: z.string().optional(),
+  yearsInOperation: z.number().optional(),
 });
 
 // Section B: Vehicle & Accident Validation
