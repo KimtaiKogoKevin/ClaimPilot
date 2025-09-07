@@ -13,7 +13,7 @@ import { calculateFormProgress, transformFormDataForAPI, restoreFormDataFromAPI 
 import { validateStep, calculateProgress } from "@/lib/formValidation";
 import PolicyDetailsStep from "@/components/claim-form/policy-details-step";
 import VehicleAccidentStep from "@/components/claim-form/vehicle-accident-step";
-import DamageAssessmentStep from "@/components/claim-form/damage-assessment-step";
+import EnhancedDamageAssessment from "@/components/claim-form/enhanced-damage-assessment";
 import DriverDeclarationStep from "@/components/claim-form/driver-declaration-step";
 
 export default function ClaimForm() {
@@ -812,7 +812,7 @@ export default function ClaimForm() {
           />
         )}
         {currentStep === 3 && (
-          <DamageAssessmentStep
+          <EnhancedDamageAssessment
             formData={formData}
             setFormData={setFormData}
             claimId={claimId}

@@ -480,6 +480,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Photos and AI analysis
+  async getDamagedPhotos(claimId: string): Promise<DamagedPhoto[]> {
+    const photos = await db.query.damagedPhotos.findMany({
+      where: eq(damagedPhotos.claimId, claimId),
+    });
+    return photos;
+  }
+
   async addDamagedPhoto(photo: InsertDamagedPhoto): Promise<DamagedPhoto> {
     const [newPhoto] = await db
       .insert(damagedPhotos)
