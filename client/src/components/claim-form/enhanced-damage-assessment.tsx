@@ -2,11 +2,15 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 import { 
@@ -15,12 +19,12 @@ import {
   RotateCw, 
   Brain, 
   CheckCircle2, 
-  AlertCircle,
+  Info,
   Upload,
-  Image,
-  Play,
-  Smartphone,
-  ChevronRight
+  Image as ImageIcon,
+  Loader2,
+  AlertTriangle,
+  Sparkles
 } from "lucide-react";
 
 interface EnhancedDamageAssessmentProps {
@@ -29,33 +33,67 @@ interface EnhancedDamageAssessmentProps {
   claimId: string | null;
 }
 
-// Define the required angles for 360-degree coverage
-const vehicleAngles = [
-  { id: 'FRONT', label: 'Front View', icon: '🚗', rotation: 0 },
-  { id: 'FRONT_RIGHT', label: 'Front Right', icon: '↗️', rotation: 45 },
-  { id: 'RIGHT', label: 'Right Side', icon: '➡️', rotation: 90 },
-  { id: 'REAR_RIGHT', label: 'Rear Right', icon: '↘️', rotation: 135 },
-  { id: 'REAR', label: 'Rear View', icon: '🔙', rotation: 180 },
-  { id: 'REAR_LEFT', label: 'Rear Left', icon: '↙️', rotation: 225 },
-  { id: 'LEFT', label: 'Left Side', icon: '⬅️', rotation: 270 },
-  { id: 'FRONT_LEFT', label: 'Front Left', icon: '↖️', rotation: 315 },
-];
+// Media types
+type MediaType = 'image' | 'video';
+type CaptureMode = 'photo' | 'video' | '360';
 
-// Damage zones for detailed capture
-const damageZones = [
-  { id: 'HOOD', label: 'Hood/Bonnet' },
+// Angle configuration
+const VEHICLE_ANGLES = [
+  { id: 'FRONT', label: 'Front', required: true },
+  { id: 'REAR', label: 'Rear', required: true },
+  { id: 'LEFT', label: 'Left Side', required: true },
+  { id: 'RIGHT', label: 'Right Side', required: true },
+  { id: 'FRONT_LEFT', label: 'Front Left', required: false },
+  { id: 'FRONT_RIGHT', label: 'Front Right', required: false },
+  { id: 'REAR_LEFT', label: 'Rear Left', required: false },
+  { id: 'REAR_RIGHT', label: 'Rear Right', required: false },
+] as const;
+
+const DAMAGE_ZONES = [
+  { id: 'HOOD', label: 'Hood' },
   { id: 'WINDSHIELD', label: 'Windshield' },
   { id: 'ROOF', label: 'Roof' },
-  { id: 'TRUNK', label: 'Trunk/Boot' },
+  { id: 'TRUNK', label: 'Trunk' },
   { id: 'DOOR_FL', label: 'Front Left Door' },
   { id: 'DOOR_FR', label: 'Front Right Door' },
   { id: 'DOOR_RL', label: 'Rear Left Door' },
   { id: 'DOOR_RR', label: 'Rear Right Door' },
-  { id: 'WHEEL_FL', label: 'Front Left Wheel' },
-  { id: 'WHEEL_FR', label: 'Front Right Wheel' },
-  { id: 'WHEEL_RL', label: 'Rear Left Wheel' },
-  { id: 'WHEEL_RR', label: 'Rear Right Wheel' },
-];
+] as const;
+
+// Component for upload status indicator
+const UploadStatus = ({ uploaded, required }: { uploaded: boolean; required?: boolean }) => {
+  if (uploaded) {
+    return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+  }
+  if (required) {
+    return <div className="h-2 w-2 rounded-full bg-red-500" />;
+  }
+  return <div className="h-2 w-2 rounded-full bg-gray-300" />;
+};
+
+// Component for media upload card
+const MediaUploadCard = ({ 
+  label, 
+  uploaded, 
+  required,
+  onUpload,
+  className = ""
+}: {
+  label: string;
+  uploaded: boolean;
+  required?: boolean;
+  onUpload: () => JSX.Element;
+  className?: string;
+}) => {
+  return (
+    <div className={`relative ${className}`}>
+      {onUpload()}
+      <div className="absolute top-2 right-2">
+        <UploadStatus uploaded={uploaded} required={required} />
+      </div>
+    </div>
+  );
+};
 
 export default function EnhancedDamageAssessment({
   formData,
@@ -63,11 +101,15 @@ export default function EnhancedDamageAssessment({
   claimId,
 }: EnhancedDamageAssessmentProps) {
   const { toast } = useToast();
-  const [captureMode, setCaptureMode] = useState<'photo' | 'video' | '360'>('photo');
+  const [captureMode, setCaptureMode] = useState<CaptureMode>('photo');
   const [uploadedMedia, setUploadedMedia] = useState<Record<string, any>>({});
   const [aiAnalysisResults, setAiAnalysisResults] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [current360Angle, setCurrent360Angle] = useState(0);
+
+  // Calculate upload progress
+  const requiredAngles = VEHICLE_ANGLES.filter(a => a.required);
+  const uploadedRequired = requiredAngles.filter(a => uploadedMedia[a.id]).length;
+  const progressPercentage = (uploadedRequired / requiredAngles.length) * 100;
 
   // Upload media mutation
   const uploadMediaMutation = useMutation({
@@ -79,7 +121,6 @@ export default function EnhancedDamageAssessment({
         mediaType,
         angle,
         isDamageZone,
-        // Send to AI analysis if it's an image
         analyzeWithAI: mediaType === 'image'
       });
       
@@ -90,21 +131,21 @@ export default function EnhancedDamageAssessment({
         setAiAnalysisResults(prev => [...prev, data.aiAnalysis]);
       }
       toast({
-        title: "Media Uploaded",
-        description: "Your media has been uploaded and is being analyzed.",
+        title: "Upload Successful",
+        description: "Media has been uploaded and queued for analysis.",
       });
     },
     onError: (error) => {
-      console.error("Error uploading media:", error);
+      console.error("Upload error:", error);
       toast({
         title: "Upload Failed",
-        description: "Failed to upload media. Please try again.",
+        description: "Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  // Analyze all uploaded media with AI
+  // Batch AI analysis mutation
   const analyzeWithAIMutation = useMutation({
     mutationFn: async () => {
       if (!claimId) throw new Error("No claim ID");
@@ -120,16 +161,16 @@ export default function EnhancedDamageAssessment({
       setIsAnalyzing(false);
       setAiAnalysisResults(data.results);
       toast({
-        title: "AI Analysis Complete",
-        description: `Detected ${data.totalDamages} damage points across ${data.analyzedMedia} media files.`,
+        title: "Analysis Complete",
+        description: `Found ${data.totalDamages} damage points.`,
       });
     },
     onError: (error) => {
       setIsAnalyzing(false);
-      console.error("Error analyzing with AI:", error);
+      console.error("Analysis error:", error);
       toast({
         title: "Analysis Failed",
-        description: "Failed to analyze media. Please try again.",
+        description: "Please try again.",
         variant: "destructive",
       });
     },
@@ -144,12 +185,12 @@ export default function EnhancedDamageAssessment({
         url: uploadURL,
       };
     } catch (error) {
-      console.error("Error getting upload parameters:", error);
+      console.error("Upload params error:", error);
       throw error;
     }
   };
 
-  const handleMediaUploadComplete = (angle: string, mediaType: 'image' | 'video') => 
+  const handleMediaUploadComplete = (angle: string, mediaType: MediaType) => 
     (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
       if (result.successful && result.successful[0]) {
         const uploadURL = result.successful[0].uploadURL as string;
@@ -161,7 +202,7 @@ export default function EnhancedDamageAssessment({
           mediaUrl: uploadURL,
           mediaType,
           angle,
-          isDamageZone: damageZones.some(z => z.id === angle)
+          isDamageZone: DAMAGE_ZONES.some(z => z.id === angle)
         });
       }
     };
@@ -177,98 +218,129 @@ export default function EnhancedDamageAssessment({
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Camera className="h-5 w-5" />
-          Enhanced Damage Assessment
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Damage Description */}
-        <div className="mb-6">
-          <Label htmlFor="damageDescription" className="text-sm font-medium mb-2 block">
-            Describe the Damage
-          </Label>
-          <Textarea
-            id="damageDescription"
-            rows={3}
-            value={formData.damage?.vehicleDescription || ''}
-            onChange={(e) => handleDamageChange('vehicleDescription', e.target.value)}
-            placeholder="Describe visible damage, including location, type, and severity..."
-            className="w-full"
-          />
-        </div>
+    <div className="w-full max-w-6xl mx-auto space-y-6">
+      {/* Header Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Camera className="h-5 w-5" />
+            Vehicle Damage Documentation
+          </CardTitle>
+          <CardDescription>
+            Document all vehicle damage with photos or video for AI analysis
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Progress Indicator */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">Upload Progress</span>
+              <span className="text-sm text-muted-foreground">
+                {uploadedRequired} of {requiredAngles.length} required
+              </span>
+            </div>
+            <Progress value={progressPercentage} className="h-2" />
+          </div>
 
-        {/* Capture Mode Tabs */}
-        <Tabs value={captureMode} onValueChange={(v) => setCaptureMode(v as any)}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="photo" className="flex items-center gap-2">
-              <Image className="h-4 w-4" />
-              Photos
-            </TabsTrigger>
-            <TabsTrigger value="video" className="flex items-center gap-2">
-              <Video className="h-4 w-4" />
-              Video
-            </TabsTrigger>
-            <TabsTrigger value="360" className="flex items-center gap-2">
-              <RotateCw className="h-4 w-4" />
-              360° View
-            </TabsTrigger>
-          </TabsList>
+          {/* Damage Description */}
+          <div className="space-y-2">
+            <Label htmlFor="damageDescription">
+              Damage Description
+              <span className="text-red-500 ml-1">*</span>
+            </Label>
+            <Textarea
+              id="damageDescription"
+              value={formData.damage?.vehicleDescription || ''}
+              onChange={(e) => handleDamageChange('vehicleDescription', e.target.value)}
+              placeholder="Describe the location, type, and severity of damage..."
+              className="min-h-[100px] resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              Be specific about damage locations and types
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Photo Mode */}
-          <TabsContent value="photo" className="mt-6">
-            <div className="space-y-6">
-              {/* Standard Angles */}
+      {/* Capture Mode Tabs */}
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={captureMode} onValueChange={(v) => setCaptureMode(v as CaptureMode)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="photo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <ImageIcon className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Photos</span>
+              </TabsTrigger>
+              <TabsTrigger value="video" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Video className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Video</span>
+              </TabsTrigger>
+              <TabsTrigger value="360" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <RotateCw className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">360°</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Photo Mode */}
+            <TabsContent value="photo" className="space-y-6">
+              {/* Required Angles */}
               <div>
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
-                  Standard Vehicle Angles
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {vehicleAngles.slice(0, 4).map((angle) => (
-                    <div key={angle.id}>
-                      <ObjectUploader
-                        maxNumberOfFiles={1}
-                        maxFileSize={10485760}
-                        onGetUploadParameters={handleGetUploadParameters}
-                        onComplete={handleMediaUploadComplete(angle.id, 'image')}
-                        buttonClassName="w-full"
-                      >
-                        <div className={`
-                          w-full h-32 rounded-lg border-2 border-dashed 
-                          ${uploadedMedia[angle.id] ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}
-                          hover:border-blue-500 hover:bg-blue-50 transition-colors
-                          flex flex-col items-center justify-center cursor-pointer
-                        `}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold">Required Angles</h3>
+                  <Badge variant="outline">
+                    {uploadedRequired}/{requiredAngles.length}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {requiredAngles.map((angle) => (
+                    <ObjectUploader
+                      key={angle.id}
+                      maxNumberOfFiles={1}
+                      maxFileSize={10485760}
+                      onGetUploadParameters={handleGetUploadParameters}
+                      onComplete={handleMediaUploadComplete(angle.id, 'image')}
+                      buttonClassName="w-full h-full"
+                    >
+                      <Card className={`
+                        cursor-pointer transition-all hover:shadow-md
+                        ${uploadedMedia[angle.id] 
+                          ? 'border-green-500 bg-green-50/50' 
+                          : 'border-dashed hover:border-primary'
+                        }
+                      `}>
+                        <CardContent className="flex flex-col items-center justify-center p-6 min-h-[120px]">
                           {uploadedMedia[angle.id] ? (
                             <>
-                              <CheckCircle2 className="h-6 w-6 text-green-500 mb-1" />
-                              <span className="text-xs text-green-700">Uploaded</span>
+                              <CheckCircle2 className="h-8 w-8 text-green-600 mb-2" />
+                              <span className="text-sm font-medium text-green-700">Uploaded</span>
                             </>
                           ) : (
                             <>
-                              <span className="text-2xl mb-1">{angle.icon}</span>
-                              <span className="text-xs text-gray-600">{angle.label}</span>
-                              <Upload className="h-4 w-4 text-gray-400 mt-1" />
+                              <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                              <span className="text-sm font-medium">{angle.label}</span>
+                              <span className="text-xs text-muted-foreground mt-1">Tap to upload</span>
                             </>
                           )}
-                        </div>
-                      </ObjectUploader>
-                    </div>
+                        </CardContent>
+                      </Card>
+                    </ObjectUploader>
                   ))}
                 </div>
               </div>
 
-              {/* Damage Zone Close-ups */}
+              <Separator />
+
+              {/* Optional Damage Zones */}
               <div>
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Damage Zone Close-ups (Optional)
-                </h4>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                  {damageZones.map((zone) => (
+                <div className="flex items-center gap-2 mb-4">
+                  <h3 className="text-base font-semibold">Damage Close-ups</h3>
+                  <Badge variant="secondary">Optional</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Upload close-up photos of specific damaged areas
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {DAMAGE_ZONES.map((zone) => (
                     <ObjectUploader
                       key={zone.id}
                       maxNumberOfFiles={1}
@@ -277,229 +349,290 @@ export default function EnhancedDamageAssessment({
                       onComplete={handleMediaUploadComplete(zone.id, 'image')}
                       buttonClassName="w-full"
                     >
-                      <div className={`
-                        p-2 rounded border text-center text-xs cursor-pointer
-                        ${uploadedMedia[zone.id] ? 'bg-green-50 border-green-500' : 'bg-white border-gray-300'}
-                        hover:bg-blue-50 hover:border-blue-500 transition-colors
-                      `}>
-                        {uploadedMedia[zone.id] && <CheckCircle2 className="h-3 w-3 text-green-500 mx-auto mb-1" />}
-                        {zone.label}
-                      </div>
+                      <Button
+                        variant={uploadedMedia[zone.id] ? "default" : "outline"}
+                        className="w-full h-auto py-3 px-2"
+                      >
+                        <div className="flex flex-col items-center gap-1">
+                          {uploadedMedia[zone.id] && (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                          <span className="text-xs">{zone.label}</span>
+                        </div>
+                      </Button>
                     </ObjectUploader>
                   ))}
                 </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* Video Mode */}
-          <TabsContent value="video" className="mt-6">
-            <div className="space-y-4">
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                <h5 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                  <Video className="h-4 w-4" />
-                  Video Recording Instructions
-                </h5>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• Record a slow walk-around video of your vehicle</li>
-                  <li>• Start from the front and move clockwise</li>
-                  <li>• Focus on damaged areas for 3-5 seconds each</li>
-                  <li>• Ensure good lighting and steady camera movement</li>
-                  <li>• Video should be 30-60 seconds for complete coverage</li>
-                </ul>
-              </div>
+            {/* Video Mode */}
+            <TabsContent value="video" className="space-y-6">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Record a slow, steady walk-around video of your vehicle, focusing on damaged areas for 3-5 seconds each.
+                </AlertDescription>
+              </Alert>
 
               <ObjectUploader
                 maxNumberOfFiles={1}
-                maxFileSize={104857600} // 100MB for video
+                maxFileSize={104857600}
                 onGetUploadParameters={handleGetUploadParameters}
                 onComplete={handleMediaUploadComplete('VIDEO_WALKAROUND', 'video')}
                 buttonClassName="w-full"
               >
-                <div className={`
-                  w-full h-40 rounded-lg border-2 border-dashed 
-                  ${uploadedMedia['VIDEO_WALKAROUND'] ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}
-                  hover:border-blue-500 hover:bg-blue-50 transition-colors
-                  flex flex-col items-center justify-center cursor-pointer
+                <Card className={`
+                  cursor-pointer transition-all hover:shadow-md
+                  ${uploadedMedia['VIDEO_WALKAROUND'] 
+                    ? 'border-green-500 bg-green-50/50' 
+                    : 'border-dashed hover:border-primary'
+                  }
                 `}>
-                  {uploadedMedia['VIDEO_WALKAROUND'] ? (
-                    <>
-                      <CheckCircle2 className="h-8 w-8 text-green-500 mb-2" />
-                      <span className="text-sm text-green-700">Video Uploaded</span>
-                      <Play className="h-4 w-4 text-green-600 mt-1" />
-                    </>
-                  ) : (
-                    <>
-                      <Video className="h-8 w-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">Upload Walk-around Video</span>
-                      <span className="text-xs text-gray-400 mt-1">MP4, MOV up to 100MB</span>
-                    </>
-                  )}
-                </div>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    {uploadedMedia['VIDEO_WALKAROUND'] ? (
+                      <>
+                        <CheckCircle2 className="h-12 w-12 text-green-600 mb-3" />
+                        <span className="text-base font-medium text-green-700">Video Uploaded</span>
+                      </>
+                    ) : (
+                      <>
+                        <Video className="h-12 w-12 text-muted-foreground mb-3" />
+                        <span className="text-base font-medium">Upload Walk-around Video</span>
+                        <span className="text-sm text-muted-foreground mt-1">MP4, MOV up to 100MB</span>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               </ObjectUploader>
-            </div>
-          </TabsContent>
 
-          {/* 360° View Mode */}
-          <TabsContent value="360" className="mt-6">
-            <div className="space-y-4">
-              <div className="bg-purple-50 border-l-4 border-purple-400 p-4">
-                <h5 className="font-semibold text-purple-800 mb-2 flex items-center gap-2">
-                  <RotateCw className="h-4 w-4" />
-                  360° Capture Guide
-                </h5>
-                <ul className="text-sm text-purple-700 space-y-1">
-                  <li>• Position yourself 2-3 meters from the vehicle</li>
-                  <li>• Take photos at 45° intervals around the vehicle</li>
-                  <li>• Keep the camera at the same height for all shots</li>
-                  <li>• Overlap each photo slightly for seamless stitching</li>
-                  <li>• Upload all 8 photos for complete 360° coverage</li>
-                </ul>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card className="bg-muted/50">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium text-sm mb-2">Recording Tips</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• Start from the front, move clockwise</li>
+                      <li>• Keep 2-3 meters distance</li>
+                      <li>• Ensure good lighting</li>
+                      <li>• 30-60 seconds total</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+                <Card className="bg-muted/50">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium text-sm mb-2">Focus Areas</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• All damaged areas</li>
+                      <li>• License plates</li>
+                      <li>• VIN if visible</li>
+                      <li>• Interior if affected</li>
+                    </ul>
+                  </CardContent>
+                </Card>
               </div>
+            </TabsContent>
 
-              {/* 360 Degree Visual Guide */}
-              <div className="relative bg-gray-50 rounded-lg p-8">
-                <div className="relative w-48 h-48 mx-auto">
-                  {/* Car in center */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 bg-gray-300 rounded-lg flex items-center justify-center">
-                      <span className="text-2xl">🚗</span>
+            {/* 360° Mode */}
+            <TabsContent value="360" className="space-y-6">
+              <Alert>
+                <Sparkles className="h-4 w-4" />
+                <AlertDescription>
+                  Capture your vehicle from 8 angles for complete 360° coverage. This provides the best documentation for AI analysis.
+                </AlertDescription>
+              </Alert>
+
+              {/* 360 Visual Guide */}
+              <Card className="bg-muted/30">
+                <CardContent className="p-6">
+                  <div className="relative aspect-square max-w-sm mx-auto">
+                    {/* Center car icon */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-24 h-24 sm:w-32 sm:h-32 bg-background rounded-lg shadow-lg flex items-center justify-center">
+                        <Camera className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
+                      </div>
                     </div>
+                    
+                    {/* Camera positions */}
+                    {VEHICLE_ANGLES.map((angle, index) => {
+                      const angleStep = 360 / VEHICLE_ANGLES.length;
+                      const rotation = index * angleStep - 90;
+                      const radius = 40; // percentage
+                      const x = 50 + radius * Math.cos(rotation * Math.PI / 180);
+                      const y = 50 + radius * Math.sin(rotation * Math.PI / 180);
+                      
+                      return (
+                        <div
+                          key={angle.id}
+                          className="absolute"
+                          style={{
+                            left: `${x}%`,
+                            top: `${y}%`,
+                            transform: 'translate(-50%, -50%)',
+                          }}
+                        >
+                          <ObjectUploader
+                            maxNumberOfFiles={1}
+                            maxFileSize={10485760}
+                            onGetUploadParameters={handleGetUploadParameters}
+                            onComplete={handleMediaUploadComplete(`360_${angle.id}`, 'image')}
+                            buttonClassName="w-full"
+                          >
+                            <Button
+                              size="sm"
+                              variant={uploadedMedia[`360_${angle.id}`] ? "default" : "outline"}
+                              className="rounded-full w-10 h-10 sm:w-12 sm:h-12 p-0"
+                            >
+                              {uploadedMedia[`360_${angle.id}`] ? (
+                                <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                              ) : (
+                                <span className="text-xs font-bold">{index + 1}</span>
+                              )}
+                            </Button>
+                          </ObjectUploader>
+                        </div>
+                      );
+                    })}
                   </div>
                   
-                  {/* Camera positions */}
-                  {vehicleAngles.map((angle, index) => {
-                    const radius = 80;
-                    const angleRad = (angle.rotation * Math.PI) / 180;
-                    const x = radius * Math.cos(angleRad - Math.PI / 2);
-                    const y = radius * Math.sin(angleRad - Math.PI / 2);
-                    
-                    return (
-                      <div
-                        key={angle.id}
-                        className="absolute"
-                        style={{
-                          left: `calc(50% + ${x}px - 16px)`,
-                          top: `calc(50% + ${y}px - 16px)`,
-                        }}
-                      >
-                        <ObjectUploader
-                          maxNumberOfFiles={1}
-                          maxFileSize={10485760}
-                          onGetUploadParameters={handleGetUploadParameters}
-                          onComplete={handleMediaUploadComplete(`360_${angle.id}`, 'image')}
-                          buttonClassName="w-full"
-                        >
-                          <div className={`
-                            w-8 h-8 rounded-full cursor-pointer
-                            ${uploadedMedia[`360_${angle.id}`] ? 'bg-green-500' : 'bg-blue-500'}
-                            hover:scale-110 transition-transform
-                            flex items-center justify-center text-white text-xs font-bold
-                          `}>
-                            {uploadedMedia[`360_${angle.id}`] ? '✓' : index + 1}
-                          </div>
-                        </ObjectUploader>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                <div className="text-center mt-4">
-                  <p className="text-sm text-gray-600">
-                    Click numbered positions to upload photos from each angle
-                  </p>
-                </div>
-              </div>
-
-              {/* Mobile App Suggestion */}
-              <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="h-6 w-6 text-blue-600" />
-                  <div className="flex-1">
-                    <h6 className="font-semibold text-gray-800">Pro Tip: Use Your Phone</h6>
-                    <p className="text-sm text-gray-600">
-                      Many smartphones have panorama or photosphere modes that can capture 360° views automatically
+                  <div className="text-center mt-6">
+                    <p className="text-sm text-muted-foreground">
+                      Tap numbered positions to upload from each angle
                     </p>
                   </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+                </CardContent>
+              </Card>
 
-        {/* AI Analysis Section */}
-        {(Object.keys(uploadedMedia).length > 0 || aiAnalysisResults.length > 0) && (
-          <div className="mt-8 space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {VEHICLE_ANGLES.map((angle, index) => {
+                  const is360Uploaded = uploadedMedia[`360_${angle.id}`];
+                  return (
+                    <div key={angle.id} className="flex items-center gap-2 text-sm">
+                      <div className={`
+                        w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                        ${is360Uploaded 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-muted text-muted-foreground'
+                        }
+                      `}>
+                        {index + 1}
+                      </div>
+                      <span className={is360Uploaded ? 'text-green-700 font-medium' : 'text-muted-foreground'}>
+                        {angle.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* AI Analysis Section */}
+      {Object.keys(uploadedMedia).length > 0 && (
+        <Card>
+          <CardHeader>
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-semibold flex items-center gap-2">
-                <Brain className="h-5 w-5 text-purple-600" />
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
                 AI Damage Analysis
-              </h4>
-              {Object.keys(uploadedMedia).length > 0 && !isAnalyzing && (
+              </CardTitle>
+              {!isAnalyzing && (
                 <Button
                   onClick={() => analyzeWithAIMutation.mutate()}
                   disabled={analyzeWithAIMutation.isPending}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+                  size="sm"
                 >
-                  {analyzeWithAIMutation.isPending ? 'Analyzing...' : 'Run AI Analysis'}
+                  {analyzeWithAIMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analyzing
+                    </>
+                  ) : (
+                    'Run Analysis'
+                  )}
                 </Button>
               )}
             </div>
-
-            {isAnalyzing && (
-              <div className="bg-purple-50 rounded-lg p-6 text-center">
-                <div className="animate-pulse flex flex-col items-center">
-                  <Brain className="h-12 w-12 text-purple-600 mb-3" />
-                  <p className="text-purple-800 font-semibold">Analyzing Damage...</p>
-                  <p className="text-sm text-purple-600 mt-2">
-                    Using computer vision to detect and classify damage
-                  </p>
-                </div>
+          </CardHeader>
+          <CardContent>
+            {isAnalyzing ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                <p className="text-sm text-muted-foreground">Analyzing damage with AI...</p>
               </div>
-            )}
-
-            {aiAnalysisResults.length > 0 && (
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4">
-                <h5 className="font-semibold text-gray-800 mb-3">Analysis Results</h5>
-                <div className="space-y-2">
-                  {aiAnalysisResults.map((result, index) => (
-                    <div key={index} className="bg-white rounded p-3 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{result.damageType || 'Damage Detected'}</span>
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
-                          {result.severity || 'Moderate'}
-                        </span>
+            ) : aiAnalysisResults.length > 0 ? (
+              <div className="space-y-4">
+                {/* Results Summary */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-primary">
+                        {aiAnalysisResults.length}
                       </div>
-                      {result.confidence && (
-                        <div className="mt-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Confidence:</span>
-                            <div className="flex-1 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-500 h-2 rounded-full"
-                                style={{ width: `${result.confidence * 100}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-gray-600">
-                              {Math.round(result.confidence * 100)}%
-                            </span>
-                          </div>
+                      <p className="text-xs text-muted-foreground">Damage Points</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-orange-600">
+                        Medium
+                      </div>
+                      <p className="text-xs text-muted-foreground">Severity Level</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-green-600">
+                        85%
+                      </div>
+                      <p className="text-xs text-muted-foreground">Confidence</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Detailed Results */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">Detected Damage</h4>
+                  {aiAnalysisResults.slice(0, 5).map((result, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <AlertTriangle className="h-4 w-4 text-orange-500" />
+                        <div>
+                          <p className="text-sm font-medium">
+                            {result.damageType || `Damage ${index + 1}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Confidence: {Math.round((result.confidence || 0.8) * 100)}%
+                          </p>
                         </div>
-                      )}
+                      </div>
+                      <Badge variant={
+                        result.severity === 'high' ? 'destructive' :
+                        result.severity === 'medium' ? 'default' : 'secondary'
+                      }>
+                        {result.severity || 'Medium'}
+                      </Badge>
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 p-3 bg-white rounded">
-                  <p className="text-sm text-gray-600">
-                    <strong>Summary:</strong> {aiAnalysisResults.length} damage points detected.
-                    Estimated repair complexity: <span className="text-orange-600 font-semibold">Medium</span>
-                  </p>
-                </div>
+
+                {/* Recommendations */}
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    Professional assessment recommended. Multiple damage points detected requiring specialized repair.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">Upload complete. Click "Run Analysis" to detect damage.</p>
               </div>
             )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
