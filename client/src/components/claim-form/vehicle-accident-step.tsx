@@ -137,11 +137,17 @@ export default function VehicleAccidentStep({
   // Note: Accident details are auto-saved through the main persistence system
 
   const handleVehicleChange = (field: string, value: any) => {
+    // Convert yearOfManufacture to number if it's not empty
+    let processedValue = value;
+    if (field === 'yearOfManufacture' && value !== '') {
+      processedValue = value ? parseInt(value, 10) : null;
+    }
+    
     setFormData((prev: any) => ({
       ...prev,
       vehicle: {
         ...prev.vehicle,
-        [field]: value,
+        [field]: processedValue,
       },
     }));
   };
