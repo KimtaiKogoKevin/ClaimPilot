@@ -11,7 +11,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Trash2, Upload, FileText, CheckCircle } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
-import { RadioGroup, RadioGroupItem } from "@radix-ui/react-radio-group";
 
 interface VehicleAccidentStepProps {
   formData: any;
