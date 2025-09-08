@@ -13,7 +13,7 @@ import { calculateFormProgress, transformFormDataForAPI, restoreFormDataFromAPI 
 import { validateStep, calculateProgress } from "@/lib/formValidation";
 import PolicyDetailsStep from "@/components/claim-form/policy-details-step";
 import VehicleAccidentStep from "@/components/claim-form/vehicle-accident-step";
-import DamageAssessmentStep from "@/components/claim-form/damage-assessment-step";
+import EnhancedDamageAssessment from "@/components/claim-form/enhanced-damage-assessment";
 import DriverDeclarationStep from "@/components/claim-form/driver-declaration-step";
 
 export default function ClaimForm() {
@@ -44,7 +44,7 @@ export default function ClaimForm() {
     agentName: "",
     policyNumber: "",
     lastPaymentDate: "",
-    TypeofCover: "",
+    typeOfCover: "",
     insuredType: "individual" as "individual" | "corporate",
     financeCompanyName: "",
     hasOtherInsurance: false,
@@ -199,8 +199,8 @@ export default function ClaimForm() {
               .toISOString()
               .split("T")[0]
           : prev.lastPaymentDate || "",
-        TypeofCover:
-          (currentDraft as any).TypeofCover || prev.TypeofCover || "",
+        typeOfCover:
+          (currentDraft as any).typeOfCover || prev.typeOfCover || "",
 
         insuredType:
           (currentDraft as any).insuredType || prev.insuredType || "individual",
@@ -551,7 +551,7 @@ export default function ClaimForm() {
       agentName: formData.agentName,
       policyNumber: formData.policyNumber,
       lastPaymentDate: formData.lastPaymentDate,
-      TypeofCover: formData.TypeofCover,
+      typeOfCover: formData.typeOfCover,
       insuredType: formData.insuredType,
 
 
@@ -812,7 +812,7 @@ export default function ClaimForm() {
           />
         )}
         {currentStep === 3 && (
-          <DamageAssessmentStep
+          <EnhancedDamageAssessment
             formData={formData}
             setFormData={setFormData}
             claimId={claimId}

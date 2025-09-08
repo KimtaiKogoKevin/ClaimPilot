@@ -276,6 +276,7 @@ export class DatabaseStorage implements IStorage {
       policyNumber: data.policyNumber || null,
       lastPaymentDate: convertToDate(data.lastPaymentDate),
       insuredType: data.insuredType || 'individual',
+      typeOfCover: data.typeOfCover || '',
       accidentDate: convertToDate(data.accidentDate),
       accidentTime: data.accidentTime || null,
       accidentLocation: data.accidentLocation || null,
@@ -314,6 +315,7 @@ export class DatabaseStorage implements IStorage {
         physicalAddress: data.individualPhysicalAddress || null,
         email: data.individualEmail || null,
         tradeBusiness: data.individualTradeBusiness || null,
+        ageBand: data.individualAgeBand || null,
       };
       
       await this.upsertIndividualDetails(individualData);
@@ -478,6 +480,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Photos and AI analysis
+  async getDamagedPhotos(claimId: string): Promise<DamagedPhoto[]> {
+    const photos = await db.query.damagedPhotos.findMany({
+      where: eq(damagedPhotos.claimId, claimId),
+    });
+    return photos;
+  }
+
   async addDamagedPhoto(photo: InsertDamagedPhoto): Promise<DamagedPhoto> {
     const [newPhoto] = await db
       .insert(damagedPhotos)
