@@ -607,7 +607,7 @@ export type DetectedDamage = typeof detectedDamages.$inferSelect;
 
 // Full claim type with relations
 export type ClaimWithDetails = Claim & {
-  claimant: User;
+  insured: User;
   individualDetails?: IndividualDetails;
   corporateDetails?: CorporateDetails;
   vehicle?: Vehicle;

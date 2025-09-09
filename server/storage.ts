@@ -124,22 +124,6 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(user: UpsertUser): Promise<User> {
-    const [newUser] = await db
-      .insert(users)
-      .values(user)
-      .returning();
-    return newUser;
-  }
-
-  async updateUser(id: string, updates: Partial<UpsertUser>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return user;
-  }
 
   async updateUserRole(id: string, role: string): Promise<User> {
     const [user] = await db
@@ -339,7 +323,7 @@ export class DatabaseStorage implements IStorage {
         physicalAddress: data.corporatePhysicalAddress || null,
         email: data.corporateEmail || null,
         tradeBusiness: data.corporateTradeBusiness || null,
-        yearsInOperation: data.corporateYearsInOperation ? parseInt(data.corporateYearsInOperation) : null,
+        yearsInOperation: data.corporateYearsInOperation || null,
       };
       
       await this.upsertCorporateDetails(corporateData);
@@ -400,10 +384,10 @@ export class DatabaseStorage implements IStorage {
 
     await db
       .insert(individualDetails)
-      .values(processedDetails)
+      .values(processedDetails as any)
       .onConflictDoUpdate({
         target: individualDetails.claimId,
-        set: processedDetails,
+        set: processedDetails as any,
       });
   }
 

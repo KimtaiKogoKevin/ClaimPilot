@@ -300,7 +300,7 @@ export default function VehicleAccidentStep({
               <Input
                 id="year"
                 type="number"
-                min="1980"
+                min={1980}
                 max={new Date().getFullYear()} // Dynamically set max year
                 value={formData.vehicle.yearOfManufacture || ""}
                 onChange={(e) =>
