@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Trash2, Upload, FileText, CheckCircle } from "lucide-react";
+import { Plus, Trash2, Upload, FileText, CheckCircle, ImageIcon, XCircle } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 
@@ -27,6 +27,8 @@ export default function VehicleAccidentStep({
   const [uploadedDocuments, setUploadedDocuments] = useState<{
     [key: string]: boolean;
   }>({});
+  const [isUploadingSketch, setIsUploadingSketch] = useState(false);
+
 
   // Auto-save vehicle details
   const saveVehicleMutation = useMutation({
@@ -137,17 +139,17 @@ export default function VehicleAccidentStep({
   // Note: Accident details are auto-saved through the main persistence system
 
   const handleVehicleChange = (field: string, value: any) => {
-    // Convert yearOfManufacture to number if it's not empty
-    let processedValue = value;
-    if (field === 'yearOfManufacture' && value !== '') {
-      processedValue = value ? parseInt(value, 10) : null;
-    }
+    /// Convert yearOfManufacture to number if it's not empty
+    // let processedValue = value;
+    // if (field === 'yearOfManufacture' && value !== '') {
+    // processedValue = value ? parseInt(value, 10) : null;
+    // }
     
     setFormData((prev: any) => ({
       ...prev,
       vehicle: {
         ...prev.vehicle,
-        [field]: processedValue,
+        [field]: value,
       },
     }));
   };
@@ -221,6 +223,37 @@ export default function VehicleAccidentStep({
         });
       }
     };
+
+  
+   const handleSketchUpload = async (
+     event: React.ChangeEvent<HTMLInputElement>
+   ) => {
+     const file = event.target.files?.[0];
+     if (!file || !claimId) return;
+     setIsUploadingSketch(true);
+     const uploadFormData = new FormData();
+     uploadFormData.append("sketchFile", file);
+     uploadFormData.append("category", "documents");
+     uploadFormData.append("subCategory", "sketches");
+     try {
+       const response = await fetch(`/api/claims/${claimId}/upload-sketch`, {
+         method: "POST",
+         body: uploadFormData,
+       });
+       if (!response.ok) throw new Error("Upload failed");
+       const result = await response.json();
+       handleAccidentChange("accidentSketchPath", result.filePath);
+       toast({ title: "Success", description: "Accident sketch uploaded." });
+     } catch (error) {
+       toast({
+         title: "Error",
+         description: "Could not upload sketch.",
+         variant: "destructive",
+       });
+     } finally {
+       setIsUploadingSketch(false);
+     }
+   };
 
   return (
     <Card className="shadow-sm border-neutral-200">
@@ -658,7 +691,35 @@ export default function VehicleAccidentStep({
               required
             />
           </div>
-        </div>
+           <div className="mt-6">
+              <Label>Attach sketch of the accident scene</Label>
+              <div className="mt-2">
+                {formData.accident.accidentSketchPath ? (
+                  <div className="relative w-full h-64 border rounded-md group">
+                    <img src={formData.accident.accidentSketchPath} alt="Accident Sketch Preview" className="object-contain w-full h-full" />
+                    <div onClick={() => handleAccidentChange('accidentSketchPath', '')} className="absolute top-2 right-2 bg-white rounded-full p-1 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                      <XCircle className="h-6 w-6 text-destructive" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+                    <div className="text-center">
+                      <ImageIcon className="mx-auto h-12 w-12 text-gray-300" aria-hidden="true" />
+                      <div className="mt-4 flex text-sm leading-6 text-gray-600">
+                        <label htmlFor="sketch-upload" className="relative cursor-pointer rounded-md bg-white font-semibold text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 hover:text-primary-focus">
+                          <span>{isUploadingSketch ? "Uploading..." : "Upload a file"}</span>
+                          <input id="sketch-upload" name="sketch-upload" type="file" className="sr-only" onChange={handleSketchUpload} disabled={isUploadingSketch || !claimId} />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs leading-5 text-gray-600">PNG, JPG up to 10MB</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              </div>
+          
+          </div>
 
         {/* Supporting Documents */}
         <div>

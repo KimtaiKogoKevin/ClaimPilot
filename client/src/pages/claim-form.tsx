@@ -55,6 +55,40 @@ export default function ClaimForm() {
     monthlyInstalment: null as number | null,
     loanCoveragePercentage: null as number | null,
 
+    inspectionLocation: "",
+    repairerName: "",
+    repairerAddress: "",
+    repairerPhone: "",
+    isVehicleInUse: null as boolean | null,
+    goodsOwnerName: "",
+    wasTrailerAttached: false,
+    loadWeight: "",
+
+    thirdPartyProperties: [] as Array<{
+      ownerName: string;
+      ownerAddress: string;
+      propertyDescription: string;
+    }>,
+    injuredPersons: [] as Array<{
+      personName: string;
+      personAddress: string;
+      relationshipToInsured: string;
+      vehicleRegNo: string;
+      apparentInjuries: string;
+    }>,
+    passengers: [] as Array<{
+      passengerName: string;
+      passengerAddress: string;
+    }>,
+    witnesses: [] as Array<{
+      witnessName: string;
+      witnessAddress: string;
+    }>,
+    ownerStatement: "",
+    declarationName: "",
+    declarationTitle: "",
+    declarationAccepted: false,
+
     // Individual details
     individual: {
       firstName: "",
@@ -99,7 +133,7 @@ export default function ClaimForm() {
       model: "",
       yearOfManufacture: null as number | null,
       registrationNumber_primemover: "",
-      registrationNumber_trailer:"",
+      registrationNumber_trailer: "",
       carryingCapacity: "",
       loadingCapacity: "",
       ownerName: "",
@@ -136,17 +170,18 @@ export default function ClaimForm() {
       address: "",
       dateOfBirth: "",
       telephone: "",
-      licenseNumber: "",
+      yearsInService: "",
       employedByInsured: null as boolean | null,
       drivingWithPermission: null as boolean | null,
-      yearsOfDriving: null as number | null,
+      yearsOfDriving: "",
       blameToBareForAccident: null as boolean | null,
       admittedLiability: null as boolean | null,
       previousAccidents: null as boolean | null,
       previousAccidentsDetails: "",
       convictions: null as boolean | null,
       convictionsDetails: "",
-      licenseType: "",
+      licenseNumber: "",
+      licenseType: "", // "Full" or "Provisional"
       drivingTestPassedDate: "",
       ownsMotorVehicle: null as boolean | null,
       ownVehicleInsurer: "",
@@ -481,6 +516,8 @@ export default function ClaimForm() {
             (currentDraft as any).driver?.ownVehicleInsurer || "",
           ownVehiclePolicyNumber:
             (currentDraft as any).driver?.ownVehiclePolicyNumber || "",
+          yearsInService:
+            (currentDraft as any).driver?.yearsInService || "",
         },
         bank: {
           bankName: (currentDraft as any).bankDetails?.bankName || "",

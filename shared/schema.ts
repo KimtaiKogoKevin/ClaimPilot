@@ -142,6 +142,14 @@ export const claims = pgTable("claims", {
   vehicleDamageDescription: text("vehicle_damage_description"),
   goodsDamaged: boolean("goods_damaged").default(false),
   goodsDescription: text("goods_description"),
+  inspectionLocation: text("inspection_location"),
+  repairerName: varchar("repairer_name"),
+  repairerAddress: text("repairer_address"),
+  repairerPhone: varchar("repairer_phone"),
+  isVehicleInUse: boolean("is_vehicle_in_use"),
+  goodsOwnerName: varchar("goods_owner_name"),
+  wasTrailerAttached: boolean("was_trailer_attached").default(false),
+  loadWeight: varchar("load_weight"),
 
   // AI Analysis results
   aiAnalysisResults: jsonb("ai_analysis_results"),
@@ -158,6 +166,44 @@ export const claims = pgTable("claims", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   submittedAt: timestamp("submitted_at"),
+  declarationName: varchar("declaration_name"),
+  declarationTitle: varchar("declaration_title"),
+  declarationSignaturePath: varchar("declaration_signature_path"),
+  yearsInService: varchar("years_in_service"), // "How long in your service?"
+  employedByInsured: boolean("employed_by_insured"),
+  drivingWithPermission: boolean("driving_with_permission"),
+  yearsOfDriving: varchar("years_of_driving"), // "How long driving motor vehicles?"
+  blameToBareForAccident: boolean("blame_to_bare_for_accident"),
+  admittedLiability: boolean("admitted_liability"),
+  previousAccidents: boolean("previous_accidents"),
+  previousAccidentsDetails: text("previous_accidents_details"), // Details if yes
+  convictions: boolean("convictions"),
+  convictionsDetails: text("convictions_details"), // Details if yes
+  licenseType: varchar("license_type"), // Full or Provisional
+  drivingTestPassedDate: varchar("driving_test_passed_date"), // Can be just the year
+  ownsMotorVehicle: boolean("owns_motor_vehicle"),
+  ownVehicleInsurer: varchar("own_vehicle_insurer"),
+  ownVehiclePolicyNumber: varchar("own_vehicle_policy_number"),
+});
+
+
+// VVVVVV CREATE THESE NEW TABLES FOR ONE-TO-MANY DATA VVVVVV
+export const thirdPartyProperties = pgTable("third_party_properties", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  ownerName: varchar("owner_name"),
+  ownerAddress: text("owner_address"),
+  propertyDescription: text("property_description"),
+});
+
+export const injuredPersons = pgTable("injured_persons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  personName: varchar("person_name"),
+  personAddress: text("person_address"),
+  relationshipToInsured: varchar("relationship_to_insured"),
+  vehicleRegNo: varchar("vehicle_reg_no"),
+  apparentInjuries: text("apparent_injuries"),
 });
 
 // Individual insured details
@@ -341,6 +387,21 @@ export const claimCommunications = pgTable("claim_communications", {
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
+// Passengers in your vehicle
+export const passengers = pgTable("passengers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  passengerName: varchar("passenger_name"),
+  passengerAddress: text("passenger_address"),
+});
+
+// Independent Witnesses
+export const witnesses = pgTable("witnesses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  witnessName: varchar("witness_name"),
+  witnessAddress: text("witness_address"),
+});
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
@@ -382,7 +443,38 @@ export const claimsRelations = relations(claims, ({ one, many }) => ({
   }),
   otherVehicles: many(otherVehicles),
   damagedPhotos: many(damagedPhotos),
+
+  thirdPartyProperties: many(thirdPartyProperties),
+  injuredPersons: many(injuredPersons),
+  passengers: many(passengers),
+  witnesses: many(witnesses),
 }));
+
+export const thirdPartyPropertiesRelations = relations(
+  thirdPartyProperties,
+  ({ one }) => ({
+    claim: one(claims, {
+      fields: [thirdPartyProperties.claimId],
+      references: [claims.id],
+    }),
+  })
+);
+
+export const injuredPersonsRelations = relations(injuredPersons, ({ one }) => ({
+  claim: one(claims, {
+    fields: [injuredPersons.claimId],
+    references: [claims.id],
+  }),
+}));
+export const passengersRelations = relations(passengers, ({ one }) => ({
+  claim: one(claims, { fields: [passengers.claimId], references: [claims.id] }),
+}));
+
+export const witnessesRelations = relations(witnesses, ({ one }) => ({
+  claim: one(claims, { fields: [witnesses.claimId], references: [claims.id] }),
+}));
+
+
 
 // Add missing relations for all entities
 export const individualDetailsRelations = relations(individualDetails, ({ one }) => ({
