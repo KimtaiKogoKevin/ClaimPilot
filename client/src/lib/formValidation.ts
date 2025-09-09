@@ -55,7 +55,7 @@ export const vehicleDetailsSchema = z.object({
     .min(1, "Vehicle registration is required"),
   make: z.string().min(1, "Vehicle make is required"),
   model: z.string().min(1, "Vehicle model is required"),
-  yearOfManufacture: z.number().optional(),
+  yearOfManufacture: z.number().min(1980, "Year must be 1980 or later").max(new Date().getFullYear(), "Year cannot be in the future").optional(),
   engineNumber: z.string().optional(),
   chassisNumber: z.string().optional(),
   color: z.string().optional(),
