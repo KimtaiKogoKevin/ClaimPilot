@@ -143,7 +143,7 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
     if (claim.vehicle) {
       addSectionHeader('SECTION C: VEHICLE INFORMATION');
       addTwoColumnFields('Make', claim.vehicle.make || '', 'Model', claim.vehicle.model || '');
-      addTwoColumnFields('Year of Manufacture', claim.vehicle.yearOfManufacture?.toString() || '', 'Registration Number', claim.vehicle.registrationNumber || '');
+      addTwoColumnFields('Year of Manufacture', claim.vehicle.yearOfManufacture?.toString() || '', 'Registration Number', claim.vehicle.registrationNumber_primemover || '');
       addTwoColumnFields('Owner Name', claim.vehicle.ownerName || '', 'Vehicle Use', claim.vehicle.vehicleUse || '');
     }
     
@@ -238,7 +238,8 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
             doc.setTextColor(0, 0, 0);
             doc.text(`Type: ${damage.damageType || 'Not specified'}`, leftColumn + 12, yPosition + 4);
             doc.text(`Confidence: ${damage.confidence ? (damage.confidence * 100).toFixed(1) + '%' : 'N/A'}`, leftColumn + 12, yPosition + 8);
-            doc.text(`Location: ${damage.boundingBox ? `X:${damage.boundingBox.x}, Y:${damage.boundingBox.y}, W:${damage.boundingBox.width}, H:${damage.boundingBox.height}` : 'Not specified'}`, leftColumn + 12, yPosition + 12);
+            const bbox = damage.boundingBox as any;
+            doc.text(`Location: ${bbox ? `X:${bbox.x || 0}, Y:${bbox.y || 0}, W:${bbox.width || 0}, H:${bbox.height || 0}` : 'Not specified'}`, leftColumn + 12, yPosition + 12);
             
             yPosition += 25;
           });
