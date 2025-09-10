@@ -668,6 +668,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Only draft claims can be submitted" });
       }
       
+      // Validate completeness before submission
+      const validationErrors = [];
+      
+      // Check required claim fields
+      if (!claim.policyNumber) validationErrors.push("Policy number is required");
+      if (!claim.accidentDate) validationErrors.push("Accident date is required");
+      if (!claim.accidentLocation) validationErrors.push("Accident location is required");
+      if (!claim.accidentDescription) validationErrors.push("Accident description is required");
+      
+      // Check insured details (individual or corporate)
+      if (claim.insuredType === 'individual') {
+        if (!claim.individualDetails) {
+          validationErrors.push("Individual insured details are required");
+        } else {
+          if (!claim.individualDetails.firstName) validationErrors.push("First name is required");
+          if (!claim.individualDetails.surname) validationErrors.push("Surname is required");
+          if (!claim.individualDetails.idNumber) validationErrors.push("ID/Passport number is required");
+        }
+      } else if (claim.insuredType === 'corporate') {
+        if (!claim.corporateDetails) {
+          validationErrors.push("Corporate insured details are required");
+        } else {
+          if (!claim.corporateDetails.registeredName) validationErrors.push("Company name is required");
+          if (!claim.corporateDetails.registrationNumber) validationErrors.push("Registration number is required");
+        }
+      }
+      
+      // Check vehicle details
+      if (!claim.vehicle) {
+        validationErrors.push("Vehicle details are required");
+      } else {
+        if (!claim.vehicle.make) validationErrors.push("Vehicle make is required");
+        if (!claim.vehicle.model) validationErrors.push("Vehicle model is required");
+        if (!claim.vehicle.registrationNumber_primemover) validationErrors.push("Vehicle registration is required");
+      }
+      
+      // Check driver details
+      if (!claim.driver) {
+        validationErrors.push("Driver details are required");
+      } else {
+        if (!claim.driver.name) validationErrors.push("Driver name is required");
+        if (!claim.driver.licenseNumber) validationErrors.push("Driver license number is required");
+      }
+      
+      // Check bank details
+      if (!claim.bankDetails) {
+        validationErrors.push("Bank details are required");
+      } else {
+        if (!claim.bankDetails.bankName) validationErrors.push("Bank name is required");
+        if (!claim.bankDetails.accountName) validationErrors.push("Account name is required");
+        if (!claim.bankDetails.accountNumber) validationErrors.push("Account number is required");
+      }
+      
+      // Return validation errors if any
+      if (validationErrors.length > 0) {
+        return res.status(400).json({ 
+          message: "Claim is incomplete and cannot be submitted",
+          errors: validationErrors,
+          missingFields: validationErrors.length
+        });
+      }
+      
       // Update claim status to submitted and set submittedAt timestamp
       await storage.updateClaimStatus(id, "submitted");
       await storage.updateClaim(id, { submittedAt: new Date() });

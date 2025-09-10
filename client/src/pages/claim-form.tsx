@@ -173,7 +173,7 @@ export default function ClaimForm() {
       yearsInService: "",
       employedByInsured: null as boolean | null,
       drivingWithPermission: null as boolean | null,
-      yearsOfDriving: "",
+      yearsOfDriving: null as number | null,
       blameToBareForAccident: null as boolean | null,
       admittedLiability: null as boolean | null,
       previousAccidents: null as boolean | null,
@@ -726,6 +726,12 @@ export default function ClaimForm() {
     try {
       // Submit the claim (change status from draft to submitted)
       const response = await apiRequest('POST', `/api/claims/${claimId}/submit`);
+      
+      if (!response.ok) {
+        const errorResult = await response.json();
+        throw new Error(errorResult.message || 'Submission failed');
+      }
+      
       const result = await response.json();
       
       toast({

@@ -99,7 +99,7 @@ export const driverDetailsSchema = z.object({
   name: z.string().min(1, "Driver name is required"),
   licenseNumber: z.string().min(1, "License number is required"),
   licenseExpiryDate: z.string().optional(),
-  yearsOfDriving: z.string().optional(),
+  yearsOfDriving: z.number().min(0, "Years of driving must be 0 or greater").optional(),
   relationship: z.string().optional(),
   hadAccidentBefore: z.boolean().optional(),
   accidentDetails: z.string().optional(),

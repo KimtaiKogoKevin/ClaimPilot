@@ -298,7 +298,7 @@ export const drivers = pgTable("drivers", {
 // Bank details
 export const bankDetails = pgTable("bank_details", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  claimId: varchar("claim_id").notNull().references(() => claims.id).unique(),
   bankName: varchar("bank_name").notNull(),
   accountName: varchar("account_name").notNull(),
   accountNumber: varchar("account_number").notNull(),

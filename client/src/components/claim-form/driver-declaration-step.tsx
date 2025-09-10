@@ -32,9 +32,18 @@ export default function DriverDeclarationStep({
 
   // For properties nested in formData.driver
   const handleDriverChange = (field: string, value: any) => {
+    let processedValue = value;
+    
+    // Convert yearsOfDriving to number
+    if (field === 'yearsOfDriving') {
+      processedValue = value === '' || value === null || value === undefined 
+        ? null 
+        : parseInt(value, 10) || null;
+    }
+    
     setFormData((prev: any) => ({
       ...prev,
-      driver: { ...prev.driver, [field]: value },
+      driver: { ...prev.driver, [field]: processedValue },
     }));
   };
 
@@ -175,7 +184,9 @@ export default function DriverDeclarationStep({
               </Label>
               <Input
                 id="yearsOfDriving"
-                value={formData.driver.yearsOfDriving}
+                type="number"
+                min="0"
+                value={formData.driver.yearsOfDriving?.toString() || ''}
                 onChange={(e) =>
                   handleDriverChange("yearsOfDriving", e.target.value)
                 }
