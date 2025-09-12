@@ -120,8 +120,18 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
     addSectionHeader('SECTION A: CLAIM INFORMATION');
     addTwoColumnFields('Policy Number', claim.policyNumber || '', 'Claim ID', claim.id.substring(0, 8));
     addTwoColumnFields('Branch Name', claim.branchName || '', 'Agent Name', claim.agentName || '');
-    addTwoColumnFields('Date of Last Premium Payment', claim.lastPaymentDate ? new Date(claim.lastPaymentDate).toLocaleDateString() : '', 'Period of Insurance', 'N/A');
-    addFormField('Status', claim.status.replace('_', ' ').toUpperCase());
+    addTwoColumnFields('Date of Last Premium Payment', claim.lastPaymentDate ? new Date(claim.lastPaymentDate).toLocaleDateString() : '', 'Type of Cover', claim.typeOfCover || '');
+    addTwoColumnFields('Finance Company', claim.financeCompanyName || '', 'Status', claim.status.replace('_', ' ').toUpperCase());
+    
+    // Other insurance and loan details
+    if (claim.hasOtherInsurance) {
+      addFormField('Other Insurance Details', claim.otherInsuranceDetails || '');
+    }
+    if (claim.hasLoanRepaymentCover) {
+      addSectionHeader('LOAN REPAYMENT COVER DETAILS');
+      addTwoColumnFields('Principal Amount', claim.loanPrincipalAmount?.toString() || '', 'Interest Amount', claim.loanInterestAmount?.toString() || '');
+      addTwoColumnFields('Monthly Instalment', claim.monthlyInstalment?.toString() || '', 'Coverage Percentage', claim.loanCoveragePercentage ? claim.loanCoveragePercentage.toString() + '%' : '');
+    }
     
     // Section B: Insured Details
     addSectionHeader('SECTION B: INSURED DETAILS');
@@ -130,30 +140,56 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
     if (claim.individualDetails) {
       addTwoColumnFields('First Name', claim.individualDetails.firstName || '', 'Middle Name', claim.individualDetails.middleName || '');
       addTwoColumnFields('Surname', claim.individualDetails.surname || '', 'ID Number', claim.individualDetails.idNumber || '');
-      addTwoColumnFields('Nationality', claim.individualDetails.nationality || '', 'Mobile Number', claim.individualDetails.mobile || '');
-      addTwoColumnFields('Email Address', claim.individualDetails.email || '', 'Physical Address', claim.individualDetails.physicalAddress || '');
+      addTwoColumnFields('PIN Number', claim.individualDetails.pinNumber || '', 'Age Band', claim.individualDetails.ageBand || '');
+      addTwoColumnFields('Date of Birth', claim.individualDetails.dateOfBirth ? new Date(claim.individualDetails.dateOfBirth).toLocaleDateString() : '', 'Nationality', claim.individualDetails.nationality || '');
+      addTwoColumnFields('Occupation', claim.individualDetails.occupation || '', 'Trade/Business', claim.individualDetails.tradeBusiness || '');
+      addTwoColumnFields('Mobile Number', claim.individualDetails.mobile || '', 'Residential Phone', claim.individualDetails.residentialPhone || '');
+      addTwoColumnFields('Office Phone', claim.individualDetails.officePhone || '', 'Email Address', claim.individualDetails.email || '');
+      addTwoColumnFields('Physical Address', claim.individualDetails.physicalAddress || '', 'Postal Address', claim.individualDetails.postalAddress || '');
+      addFormField('Postal Code', claim.individualDetails.postalCode || '');
     }
     
     if (claim.corporateDetails) {
       addTwoColumnFields('Registered Name', claim.corporateDetails.registeredName || '', 'Registration Number', claim.corporateDetails.registrationNumber || '');
-      addTwoColumnFields('Years in Operation', claim.corporateDetails.yearsInOperation?.toString() || '', 'Physical Address', claim.corporateDetails.physicalAddress || '');
+      addTwoColumnFields('Country of Registration', claim.corporateDetails.countryOfRegistration || '', 'Years in Operation', claim.corporateDetails.yearsInOperation?.toString() || '');
+      addTwoColumnFields('PIN Number', claim.corporateDetails.pinNumber || '', 'VAT Registration Number', claim.corporateDetails.vatRegNumber || '');
+      addTwoColumnFields('Trade/Business', claim.corporateDetails.tradeBusiness || '', 'Office Phone', claim.corporateDetails.officePhone || '');
+      addTwoColumnFields('Mobile Contact', claim.corporateDetails.mobileContact || '', 'Email Address', claim.corporateDetails.email || '');
+      addTwoColumnFields('Physical Address', claim.corporateDetails.physicalAddress || '', 'Postal Address', claim.corporateDetails.postalAddress || '');
+      addFormField('Postal Code', claim.corporateDetails.postalCode || '');
     }
     
     // Section C: Vehicle Information
     if (claim.vehicle) {
       addSectionHeader('SECTION C: VEHICLE INFORMATION');
       addTwoColumnFields('Make', claim.vehicle.make || '', 'Model', claim.vehicle.model || '');
-      addTwoColumnFields('Year of Manufacture', claim.vehicle.yearOfManufacture?.toString() || '', 'Registration Number', claim.vehicle.registrationNumber_primemover || '');
-      addTwoColumnFields('Owner Name', claim.vehicle.ownerName || '', 'Vehicle Use', claim.vehicle.vehicleUse || '');
+      addTwoColumnFields('Year of Manufacture', claim.vehicle.yearOfManufacture?.toString() || '', 'Registration Number (Prime Mover)', claim.vehicle.registrationNumber_primemover || '');
+      addFormField('Registration Number (Trailer)', claim.vehicle.registrationNumber_trailer || '');
+      // Chassis Number and Color fields removed - not in schema
+      addTwoColumnFields('Carrying Capacity', claim.vehicle.carryingCapacity || '', 'Loading Capacity', claim.vehicle.loadingCapacity || '');
+      addFormField('Vehicle Use', claim.vehicle.vehicleUse || '');
+      addTwoColumnFields('Owner Name', claim.vehicle.ownerName || '', 'Owner Address', claim.vehicle.ownerAddress || '');
     }
     
     // Section D: Driver Information
     if (claim.driver) {
       addSectionHeader('SECTION D: DRIVER INFORMATION');
       addTwoColumnFields('Driver Name', claim.driver.name || '', 'License Number', claim.driver.licenseNumber || '');
-      addTwoColumnFields('Years of Driving Experience', claim.driver.yearsOfDriving?.toString() || '', 'Occupation', claim.driver.occupation || '');
+      addTwoColumnFields('Date of Birth', claim.driver.dateOfBirth ? new Date(claim.driver.dateOfBirth).toLocaleDateString() : '', 'License Type', claim.driver.licenseType || '');
+      addTwoColumnFields('Years of Driving Experience', claim.driver.yearsOfDriving?.toString() || '', 'Years in Service', claim.yearsInService || '');
+      addTwoColumnFields('Occupation', claim.driver.occupation || '', 'Driving Test Passed Date', claim.driver.drivingTestPassedDate ? new Date(claim.driver.drivingTestPassedDate).toLocaleDateString() : '');
       addTwoColumnFields('Address', claim.driver.address || '', 'Telephone', claim.driver.telephone || '');
-      addTwoColumnFields('Employed by Insured', claim.driver.employedByInsured ? 'Yes' : 'No', 'Previous Accidents', claim.driver.previousAccidents ? 'Yes' : 'No');
+      addTwoColumnFields('Employed by Insured', claim.driver.employedByInsured ? 'Yes' : 'No', 'Driving With Permission', claim.driver.drivingWithPermission ? 'Yes' : 'No');
+      addTwoColumnFields('Owns Motor Vehicle', claim.driver.ownsMotorVehicle ? 'Yes' : 'No', 'Own Vehicle Insurer', claim.driver.ownVehicleInsurer || '');
+      addTwoColumnFields('Own Vehicle Policy Number', claim.driver.ownVehiclePolicyNumber || '', 'Blame to Bare for Accident', claim.driver.blameToBareForAccident ? 'Yes' : 'No');
+      addTwoColumnFields('Admitted Liability', claim.driver.admittedLiability ? 'Yes' : 'No', 'Previous Accidents', claim.driver.previousAccidents ? 'Yes' : 'No');
+      if (claim.driver.previousAccidents && claim.driver.previousAccidentsDetails) {
+        addFormField('Previous Accidents Details', claim.driver.previousAccidentsDetails);
+      }
+      addTwoColumnFields('Convictions', claim.driver.convictions ? 'Yes' : 'No', '', '');
+      if (claim.driver.convictions && claim.driver.convictionsDetails) {
+        addFormField('Convictions Details', claim.driver.convictionsDetails);
+      }
     }
     
     // Section E: Bank Details
@@ -179,6 +215,13 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
     addSectionHeader('SECTION G: ACCIDENT DETAILS');
     addTwoColumnFields('Accident Date', claim.accidentDate ? new Date(claim.accidentDate).toLocaleDateString() : '', 'Accident Time', claim.accidentTime || '');
     addFormField('Accident Location', claim.accidentLocation || '');
+    addTwoColumnFields('Road Surface', claim.roadSurface || '', 'Visibility', claim.visibility || '');
+    addTwoColumnFields('Driver Warning Given', claim.driverWarningGiven ? 'Yes' : 'No', 'Vehicle Lights On', claim.vehicleLightsOn ? 'Yes' : 'No');
+    addTwoColumnFields('Police Took Particulars', claim.policeTookParticulars ? 'Yes' : 'No', 'Constable Number', claim.policeConstableNumber || '');
+    addFormField('Police Station', claim.policeStation || '');
+    if (claim.accidentSketchPath) {
+      addFormField('Accident Sketch', 'Sketch file uploaded: ' + claim.accidentSketchPath);
+    }
     
     // Description box
     if (claim.accidentDescription) {
@@ -270,6 +313,47 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
         
         yPosition += 10; // Space between photos
       });
+    }
+    
+    // Section I: Third Party Information
+    if (claim.thirdPartyProperties && claim.thirdPartyProperties.length > 0) {
+      addSectionHeader('SECTION I: THIRD PARTY PROPERTIES');
+      claim.thirdPartyProperties.forEach((property, index) => {
+        yPosition += 5;
+        addText(`Property ${index + 1}:`, leftColumn, 10, true);
+        addTwoColumnFields('Owner Name', property.ownerName || '', '', '');  // propertyType field doesn't exist
+        addFormField('Owner Address', property.ownerAddress || '');  // estimatedDamage field doesn't exist
+        addFormField('Property Description', property.propertyDescription || '');
+      });
+    }
+    
+    // Section J: Injured Persons
+    if (claim.injuredPersons && claim.injuredPersons.length > 0) {
+      addSectionHeader('SECTION J: INJURED PERSONS');
+      claim.injuredPersons.forEach((person, index) => {
+        yPosition += 5;
+        addText(`Person ${index + 1}:`, leftColumn, 10, true);
+        addFormField('Name', person.personName || '');  // age field doesn't exist
+        addTwoColumnFields('Address', person.personAddress || '', 'Relationship to Insured', person.relationshipToInsured || '');
+        addFormField('Apparent Injuries', person.apparentInjuries || '');
+      });
+    }
+    
+    // Section K: Witnesses
+    if (claim.witnesses && claim.witnesses.length > 0) {
+      addSectionHeader('SECTION K: WITNESSES');
+      claim.witnesses.forEach((witness, index) => {
+        yPosition += 5;
+        addText(`Witness ${index + 1}:`, leftColumn, 10, true);
+        addTwoColumnFields('Name', witness.witnessName || '', 'Address', witness.witnessAddress || '');
+      });
+    }
+    
+    // Section L: Declaration
+    if (claim.declarationName || claim.declarationTitle) {
+      addSectionHeader('SECTION L: DECLARATION');
+      addTwoColumnFields('Declaration Name', claim.declarationName || '', 'Declaration Title', claim.declarationTitle || '');
+      // Note: ownerStatement and declarationAccepted fields removed - not in schema
     }
     
     // Footer
