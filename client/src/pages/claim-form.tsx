@@ -587,7 +587,7 @@ export default function ClaimForm() {
       typeOfCover: formData.typeOfCover || "",
       insuredType: formData.insuredType || "individual",
 
-      // Individual details (save all individual form fields)
+      // Individual details (save all individual form fields INCLUDING AGE BAND)
       individualFirstName: formData.individual?.firstName || "",
       individualMiddleName: formData.individual?.middleName || "",
       individualSurname: formData.individual?.surname || "",
@@ -604,6 +604,7 @@ export default function ClaimForm() {
       individualPhysicalAddress: formData.individual?.physicalAddress || "",
       individualEmail: formData.individual?.email || "",
       individualTradeBusiness: formData.individual?.tradeBusiness || "",
+      individualAgeBand: formData.individual?.ageBand || "", // ← CRITICAL: The missing age band field!
       // Corporate details (save all corporate form fields)
       corporateRegisteredName: formData.corporate?.registeredName || "",
       corporateRegistrationNumber: formData.corporate?.registrationNumber || "",
@@ -678,16 +679,31 @@ export default function ClaimForm() {
       accidentPoliceTookParticulars: formData.accident?.policeTookParticulars || false,
       accidentPoliceConstableNumber: formData.accident?.policeConstableNumber || "",
       accidentPoliceStation: formData.accident?.policeStation || "",
+      
+      // STEP 3: Complete Damage Assessment Fields
+      inspectionLocation: formData.inspectionLocation || "",
+      repairerName: formData.repairerName || "",
+      repairerPhone: formData.repairerPhone || "",
+      repairerAddress: formData.repairerAddress || "",
+      isVehicleInUse: formData.isVehicleInUse || false,
+      thirdPartyProperties: JSON.stringify((formData as any).thirdPartyProperties || []),
+      personsInjured: JSON.stringify((formData as any).personsInjured || []),
+      
+      // STEP 4: Final Declaration Fields
+      ownerStatement: formData.ownerStatement || "",
+      declarationName: formData.declarationName || "",
+      declarationTitle: formData.declarationTitle || "",
+      declarationAccepted: formData.declarationAccepted || false,
     };
     
     // Check if we have meaningful data to save (not just empty strings)
     const hasBasicPolicyData = dataToSave.branchName || dataToSave.agentName || dataToSave.policyNumber;
-    const hasIndividualData = dataToSave.individualFirstName || dataToSave.individualSurname || dataToSave.individualIdNumber;
+    const hasIndividualData = dataToSave.individualFirstName || dataToSave.individualSurname || dataToSave.individualIdNumber || dataToSave.individualAgeBand;
     const hasCorporateData = dataToSave.corporateRegisteredName || dataToSave.corporateRegistrationNumber;
-    const hasAccidentData = dataToSave.accidentDate || dataToSave.accidentLocation || dataToSave.accidentDescription;
+    const hasAccidentData = dataToSave.accidentDate || dataToSave.accidentLocation || dataToSave.accidentDescription || dataToSave.inspectionLocation || dataToSave.repairerName;
     const hasVehicleData = dataToSave.vehicleMake || dataToSave.vehicleModel || dataToSave.vehicleRegistrationNumber_primemover || dataToSave.vehicleRegistrationNumber_trailer || dataToSave.vehicleOwnerName;
     const hasDriverData = dataToSave.driverName || dataToSave.driverLicenseNumber || dataToSave.driverAddress || dataToSave.driverOccupation || dataToSave.driverTelephone;
-    const hasBankData = dataToSave.bankBankName || dataToSave.bankAccountNumber || dataToSave.bankAccountName || dataToSave.bankBranch;
+    const hasBankData = dataToSave.bankBankName || dataToSave.bankAccountNumber || dataToSave.bankAccountName || dataToSave.bankBranch || dataToSave.ownerStatement || dataToSave.declarationName;
     
     // Only save if we have meaningful data in at least one section
     const hasMeaningfulData = hasBasicPolicyData || hasIndividualData || hasCorporateData || hasAccidentData || hasVehicleData || hasDriverData || hasBankData;
