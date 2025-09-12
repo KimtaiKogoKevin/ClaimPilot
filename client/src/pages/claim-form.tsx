@@ -417,21 +417,21 @@ export default function ClaimForm() {
           : prev.vehicle,
         accident: {
           ...prev.accident,
-          // Base accident details (these might be at the top level of the draft)
-          date: (currentDraft as any).accidentDate
+          // Smart restoration - never overwrite complete data with empty data
+          date: (currentDraft as any).accidentDate && (currentDraft as any).accidentDate !== ""
             ? new Date((currentDraft as any).accidentDate)
                 .toISOString()
                 .split("T")[0]
             : prev.accident.date || "",
-          time: (currentDraft as any).accidentTime || prev.accident.time || "",
-          location:
-            (currentDraft as any).accidentLocation ||
-            prev.accident.location ||
-            "",
-          description:
-            (currentDraft as any).accidentDescription ||
-            prev.accident.description ||
-            "",
+          time: (currentDraft as any).accidentTime && (currentDraft as any).accidentTime !== "" 
+            ? (currentDraft as any).accidentTime 
+            : prev.accident.time || "",
+          location: (currentDraft as any).accidentLocation && (currentDraft as any).accidentLocation !== ""
+            ? (currentDraft as any).accidentLocation
+            : prev.accident.location || "",
+          description: (currentDraft as any).accidentDescription && (currentDraft as any).accidentDescription !== ""
+            ? (currentDraft as any).accidentDescription
+            : prev.accident.description || "",
 
 
           // New detailed fields (these might be at the top level OR nested in an `accident` object)
@@ -471,18 +471,15 @@ export default function ClaimForm() {
             "",
         },
         damage: {
-          vehicleDescription:
-            (currentDraft as any).vehicleDamageDescription ||
-            prev.damage.vehicleDescription ||
-            "",
-          goodsDamaged:
-            (currentDraft as any).goodsDamaged ||
-            prev.damage.goodsDamaged ||
-            false,
-          goodsDescription:
-            (currentDraft as any).goodsDescription ||
-            prev.damage.goodsDescription ||
-            "",
+          vehicleDescription: (currentDraft as any).vehicleDamageDescription && (currentDraft as any).vehicleDamageDescription !== ""
+            ? (currentDraft as any).vehicleDamageDescription
+            : prev.damage.vehicleDescription || "",
+          goodsDamaged: (currentDraft as any).goodsDamaged !== undefined
+            ? (currentDraft as any).goodsDamaged
+            : prev.damage.goodsDamaged || false,
+          goodsDescription: (currentDraft as any).goodsDescription && (currentDraft as any).goodsDescription !== ""
+            ? (currentDraft as any).goodsDescription
+            : prev.damage.goodsDescription || "",
         },
         driver: {
           name: (currentDraft as any).driver?.name || (currentDraft as any).driverName || prev.driver.name || "",
@@ -573,68 +570,104 @@ export default function ClaimForm() {
     return Math.round((currentStep / totalSteps) * 100);
   }, [currentStep, totalSteps]);
 
-  // Auto-save draft when form data changes
+  // Smart auto-save that only saves meaningful data and never overwrites complete data with empty data
   const autoSave = useCallback(() => {
     if (!claimId) {
       console.log("No claimId, skipping auto-save");
       return;
     }
     
-    console.log("Auto-saving form data...");
-    const progressPercentage = calculateProgress();
+    // Build the data to save
     const dataToSave = {
       // Policy details
-      branchName: formData.branchName,
-      agentName: formData.agentName,
-      policyNumber: formData.policyNumber,
-      lastPaymentDate: formData.lastPaymentDate,
-      typeOfCover: formData.typeOfCover,
-      insuredType: formData.insuredType,
-
+      branchName: formData.branchName || "",
+      agentName: formData.agentName || "",
+      policyNumber: formData.policyNumber || "",
+      lastPaymentDate: formData.lastPaymentDate || "",
+      typeOfCover: formData.typeOfCover || "",
+      insuredType: formData.insuredType || "individual",
 
       // Individual details (save all individual form fields)
-      individualFirstName: formData.individual.firstName,
-      individualMiddleName: formData.individual.middleName,
-      individualSurname: formData.individual.surname,
-      individualIdNumber: formData.individual.idNumber,
-      individualNationality: formData.individual.nationality,
-      individualDateOfBirth: formData.individual.dateOfBirth,
-      individualPinNumber: formData.individual.pinNumber,
-      individualOccupation: formData.individual.occupation,
-      individualResidentialPhone: formData.individual.residentialPhone,
-      individualOfficePhone: formData.individual.officePhone,
-      individualMobile: formData.individual.mobile,
-      individualPostalAddress: formData.individual.postalAddress,
-      individualPostalCode: formData.individual.postalCode,
-      individualPhysicalAddress: formData.individual.physicalAddress,
-      individualEmail: formData.individual.email,
-      individualTradeBusiness: formData.individual.tradeBusiness,
+      individualFirstName: formData.individual?.firstName || "",
+      individualMiddleName: formData.individual?.middleName || "",
+      individualSurname: formData.individual?.surname || "",
+      individualIdNumber: formData.individual?.idNumber || "",
+      individualNationality: formData.individual?.nationality || "",
+      individualDateOfBirth: formData.individual?.dateOfBirth || "",
+      individualPinNumber: formData.individual?.pinNumber || "",
+      individualOccupation: formData.individual?.occupation || "",
+      individualResidentialPhone: formData.individual?.residentialPhone || "",
+      individualOfficePhone: formData.individual?.officePhone || "",
+      individualMobile: formData.individual?.mobile || "",
+      individualPostalAddress: formData.individual?.postalAddress || "",
+      individualPostalCode: formData.individual?.postalCode || "",
+      individualPhysicalAddress: formData.individual?.physicalAddress || "",
+      individualEmail: formData.individual?.email || "",
+      individualTradeBusiness: formData.individual?.tradeBusiness || "",
       // Corporate details (save all corporate form fields)
-      corporateRegisteredName: formData.corporate.registeredName,
-      corporateRegistrationNumber: formData.corporate.registrationNumber,
-      corporateCountryOfRegistration: formData.corporate.countryOfRegistration,
-      corporatePinNumber: formData.corporate.pinNumber,
-      corporateVatRegNumber: formData.corporate.vatRegNumber,
-      corporateOfficePhone: formData.corporate.officePhone,
-      corporateMobileContact: formData.corporate.mobileContact,
-      corporatePostalAddress: formData.corporate.postalAddress,
-      corporatePostalCode: formData.corporate.postalCode,
-      corporatePhysicalAddress: formData.corporate.physicalAddress,
-      corporateEmail: formData.corporate.email,
-      corporateTradeBusiness: formData.corporate.tradeBusiness,
-      corporateYearsInOperation: formData.corporate.yearsInOperation,
+      corporateRegisteredName: formData.corporate?.registeredName || "",
+      corporateRegistrationNumber: formData.corporate?.registrationNumber || "",
+      corporateCountryOfRegistration: formData.corporate?.countryOfRegistration || "",
+      corporatePinNumber: formData.corporate?.pinNumber || "",
+      corporateVatRegNumber: formData.corporate?.vatRegNumber || "",
+      corporateOfficePhone: formData.corporate?.officePhone || "",
+      corporateMobileContact: formData.corporate?.mobileContact || "",
+      corporatePostalAddress: formData.corporate?.postalAddress || "",
+      corporatePostalCode: formData.corporate?.postalCode || "",
+      corporatePhysicalAddress: formData.corporate?.physicalAddress || "",
+      corporateEmail: formData.corporate?.email || "",
+      corporateTradeBusiness: formData.corporate?.tradeBusiness || "",
+      corporateYearsInOperation: formData.corporate?.yearsInOperation || "",
       // Accident details
-      accidentDate: formData.accident.date,
-      accidentTime: formData.accident.time,
-      accidentLocation: formData.accident.location,
-      accidentDescription: formData.accident.description,
+      accidentDate: formData.accident?.date || "",
+      accidentTime: formData.accident?.time || "",
+      accidentLocation: formData.accident?.location || "",
+      accidentDescription: formData.accident?.description || "",
       // Damage details
-      vehicleDamageDescription: formData.damage.vehicleDescription,
-      goodsDamaged: formData.damage.goodsDamaged,
-      goodsDescription: formData.damage.goodsDescription,
+      vehicleDamageDescription: formData.damage?.vehicleDescription || "",
+      goodsDamaged: formData.damage?.goodsDamaged || false,
+      goodsDescription: formData.damage?.goodsDescription || "",
+      // Vehicle details for validation
+      vehicleMake: formData.vehicle?.make || "",
+      vehicleModel: formData.vehicle?.model || "",
+      // Driver details for validation
+      driverName: formData.driver?.name || "",
+      driverLicenseNumber: formData.driver?.licenseNumber || "",
+      // Bank details for validation
+      bankBankName: formData.bank?.bankName || "",
+      bankAccountNumber: formData.bank?.accountNumber || "",
     };
     
-    console.log("Saving data with step:", currentStep, dataToSave);
+    // Check if we have meaningful data to save (not just empty strings)
+    const hasBasicPolicyData = dataToSave.branchName || dataToSave.agentName || dataToSave.policyNumber;
+    const hasIndividualData = dataToSave.individualFirstName || dataToSave.individualSurname || dataToSave.individualIdNumber;
+    const hasCorporateData = dataToSave.corporateRegisteredName || dataToSave.corporateRegistrationNumber;
+    const hasAccidentData = dataToSave.accidentDate || dataToSave.accidentLocation || dataToSave.accidentDescription;
+    const hasVehicleData = dataToSave.vehicleMake || dataToSave.vehicleModel;
+    const hasDriverData = dataToSave.driverName || dataToSave.driverLicenseNumber;
+    const hasBankData = dataToSave.bankBankName || dataToSave.bankAccountNumber;
+    
+    // Only save if we have meaningful data in at least one section
+    const hasMeaningfulData = hasBasicPolicyData || hasIndividualData || hasCorporateData || hasAccidentData || hasVehicleData || hasDriverData || hasBankData;
+    
+    if (!hasMeaningfulData) {
+      console.log("Skipping auto-save - no meaningful data to save");
+      return;
+    }
+    
+    console.log("Auto-saving form data with meaningful content...");
+    const progressPercentage = calculateProgress();
+    
+    console.log("Saving data with step:", currentStep, "Sections with data:", {
+      hasBasicPolicyData,
+      hasIndividualData,
+      hasCorporateData,
+      hasAccidentData,
+      hasVehicleData,
+      hasDriverData,
+      hasBankData
+    });
+    
     saveDraft(claimId, currentStep, dataToSave, progressPercentage);
   }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
 
@@ -767,15 +800,17 @@ export default function ClaimForm() {
   };
 
   // Auto-save functionality
+  // Smart auto-save that triggers only when there's meaningful data
   useEffect(() => {
-    // Auto-save disabled temporarily to prevent form clearing
-    // const autoSave = setInterval(() => {
-    //   // Auto-save logic would be implemented here
-    //   console.log("Auto-saving form data...");
-    // }, 30000);
-
-    // return () => clearInterval(autoSave);
-  }, [formData]);
+    // Only trigger auto-save if we have meaningful form data and haven't just restored from draft
+    if (!hasRestoredFromDraft && claimId) {
+      const timeoutId = setTimeout(() => {
+        autoSave();
+      }, 2000); // 2 second delay to allow user to finish typing
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formData, autoSave, hasRestoredFromDraft, claimId]);
 
   // Remove duplicate authentication checks - handled by App.tsx router
   // The Router in App.tsx already ensures only authenticated users reach this component
