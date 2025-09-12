@@ -161,6 +161,48 @@ export function transformFormDataForAPI(formData: any): any {
     vehicleDamageDescription: formData.damage?.vehicleDescription || "",
     goodsDamaged: formData.damage?.goodsDamaged || false,
     goodsDescription: formData.damage?.goodsDescription || "",
+    
+    // Vehicle details (flattened for dual storage)
+    vehicleMake: formData.vehicle?.make || "",
+    vehicleModel: formData.vehicle?.model || "",
+    vehicleYearOfManufacture: formData.vehicle?.yearOfManufacture || null,
+    vehicleRegistrationNumber: formData.vehicle?.registrationNumber_primemover || formData.vehicle?.registrationNumber || "",
+    vehicleCarryingCapacity: formData.vehicle?.carryingCapacity || "",
+    vehicleLoadingCapacity: formData.vehicle?.loadingCapacity || "",
+    vehicleOwnerName: formData.vehicle?.ownerName || "",
+    vehicleOwnerAddress: formData.vehicle?.ownerAddress || "",
+    vehicleVehicleUse: formData.vehicle?.vehicleUse || "",
+    
+    // Driver details (flattened for dual storage)
+    driverName: formData.driver?.name || "",
+    driverOccupation: formData.driver?.occupation || "",
+    driverAddress: formData.driver?.address || "",
+    driverDateOfBirth: formData.driver?.dateOfBirth || "",
+    driverTelephone: formData.driver?.telephone || "",
+    driverYearsInService: formData.driver?.yearsInService || "",
+    driverEmployedByInsured: formData.driver?.employedByInsured ?? null,
+    driverDrivingWithPermission: formData.driver?.drivingWithPermission ?? null,
+    driverYearsOfDriving: formData.driver?.yearsOfDriving ?? null,
+    driverBlameToBareForAccident: formData.driver?.blameToBareForAccident ?? null,
+    driverAdmittedLiability: formData.driver?.admittedLiability ?? null,
+    driverPreviousAccidents: formData.driver?.previousAccidents ?? null,
+    driverPreviousAccidentsDetails: formData.driver?.previousAccidentsDetails || "",
+    driverConvictions: formData.driver?.convictions ?? null,
+    driverConvictionsDetails: formData.driver?.convictionsDetails || "",
+    driverLicenseNumber: formData.driver?.licenseNumber || "",
+    driverLicenseType: formData.driver?.licenseType || "",
+    driverDrivingTestPassedDate: formData.driver?.drivingTestPassedDate || "",
+    driverOwnsMotorVehicle: formData.driver?.ownsMotorVehicle ?? null,
+    driverOwnVehicleInsurer: formData.driver?.ownVehicleInsurer || "",
+    driverOwnVehiclePolicyNumber: formData.driver?.ownVehiclePolicyNumber || "",
+    
+    // Bank details (flattened for dual storage)
+    bankBankName: formData.bank?.bankName || "",
+    bankAccountName: formData.bank?.accountName || "",
+    bankAccountNumber: formData.bank?.accountNumber || "",
+    bankBranch: formData.bank?.branch || "",
+    bankSwiftCode: formData.bank?.swiftCode || "",
+    bankSortCode: formData.bank?.sortCode || "",
   };
 }
 

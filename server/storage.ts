@@ -328,6 +328,72 @@ export class DatabaseStorage implements IStorage {
       
       await this.upsertCorporateDetails(corporateData);
     }
+    
+    // Save vehicle details when available with required fields
+    if ((data.vehicleMake || data.vehicle?.make) && 
+        (data.vehicleModel || data.vehicle?.model)) {
+      const vehicleData = {
+        claimId,
+        make: data.vehicleMake || data.vehicle?.make || '',
+        model: data.vehicleModel || data.vehicle?.model || '',
+        yearOfManufacture: data.vehicleYearOfManufacture || data.vehicle?.yearOfManufacture || null,
+        registrationNumber: data.vehicleRegistrationNumber || data.vehicle?.registrationNumber_primemover || data.vehicle?.registrationNumber || '',
+        carryingCapacity: data.vehicleCarryingCapacity || data.vehicle?.carryingCapacity || '',
+        loadingCapacity: data.vehicleLoadingCapacity || data.vehicle?.loadingCapacity || '',
+        ownerName: data.vehicleOwnerName || data.vehicle?.ownerName || '',
+        ownerAddress: data.vehicleOwnerAddress || data.vehicle?.ownerAddress || '',
+        vehicleUse: data.vehicleVehicleUse || data.vehicle?.vehicleUse || '',
+      };
+      
+      await this.upsertVehicle(vehicleData);
+    }
+    
+    // Save driver details when available with required fields
+    if ((data.driverName || data.driver?.name) && 
+        (data.driverLicenseNumber || data.driver?.licenseNumber)) {
+      const driverData = {
+        claimId,
+        name: data.driverName || data.driver?.name || '',
+        occupation: data.driverOccupation || data.driver?.occupation || '',
+        address: data.driverAddress || data.driver?.address || '',
+        dateOfBirth: convertToDate(data.driverDateOfBirth || data.driver?.dateOfBirth) || null,
+        telephone: data.driverTelephone || data.driver?.telephone || '',
+        yearsInService: data.driverYearsInService || data.driver?.yearsInService || '',
+        employedByInsured: data.driverEmployedByInsured ?? data.driver?.employedByInsured ?? null,
+        drivingWithPermission: data.driverDrivingWithPermission ?? data.driver?.drivingWithPermission ?? null,
+        yearsOfDriving: data.driverYearsOfDriving ?? data.driver?.yearsOfDriving ?? null,
+        blameToBareForAccident: data.driverBlameToBareForAccident ?? data.driver?.blameToBareForAccident ?? null,
+        admittedLiability: data.driverAdmittedLiability ?? data.driver?.admittedLiability ?? null,
+        previousAccidents: data.driverPreviousAccidents ?? data.driver?.previousAccidents ?? null,
+        previousAccidentsDetails: data.driverPreviousAccidentsDetails || data.driver?.previousAccidentsDetails || '',
+        convictions: data.driverConvictions ?? data.driver?.convictions ?? null,
+        convictionsDetails: data.driverConvictionsDetails || data.driver?.convictionsDetails || '',
+        licenseNumber: data.driverLicenseNumber || data.driver?.licenseNumber || '',
+        licenseType: data.driverLicenseType || data.driver?.licenseType || '',
+        drivingTestPassedDate: convertToDate(data.driverDrivingTestPassedDate || data.driver?.drivingTestPassedDate) || null,
+        ownsMotorVehicle: data.driverOwnsMotorVehicle ?? data.driver?.ownsMotorVehicle ?? null,
+        ownVehicleInsurer: data.driverOwnVehicleInsurer || data.driver?.ownVehicleInsurer || '',
+        ownVehiclePolicyNumber: data.driverOwnVehiclePolicyNumber || data.driver?.ownVehiclePolicyNumber || '',
+      };
+      
+      await this.upsertDriver(driverData);
+    }
+    
+    // Save bank details when available with required fields
+    if ((data.bankBankName || data.bank?.bankName) && 
+        (data.bankAccountNumber || data.bank?.accountNumber)) {
+      const bankData = {
+        claimId,
+        bankName: data.bankBankName || data.bank?.bankName || '',
+        accountName: data.bankAccountName || data.bank?.accountName || '',
+        accountNumber: data.bankAccountNumber || data.bank?.accountNumber || '',
+        branch: data.bankBranch || data.bank?.branch || '',
+        swiftCode: data.bankSwiftCode || data.bank?.swiftCode || '',
+        sortCode: data.bankSortCode || data.bank?.sortCode || '',
+      };
+      
+      await this.upsertBankDetails(bankData);
+    }
   }
 
   async getDraftClaims(userId: string): Promise<ClaimWithDetails[]> {

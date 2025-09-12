@@ -485,47 +485,47 @@ export default function ClaimForm() {
             "",
         },
         driver: {
-          name: (currentDraft as any).driver?.name || "",
-          occupation: (currentDraft as any).driver?.occupation || "",
-          address: (currentDraft as any).driver?.address || "",
-          dateOfBirth: (currentDraft as any).driver?.dateOfBirth || "",
-          telephone: (currentDraft as any).driver?.telephone || "",
-          licenseNumber: (currentDraft as any).driver?.licenseNumber || "",
+          name: (currentDraft as any).driver?.name || (currentDraft as any).driverName || prev.driver.name || "",
+          occupation: (currentDraft as any).driver?.occupation || (currentDraft as any).driverOccupation || prev.driver.occupation || "",
+          address: (currentDraft as any).driver?.address || (currentDraft as any).driverAddress || prev.driver.address || "",
+          dateOfBirth: (currentDraft as any).driver?.dateOfBirth || (currentDraft as any).driverDateOfBirth || prev.driver.dateOfBirth || "",
+          telephone: (currentDraft as any).driver?.telephone || (currentDraft as any).driverTelephone || prev.driver.telephone || "",
+          licenseNumber: (currentDraft as any).driver?.licenseNumber || (currentDraft as any).driverLicenseNumber || prev.driver.licenseNumber || "",
           employedByInsured:
-            (currentDraft as any).driver?.employedByInsured || null,
+            (currentDraft as any).driver?.employedByInsured ?? (currentDraft as any).driverEmployedByInsured ?? prev.driver.employedByInsured,
           drivingWithPermission:
-            (currentDraft as any).driver?.drivingWithPermission || null,
-          yearsOfDriving: (currentDraft as any).driver?.yearsOfDriving || null,
+            (currentDraft as any).driver?.drivingWithPermission ?? (currentDraft as any).driverDrivingWithPermission ?? prev.driver.drivingWithPermission,
+          yearsOfDriving: (currentDraft as any).driver?.yearsOfDriving ?? (currentDraft as any).driverYearsOfDriving ?? prev.driver.yearsOfDriving,
           blameToBareForAccident:
-            (currentDraft as any).driver?.blameToBareForAccident || null,
+            (currentDraft as any).driver?.blameToBareForAccident ?? (currentDraft as any).driverBlameToBareForAccident ?? prev.driver.blameToBareForAccident,
           admittedLiability:
-            (currentDraft as any).driver?.admittedLiability || null,
+            (currentDraft as any).driver?.admittedLiability ?? (currentDraft as any).driverAdmittedLiability ?? prev.driver.admittedLiability,
           previousAccidents:
-            (currentDraft as any).driver?.previousAccidents || null,
+            (currentDraft as any).driver?.previousAccidents ?? (currentDraft as any).driverPreviousAccidents ?? prev.driver.previousAccidents,
           previousAccidentsDetails:
-            (currentDraft as any).driver?.previousAccidentsDetails || "",
-          convictions: (currentDraft as any).driver?.convictions || null,
+            (currentDraft as any).driver?.previousAccidentsDetails || (currentDraft as any).driverPreviousAccidentsDetails || prev.driver.previousAccidentsDetails || "",
+          convictions: (currentDraft as any).driver?.convictions ?? (currentDraft as any).driverConvictions ?? prev.driver.convictions,
           convictionsDetails:
-            (currentDraft as any).driver?.convictionsDetails || "",
-          licenseType: (currentDraft as any).driver?.licenseType || "",
+            (currentDraft as any).driver?.convictionsDetails || (currentDraft as any).driverConvictionsDetails || prev.driver.convictionsDetails || "",
+          licenseType: (currentDraft as any).driver?.licenseType || (currentDraft as any).driverLicenseType || prev.driver.licenseType || "",
           drivingTestPassedDate:
-            (currentDraft as any).driver?.drivingTestPassedDate || "",
+            (currentDraft as any).driver?.drivingTestPassedDate || (currentDraft as any).driverDrivingTestPassedDate || prev.driver.drivingTestPassedDate || "",
           ownsMotorVehicle:
-            (currentDraft as any).driver?.ownsMotorVehicle || null,
+            (currentDraft as any).driver?.ownsMotorVehicle ?? (currentDraft as any).driverOwnsMotorVehicle ?? prev.driver.ownsMotorVehicle,
           ownVehicleInsurer:
-            (currentDraft as any).driver?.ownVehicleInsurer || "",
+            (currentDraft as any).driver?.ownVehicleInsurer || (currentDraft as any).driverOwnVehicleInsurer || prev.driver.ownVehicleInsurer || "",
           ownVehiclePolicyNumber:
-            (currentDraft as any).driver?.ownVehiclePolicyNumber || "",
+            (currentDraft as any).driver?.ownVehiclePolicyNumber || (currentDraft as any).driverOwnVehiclePolicyNumber || prev.driver.ownVehiclePolicyNumber || "",
           yearsInService:
-            (currentDraft as any).driver?.yearsInService || "",
+            (currentDraft as any).driver?.yearsInService || (currentDraft as any).driverYearsInService || prev.driver.yearsInService || "",
         },
         bank: {
-          bankName: (currentDraft as any).bankDetails?.bankName || "",
-          accountName: (currentDraft as any).bankDetails?.accountName || "",
-          accountNumber: (currentDraft as any).bankDetails?.accountNumber || "",
-          branch: (currentDraft as any).bankDetails?.branch || "",
-          swiftCode: (currentDraft as any).bankDetails?.swiftCode || "",
-          sortCode: (currentDraft as any).bankDetails?.sortCode || "",
+          bankName: (currentDraft as any).bankDetails?.bankName || (currentDraft as any).bankBankName || prev.bank.bankName || "",
+          accountName: (currentDraft as any).bankDetails?.accountName || (currentDraft as any).bankAccountName || prev.bank.accountName || "",
+          accountNumber: (currentDraft as any).bankDetails?.accountNumber || (currentDraft as any).bankAccountNumber || prev.bank.accountNumber || "",
+          branch: (currentDraft as any).bankDetails?.branch || (currentDraft as any).bankBranch || prev.bank.branch || "",
+          swiftCode: (currentDraft as any).bankDetails?.swiftCode || (currentDraft as any).bankSwiftCode || prev.bank.swiftCode || "",
+          sortCode: (currentDraft as any).bankDetails?.sortCode || (currentDraft as any).bankSortCode || prev.bank.sortCode || "",
         },
         otherVehicles: (currentDraft as any).otherVehicles || [],
       }));
