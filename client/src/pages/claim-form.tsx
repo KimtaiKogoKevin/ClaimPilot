@@ -627,15 +627,57 @@ export default function ClaimForm() {
       vehicleDamageDescription: formData.damage?.vehicleDescription || "",
       goodsDamaged: formData.damage?.goodsDamaged || false,
       goodsDescription: formData.damage?.goodsDescription || "",
-      // Vehicle details for validation
+      // COMPLETE Vehicle details - ALL fields
       vehicleMake: formData.vehicle?.make || "",
       vehicleModel: formData.vehicle?.model || "",
-      // Driver details for validation
+      vehicleYearOfManufacture: formData.vehicle?.yearOfManufacture || null,
+      vehicleRegistrationNumber_primemover: formData.vehicle?.registrationNumber_primemover || "",
+      vehicleRegistrationNumber_trailer: formData.vehicle?.registrationNumber_trailer || "",
+      vehicleCarryingCapacity: formData.vehicle?.carryingCapacity || "",
+      vehicleLoadingCapacity: formData.vehicle?.loadingCapacity || "",
+      vehicleOwnerName: formData.vehicle?.ownerName || "",
+      vehicleOwnerAddress: formData.vehicle?.ownerAddress || "",
+      vehicleVehicleUse: formData.vehicle?.vehicleUse || "",
+      
+      // COMPLETE Driver details - ALL fields
       driverName: formData.driver?.name || "",
+      driverOccupation: formData.driver?.occupation || "",
+      driverAddress: formData.driver?.address || "",
+      driverDateOfBirth: formData.driver?.dateOfBirth || "",
+      driverTelephone: formData.driver?.telephone || "",
       driverLicenseNumber: formData.driver?.licenseNumber || "",
-      // Bank details for validation
+      driverEmployedByInsured: formData.driver?.employedByInsured || false,
+      driverDrivingWithPermission: formData.driver?.drivingWithPermission || false,
+      driverYearsOfDriving: formData.driver?.yearsOfDriving || null,
+      driverBlameToBareForAccident: formData.driver?.blameToBareForAccident || false,
+      driverAdmittedLiability: formData.driver?.admittedLiability || false,
+      driverPreviousAccidents: formData.driver?.previousAccidents || false,
+      driverPreviousAccidentsDetails: formData.driver?.previousAccidentsDetails || "",
+      driverConvictions: formData.driver?.convictions || false,
+      driverConvictionsDetails: formData.driver?.convictionsDetails || "",
+      driverLicenseType: formData.driver?.licenseType || "",
+      driverDrivingTestPassedDate: formData.driver?.drivingTestPassedDate || "",
+      driverOwnsMotorVehicle: formData.driver?.ownsMotorVehicle || false,
+      driverOwnVehicleInsurer: formData.driver?.ownVehicleInsurer || "",
+      driverOwnVehiclePolicyNumber: formData.driver?.ownVehiclePolicyNumber || "",
+      driverYearsInService: formData.driver?.yearsInService || "",
+      
+      // COMPLETE Bank details - ALL fields
       bankBankName: formData.bank?.bankName || "",
+      bankAccountName: formData.bank?.accountName || "",
       bankAccountNumber: formData.bank?.accountNumber || "",
+      bankBranch: formData.bank?.branch || "",
+      bankSwiftCode: formData.bank?.swiftCode || "",
+      bankSortCode: formData.bank?.sortCode || "",
+      
+      // COMPLETE Accident details - ALL fields  
+      accidentRoadSurface: formData.accident?.roadSurface || "",
+      accidentVisibility: formData.accident?.visibility || "",
+      accidentDriverWarningGiven: formData.accident?.driverWarningGiven || "",
+      accidentVehicleLightsOn: formData.accident?.vehicleLightsOn || "",
+      accidentPoliceTookParticulars: formData.accident?.policeTookParticulars || false,
+      accidentPoliceConstableNumber: formData.accident?.policeConstableNumber || "",
+      accidentPoliceStation: formData.accident?.policeStation || "",
     };
     
     // Check if we have meaningful data to save (not just empty strings)
@@ -643,9 +685,9 @@ export default function ClaimForm() {
     const hasIndividualData = dataToSave.individualFirstName || dataToSave.individualSurname || dataToSave.individualIdNumber;
     const hasCorporateData = dataToSave.corporateRegisteredName || dataToSave.corporateRegistrationNumber;
     const hasAccidentData = dataToSave.accidentDate || dataToSave.accidentLocation || dataToSave.accidentDescription;
-    const hasVehicleData = dataToSave.vehicleMake || dataToSave.vehicleModel;
-    const hasDriverData = dataToSave.driverName || dataToSave.driverLicenseNumber;
-    const hasBankData = dataToSave.bankBankName || dataToSave.bankAccountNumber;
+    const hasVehicleData = dataToSave.vehicleMake || dataToSave.vehicleModel || dataToSave.vehicleRegistrationNumber_primemover || dataToSave.vehicleRegistrationNumber_trailer || dataToSave.vehicleOwnerName;
+    const hasDriverData = dataToSave.driverName || dataToSave.driverLicenseNumber || dataToSave.driverAddress || dataToSave.driverOccupation || dataToSave.driverTelephone;
+    const hasBankData = dataToSave.bankBankName || dataToSave.bankAccountNumber || dataToSave.bankAccountName || dataToSave.bankBranch;
     
     // Only save if we have meaningful data in at least one section
     const hasMeaningfulData = hasBasicPolicyData || hasIndividualData || hasCorporateData || hasAccidentData || hasVehicleData || hasDriverData || hasBankData;
