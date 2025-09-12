@@ -236,12 +236,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const userId = req.user?.id || req.userId;
+      
+      // Enhanced logging for debugging
+      console.log("GET /api/claims/:id Debug Info:", {
+        claimId: id,
+        hasReqUser: !!req.user,
+        reqUserId: req.user?.id,
+        hasReqUserIdProperty: !!req.userId,
+        reqUserIdProperty: req.userId,
+        finalUserId: userId,
+        authHeader: !!req.headers.authorization
+      });
+      
       if (!userId) {
+        console.error("User ID not found in request - auth failed");
         return res.status(401).json({ message: "User ID not found" });
       }
       
       const claim = await storage.getClaim(id);
-      if (!claim || claim.insuredId !== userId) {
+      if (!claim) {
+        console.log("Claim not found in database:", id);
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      if (claim.insuredId !== userId) {
+        console.log("Claim access denied:", { 
+          claimInsuredId: claim.insuredId, 
+          requestUserId: userId 
+        });
         return res.status(404).json({ message: "Claim not found" });
       }
 
