@@ -38,7 +38,12 @@ export default function ClaimDetails() {
 
     const fetchClaim = async () => {
       try {
-        const response = await fetch(`/api/claims/${id}`);
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`/api/claims/${id}`, {
+          method: 'GET',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          credentials: 'include',
+        });
         if (!response.ok) {
           if (response.status === 401) {
             toast({
