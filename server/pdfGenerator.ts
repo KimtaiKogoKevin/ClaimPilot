@@ -237,7 +237,7 @@ export async function generateClaimPDF(claim: ClaimWithDetails): Promise<Buffer>
             doc.setFontSize(9);
             doc.setTextColor(0, 0, 0);
             doc.text(`Type: ${damage.damageType || 'Not specified'}`, leftColumn + 12, yPosition + 4);
-            doc.text(`Confidence: ${damage.confidence ? (damage.confidence * 100).toFixed(1) + '%' : 'N/A'}`, leftColumn + 12, yPosition + 8);
+            doc.text(`Confidence: ${damage.confidence ? ((damage.confidence as number) * 100).toFixed(1) + '%' : 'N/A'}`, leftColumn + 12, yPosition + 8);
             const bbox = damage.boundingBox as any;
             doc.text(`Location: ${bbox ? `X:${bbox.x || 0}, Y:${bbox.y || 0}, W:${bbox.width || 0}, H:${bbox.height || 0}` : 'Not specified'}`, leftColumn + 12, yPosition + 12);
             
