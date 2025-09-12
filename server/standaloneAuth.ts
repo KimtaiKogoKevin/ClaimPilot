@@ -103,19 +103,40 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
+    // Debug logging for view details requests
+    if (req.path.includes('/claims/') && req.method === 'GET') {
+      console.log(`🔍 AUTH DEBUG for ${req.path}:`, {
+        hasAuthHeader: !!authHeader,
+        authHeaderStart: authHeader?.substring(0, 20) + '...',
+        hasToken: !!token,
+        tokenStart: token?.substring(0, 10) + '...',
+        jwtSecretExists: !!process.env.JWT_SECRET,
+        path: req.path,
+        method: req.method
+      });
+    }
+
     if (!token) {
+      console.log('❌ No token provided for', req.path);
       return res.status(401).json({ message: 'Access token required' });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
+      console.log('❌ Token verification failed for', req.path);
       return res.status(401).json({ message: 'Invalid or expired token' });
     }
 
     // Get fresh user data
     const user = await storage.getUser(decoded.id);
     if (!user) {
+      console.log('❌ User not found in database:', decoded.id, 'for path:', req.path);
       return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Debug success
+    if (req.path.includes('/claims/') && req.method === 'GET') {
+      console.log('✅ Authentication successful for:', user.email, 'accessing', req.path);
     }
 
     // Attach user to request - ensure consistent structure
@@ -127,7 +148,7 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     
     next();
   } catch (error) {
-    console.error("Authentication error:", error);
+    console.error("❌ Authentication error for", req.path, ":", error);
     return res.status(401).json({ message: 'Authentication failed' });
   }
 }
