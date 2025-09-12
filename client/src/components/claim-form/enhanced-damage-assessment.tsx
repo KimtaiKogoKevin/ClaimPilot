@@ -520,12 +520,12 @@ export default function EnhancedDamageAssessment({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {formData.thirdPartyProperties.length === 0 ? (
+          {(formData.thirdPartyProperties || []).length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No third party property damage reported.
             </p>
           ) : (
-            formData.thirdPartyProperties.map((prop: any, index: number) => (
+            (formData.thirdPartyProperties || []).map((prop: any, index: number) => (
               <div
                 key={index}
                 className="border p-4 rounded-md relative bg-muted/30"
@@ -598,12 +598,12 @@ export default function EnhancedDamageAssessment({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {formData.injuredPersons.length === 0 ? (
+          {(formData.injuredPersons || []).length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No persons reported injured.
             </p>
           ) : (
-            formData.injuredPersons.map((person: any, index: number) => (
+            (formData.injuredPersons || []).map((person: any, index: number) => (
               <div
                 key={index}
                 className="border p-4 rounded-md relative bg-muted/30"
@@ -701,12 +701,12 @@ export default function EnhancedDamageAssessment({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {formData.passengers.length === 0 ? (
+          {(formData.passengers || []).length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No passengers to report.
             </p>
           ) : (
-            formData.passengers.map((passenger: any, index: number) => (
+            (formData.passengers || []).map((passenger: any, index: number) => (
               <div
                 key={index}
                 className="border p-4 rounded-md relative bg-muted/30"
@@ -776,12 +776,12 @@ export default function EnhancedDamageAssessment({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {formData.witnesses.length === 0 ? (
+          {(formData.witnesses || []).length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No independent witnesses to report.
             </p>
           ) : (
-            formData.witnesses.map((witness: any, index: number) => (
+            (formData.witnesses || []).map((witness: any, index: number) => (
               <div
                 key={index}
                 className="border p-4 rounded-md relative bg-muted/30"
