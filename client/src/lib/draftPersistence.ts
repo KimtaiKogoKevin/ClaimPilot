@@ -158,12 +158,14 @@ export class DraftPersistenceManager {
 
       if (response.ok) {
         this.lastSyncedVersion = this.pendingChanges.version || 0;
-        this.pendingChanges = null;
         
-        // Clear local backup after successful sync
-        if (this.config.enableLocalBackup) {
-          this.clearLocalStorage();
+        // Keep local backup as cache for faster loading
+        // Store the successful data for restoration when user navigates back
+        if (this.config.enableLocalBackup && this.pendingChanges) {
+          this.saveToLocalStorage(this.pendingChanges);
         }
+        
+        this.pendingChanges = null;
       } else {
         throw new Error(`Server save failed: ${response.status}`);
       }
