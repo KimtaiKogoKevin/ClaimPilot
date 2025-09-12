@@ -30,7 +30,7 @@ export default function ClaimantDashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: claims = [], isLoading: claimsLoading } = useQuery({
+  const { data: claims = [], isLoading: claimsLoading } = useQuery<ClaimWithDetails[]>({
     queryKey: ["/api/claims"],
     enabled: isAuthenticated,
   });

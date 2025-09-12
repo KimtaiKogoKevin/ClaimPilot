@@ -584,12 +584,16 @@ export default function ClaimDetails() {
               <div>
                 <p className="text-sm font-medium text-gray-500">Name</p>
                 <p className="text-gray-900">
-                  {claim.claimant.firstName} {claim.claimant.lastName}
+                  {claim.individualDetails 
+                    ? `${claim.individualDetails.firstName || ''} ${claim.individualDetails.middleName || ''} ${claim.individualDetails.surname || ''}`.trim()
+                    : claim.corporateDetails?.registeredName || 'N/A'}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Email</p>
-                <p className="text-gray-900">{claim.claimant.email}</p>
+                <p className="text-gray-900">
+                  {claim.individualDetails?.email || claim.corporateDetails?.email || 'N/A'}
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
