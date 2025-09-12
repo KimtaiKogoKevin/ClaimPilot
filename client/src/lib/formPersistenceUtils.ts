@@ -208,6 +208,7 @@ export function transformFormDataForAPI(formData: any): any {
 
 /**
  * Restore form data from API response
+ * Maps flattened server data back to nested UI structure
  */
 export function restoreFormDataFromAPI(apiData: any): any {
   return {
@@ -216,118 +217,130 @@ export function restoreFormDataFromAPI(apiData: any): any {
     agentName: apiData.agentName || "",
     policyNumber: apiData.policyNumber || "",
     lastPaymentDate: apiData.lastPaymentDate ? new Date(apiData.lastPaymentDate).toISOString().split('T')[0] : "",
+    typeOfCover: apiData.typeOfCover || "",
     insuredType: apiData.insuredType || "individual",
     
-    // Individual details (check both relation and flattened fields)
+    // Individual details (restored from flattened fields)
     individual: {
-      firstName: apiData.individualDetails?.firstName || apiData.individualFirstName || "",
-      middleName: apiData.individualDetails?.middleName || apiData.individualMiddleName || "",
-      surname: apiData.individualDetails?.surname || apiData.individualSurname || "",
-      idNumber: apiData.individualDetails?.idNumber || apiData.individualIdNumber || "",
-      nationality: apiData.individualDetails?.nationality || apiData.individualNationality || "",
-      dateOfBirth: apiData.individualDetails?.dateOfBirth || apiData.individualDateOfBirth || "",
-      pinNumber: apiData.individualDetails?.pinNumber || apiData.individualPinNumber || "",
-      occupation: apiData.individualDetails?.occupation || apiData.individualOccupation || "",
-      residentialPhone: apiData.individualDetails?.residentialPhone || apiData.individualResidentialPhone || "",
-      officePhone: apiData.individualDetails?.officePhone || apiData.individualOfficePhone || "",
-      mobile: apiData.individualDetails?.mobile || apiData.individualMobile || "",
-      postalAddress: apiData.individualDetails?.postalAddress || apiData.individualPostalAddress || "",
-      postalCode: apiData.individualDetails?.postalCode || apiData.individualPostalCode || "",
-      physicalAddress: apiData.individualDetails?.physicalAddress || apiData.individualPhysicalAddress || "",
-      email: apiData.individualDetails?.email || apiData.individualEmail || "",
-      tradeBusiness: apiData.individualDetails?.tradeBusiness || apiData.individualTradeBusiness || "",
+      firstName: apiData.individualFirstName || "",
+      middleName: apiData.individualMiddleName || "",
+      surname: apiData.individualSurname || "",
+      idNumber: apiData.individualIdNumber || "",
+      nationality: apiData.individualNationality || "",
+      dateOfBirth: apiData.individualDateOfBirth || "",
+      pinNumber: apiData.individualPinNumber || "",
+      occupation: apiData.individualOccupation || "",
+      residentialPhone: apiData.individualResidentialPhone || "",
+      officePhone: apiData.individualOfficePhone || "",
+      mobile: apiData.individualMobile || "",
+      postalAddress: apiData.individualPostalAddress || "",
+      postalCode: apiData.individualPostalCode || "",
+      physicalAddress: apiData.individualPhysicalAddress || "",
+      email: apiData.individualEmail || "",
+      tradeBusiness: apiData.individualTradeBusiness || "",
+      ageBand: apiData.individualAgeBand || "",
     },
     
-    // Corporate details (check both relation and flattened fields)
+    // Corporate details (restored from flattened fields)
     corporate: {
-      registeredName: apiData.corporateDetails?.registeredName || apiData.corporateRegisteredName || "",
-      registrationNumber: apiData.corporateDetails?.registrationNumber || apiData.corporateRegistrationNumber || "",
-      countryOfRegistration: apiData.corporateDetails?.countryOfRegistration || apiData.corporateCountryOfRegistration || "",
-      pinNumber: apiData.corporateDetails?.pinNumber || apiData.corporatePinNumber || "",
-      vatRegNumber: apiData.corporateDetails?.vatRegNumber || apiData.corporateVatRegNumber || "",
-      officePhone: apiData.corporateDetails?.officePhone || apiData.corporateOfficePhone || "",
-      mobileContact: apiData.corporateDetails?.mobileContact || apiData.corporateMobileContact || "",
-      postalAddress: apiData.corporateDetails?.postalAddress || apiData.corporatePostalAddress || "",
-      postalCode: apiData.corporateDetails?.postalCode || apiData.corporatePostalCode || "",
-      physicalAddress: apiData.corporateDetails?.physicalAddress || apiData.corporatePhysicalAddress || "",
-      email: apiData.corporateDetails?.email || apiData.corporateEmail || "",
-      tradeBusiness: apiData.corporateDetails?.tradeBusiness || apiData.corporateTradeBusiness || "",
-      yearsInOperation: apiData.corporateDetails?.yearsInOperation || apiData.corporateYearsInOperation || "",
+      registeredName: apiData.corporateRegisteredName || "",
+      registrationNumber: apiData.corporateRegistrationNumber || "",
+      countryOfRegistration: apiData.corporateCountryOfRegistration || "",
+      pinNumber: apiData.corporatePinNumber || "",
+      vatRegNumber: apiData.corporateVatRegNumber || "",
+      officePhone: apiData.corporateOfficePhone || "",
+      mobileContact: apiData.corporateMobileContact || "",
+      postalAddress: apiData.corporatePostalAddress || "",
+      postalCode: apiData.corporatePostalCode || "",
+      physicalAddress: apiData.corporatePhysicalAddress || "",
+      email: apiData.corporateEmail || "",
+      tradeBusiness: apiData.corporateTradeBusiness || "",
+      yearsInOperation: apiData.corporateYearsInOperation || "",
     },
     
-    // Vehicle details
-    vehicle: apiData.vehicle ? {
-      make: apiData.vehicle.make || "",
-      model: apiData.vehicle.model || "",
-      yearOfManufacture: apiData.vehicle.yearOfManufacture || null,
-      registrationNumber: apiData.vehicle.registrationNumber || "",
-      carryingCapacity: apiData.vehicle.carryingCapacity || "",
-      loadingCapacity: apiData.vehicle.loadingCapacity || "",
-      ownerName: apiData.vehicle.ownerName || "",
-      ownerAddress: apiData.vehicle.ownerAddress || "",
-      vehicleUse: apiData.vehicle.vehicleUse || "",
-    } : {
-      make: "", model: "", yearOfManufacture: null, registrationNumber: "",
-      carryingCapacity: "", loadingCapacity: "", ownerName: "", ownerAddress: "", vehicleUse: ""
+    // Vehicle details (restored from flattened fields)
+    vehicle: {
+      make: apiData.vehicleMake || "",
+      model: apiData.vehicleModel || "",
+      yearOfManufacture: apiData.vehicleYearOfManufacture || null,
+      registrationNumber_primemover: apiData.vehicleRegistrationNumber_primemover || "",
+      registrationNumber_trailer: apiData.vehicleRegistrationNumber_trailer || "",
+      carryingCapacity: apiData.vehicleCarryingCapacity || "",
+      loadingCapacity: apiData.vehicleLoadingCapacity || "",
+      ownerName: apiData.vehicleOwnerName || "",
+      ownerAddress: apiData.vehicleOwnerAddress || "",
+      vehicleUse: apiData.vehicleVehicleUse || "",
     },
     
-    // Accident details
+    // Accident details (restored from flattened fields)
     accident: {
       date: apiData.accidentDate ? new Date(apiData.accidentDate).toISOString().split('T')[0] : "",
       time: apiData.accidentTime || "",
       location: apiData.accidentLocation || "",
       description: apiData.accidentDescription || "",
+      roadSurface: apiData.accidentRoadSurface || "",
+      visibility: apiData.accidentVisibility || "",
+      driverWarningGiven: apiData.accidentDriverWarningGiven || "",
+      vehicleLightsOn: apiData.accidentVehicleLightsOn || "",
+      policeTookParticulars: apiData.accidentPoliceTookParticulars || false,
+      policeConstableNumber: apiData.accidentPoliceConstableNumber || "",
+      policeStation: apiData.accidentPoliceStation || "",
     },
     
-    // Damage details
+    // Damage details (restored from flattened fields)
     damage: {
       vehicleDescription: apiData.vehicleDamageDescription || "",
       goodsDamaged: apiData.goodsDamaged || false,
       goodsDescription: apiData.goodsDescription || "",
     },
     
-    // Driver details
-    driver: apiData.driver ? {
-      name: apiData.driver.name || "",
-      occupation: apiData.driver.occupation || "",
-      address: apiData.driver.address || "",
-      dateOfBirth: apiData.driver.dateOfBirth || "",
-      telephone: apiData.driver.telephone || "",
-      licenseNumber: apiData.driver.licenseNumber || "",
-      employedByInsured: apiData.driver.employedByInsured || null,
-      drivingWithPermission: apiData.driver.drivingWithPermission || null,
-      yearsOfDriving: apiData.driver.yearsOfDriving || null,
-      blameToBareForAccident: apiData.driver.blameToBareForAccident || null,
-      admittedLiability: apiData.driver.admittedLiability || null,
-      previousAccidents: apiData.driver.previousAccidents || null,
-      previousAccidentsDetails: apiData.driver.previousAccidentsDetails || "",
-      convictions: apiData.driver.convictions || null,
-      convictionsDetails: apiData.driver.convictionsDetails || "",
-      licenseType: apiData.driver.licenseType || "",
-      drivingTestPassedDate: apiData.driver.drivingTestPassedDate || "",
-      ownsMotorVehicle: apiData.driver.ownsMotorVehicle || null,
-      ownVehicleInsurer: apiData.driver.ownVehicleInsurer || "",
-      ownVehiclePolicyNumber: apiData.driver.ownVehiclePolicyNumber || "",
-    } : {
-      name: "", occupation: "", address: "", dateOfBirth: "", telephone: "", licenseNumber: "",
-      employedByInsured: null, drivingWithPermission: null, yearsOfDriving: null,
-      blameToBareForAccident: null, admittedLiability: null, previousAccidents: null,
-      previousAccidentsDetails: "", convictions: null, convictionsDetails: "",
-      licenseType: "", drivingTestPassedDate: "", ownsMotorVehicle: null,
-      ownVehicleInsurer: "", ownVehiclePolicyNumber: "",
+    // Driver details (restored from flattened fields)
+    driver: {
+      name: apiData.driverName || "",
+      occupation: apiData.driverOccupation || "",
+      address: apiData.driverAddress || "",
+      dateOfBirth: apiData.driverDateOfBirth || "",
+      telephone: apiData.driverTelephone || "",
+      licenseNumber: apiData.driverLicenseNumber || "",
+      employedByInsured: apiData.driverEmployedByInsured ?? false,
+      drivingWithPermission: apiData.driverDrivingWithPermission ?? false,
+      yearsOfDriving: apiData.driverYearsOfDriving ?? null,
+      blameToBareForAccident: apiData.driverBlameToBareForAccident ?? false,
+      admittedLiability: apiData.driverAdmittedLiability ?? false,
+      previousAccidents: apiData.driverPreviousAccidents ?? false,
+      previousAccidentsDetails: apiData.driverPreviousAccidentsDetails || "",
+      convictions: apiData.driverConvictions ?? false,
+      convictionsDetails: apiData.driverConvictionsDetails || "",
+      licenseType: apiData.driverLicenseType || "",
+      drivingTestPassedDate: apiData.driverDrivingTestPassedDate || "",
+      ownsMotorVehicle: apiData.driverOwnsMotorVehicle ?? false,
+      ownVehicleInsurer: apiData.driverOwnVehicleInsurer || "",
+      ownVehiclePolicyNumber: apiData.driverOwnVehiclePolicyNumber || "",
+      yearsInService: apiData.driverYearsInService || "",
     },
     
-    // Bank details
-    bank: apiData.bankDetails ? {
-      bankName: apiData.bankDetails.bankName || "",
-      accountName: apiData.bankDetails.accountName || "",
-      accountNumber: apiData.bankDetails.accountNumber || "",
-      branch: apiData.bankDetails.branch || "",
-      swiftCode: apiData.bankDetails.swiftCode || "",
-      sortCode: apiData.bankDetails.sortCode || "",
-    } : {
-      bankName: "", accountName: "", accountNumber: "", branch: "", swiftCode: "", sortCode: ""
+    // Bank details (restored from flattened fields)
+    bank: {
+      bankName: apiData.bankBankName || "",
+      accountName: apiData.bankAccountName || "",
+      accountNumber: apiData.bankAccountNumber || "",
+      branch: apiData.bankBranch || "",
+      swiftCode: apiData.bankSwiftCode || "",
+      sortCode: apiData.bankSortCode || "",
     },
+    
+    // Additional details
+    inspectionLocation: apiData.inspectionLocation || "",
+    repairerName: apiData.repairerName || "",
+    repairerPhone: apiData.repairerPhone || "",
+    repairerAddress: apiData.repairerAddress || "",
+    isVehicleInUse: apiData.isVehicleInUse ?? null,
+    thirdPartyProperties: apiData.thirdPartyProperties ? JSON.parse(apiData.thirdPartyProperties) : [],
+    personsInjured: apiData.personsInjured ? JSON.parse(apiData.personsInjured) : [],
+    ownerStatement: apiData.ownerStatement || "",
+    declarationName: apiData.declarationName || "",
+    declarationTitle: apiData.declarationTitle || "",
+    declarationAccepted: apiData.declarationAccepted ?? false,
     
     // Other vehicles
     otherVehicles: apiData.otherVehicles || [],

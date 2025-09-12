@@ -221,6 +221,11 @@ export default function ClaimForm() {
       setCurrentStep(savedStep);
       setHasRestoredFromDraft(true); // Mark that we've restored from this draft
       
+      // Use the proper transformation function instead of manual mapping
+      const restoredData = restoreFormDataFromAPI(currentDraft);
+      console.log("Restored form data:", JSON.stringify(restoredData, null, 2));
+      setFormData(restoredData);
+      
       // Restore ALL the saved data from the draft
       setFormData((prev) => ({
         ...prev,
