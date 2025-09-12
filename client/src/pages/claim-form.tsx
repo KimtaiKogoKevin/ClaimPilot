@@ -513,8 +513,40 @@ export default function ClaimForm() {
     }
 
     try {
+      // Transform data to match server validation requirements
+      const formDataAny = formData as any;
+      const submitData = {
+        // Driver details (server expects nested object)
+        driver: {
+          name: formDataAny.driverName || "",
+          licenseNumber: formDataAny.driverLicenseNumber || "",
+          occupation: formDataAny.driverOccupation || "",
+          address: formDataAny.driverAddress || "",
+          telephone: formDataAny.driverTelephone || "",
+          dateOfBirth: formDataAny.driverDateOfBirth || "",
+          employedByInsured: formDataAny.driverEmployedByInsured || false,
+          drivingWithPermission: formDataAny.driverDrivingWithPermission || false,
+          yearsOfDriving: formDataAny.driverYearsOfDriving || 0,
+          blameToBareForAccident: formDataAny.driverBlameToBareForAccident || false,
+          admittedLiability: formDataAny.driverAdmittedLiability || false,
+          previousAccidents: formDataAny.driverPreviousAccidents || false,
+          convictions: formDataAny.driverConvictions || false,
+          licenseType: formDataAny.driverLicenseType || "",
+          ownsMotorVehicle: formDataAny.driverOwnsMotorVehicle || false,
+        },
+        // Bank details (server expects nested object)
+        bankDetails: {
+          bankName: formDataAny.bankBankName || "",
+          accountName: formDataAny.bankAccountName || "",
+          accountNumber: formDataAny.bankAccountNumber || "",
+          branch: formDataAny.bankBranch || "",
+          swiftCode: formDataAny.bankSwiftCode || "",
+          sortCode: formDataAny.bankSortCode || "",
+        }
+      };
+
       // Submit the claim (change status from draft to submitted)
-      const response = await apiRequest('POST', `/api/claims/${claimId}/submit`);
+      const response = await apiRequest('POST', `/api/claims/${claimId}/submit`, submitData);
       
       if (!response.ok) {
         const errorResult = await response.json();
