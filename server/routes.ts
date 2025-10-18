@@ -753,6 +753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Return validation errors if any
       if (validationErrors.length > 0) {
+        console.log("🔍 SUBMIT VALIDATION FAILED - Missing fields:", validationErrors);
         return res.status(400).json({ 
           message: "Claim is incomplete and cannot be submitted",
           errors: validationErrors,

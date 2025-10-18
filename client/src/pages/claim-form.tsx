@@ -577,7 +577,23 @@ export default function ClaimForm() {
       
       if (!response.ok) {
         const errorResult = await response.json();
-        throw new Error(errorResult.message || 'Submission failed');
+        console.log("🔍 SUBMIT ERROR RESPONSE:", errorResult);
+        
+        // Show detailed validation errors if available
+        if (errorResult.errors && Array.isArray(errorResult.errors)) {
+          toast({
+            title: "Claim Incomplete",
+            description: errorResult.errors.join(", "),
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Submission Failed",
+            description: errorResult.message || 'Submission failed',
+            variant: "destructive",
+          });
+        }
+        return;
       }
       
       const result = await response.json();
@@ -606,9 +622,10 @@ export default function ClaimForm() {
       }
       
       console.error("Error submitting claim:", error);
+      const errorMessage = (error as Error).message || "Failed to submit your claim. Please try again or contact support.";
       toast({
         title: "Submission Failed",
-        description: "Failed to submit your claim. Please try again or contact support.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
