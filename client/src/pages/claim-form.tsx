@@ -412,6 +412,20 @@ export default function ClaimForm() {
     }
     
     console.log("Auto-saving form data with meaningful content...");
+    console.log("🔍 DRIVER DATA DEBUG:", {
+      driverObject: formData.driver,
+      driverName: formData.driver?.name,
+      driverLicense: formData.driver?.licenseNumber,
+      flatDriverName: dataToSave.driverName,
+      flatDriverLicense: dataToSave.driverLicenseNumber
+    });
+    console.log("🔍 BANK DATA DEBUG:", {
+      bankObject: formData.bank,
+      bankName: formData.bank?.bankName,
+      accountNumber: formData.bank?.accountNumber,
+      flatBankName: dataToSave.bankBankName,
+      flatAccountNumber: dataToSave.bankAccountNumber
+    });
     const progressPercentage = calculateProgress();
     
     console.log("Saving data with step:", currentStep, "Sections with data:", {
