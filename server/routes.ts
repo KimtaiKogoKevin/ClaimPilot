@@ -686,6 +686,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Claim not found" });
       }
       
+      console.log("🔍 SUBMIT VALIDATION - Claim data check:", {
+        hasDriver: !!claim.driver,
+        driverData: claim.driver,
+        hasBankDetails: !!claim.bankDetails,
+        bankData: claim.bankDetails,
+        claimStatus: claim.status
+      });
+      
       if (claim.status !== "draft") {
         return res.status(400).json({ message: "Only draft claims can be submitted" });
       }
