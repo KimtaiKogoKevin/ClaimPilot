@@ -527,37 +527,50 @@ export default function ClaimForm() {
     }
 
     try {
+      console.log("🔍 SUBMIT - Force-saving data before submission...");
+      // CRITICAL: Force-save all current data before submitting
+      autoSave();
+      // Wait for save to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log("🔍 SUBMIT - Current form data:", {
+        driver: formData.driver,
+        bank: formData.bank
+      });
+      
       // Transform data to match server validation requirements
       const formDataAny = formData as any;
       const submitData = {
-        // Driver details (server expects nested object)
+        // Driver details - READ FROM CORRECT NESTED LOCATION
         driver: {
-          name: formDataAny.driverName || "",
-          licenseNumber: formDataAny.driverLicenseNumber || "",
-          occupation: formDataAny.driverOccupation || "",
-          address: formDataAny.driverAddress || "",
-          telephone: formDataAny.driverTelephone || "",
-          dateOfBirth: formDataAny.driverDateOfBirth || "",
-          employedByInsured: formDataAny.driverEmployedByInsured || false,
-          drivingWithPermission: formDataAny.driverDrivingWithPermission || false,
-          yearsOfDriving: formDataAny.driverYearsOfDriving || 0,
-          blameToBareForAccident: formDataAny.driverBlameToBareForAccident || false,
-          admittedLiability: formDataAny.driverAdmittedLiability || false,
-          previousAccidents: formDataAny.driverPreviousAccidents || false,
-          convictions: formDataAny.driverConvictions || false,
-          licenseType: formDataAny.driverLicenseType || "",
-          ownsMotorVehicle: formDataAny.driverOwnsMotorVehicle || false,
+          name: formDataAny.driver?.name || "",
+          licenseNumber: formDataAny.driver?.licenseNumber || "",
+          occupation: formDataAny.driver?.occupation || "",
+          address: formDataAny.driver?.address || "",
+          telephone: formDataAny.driver?.telephone || "",
+          dateOfBirth: formDataAny.driver?.dateOfBirth || "",
+          employedByInsured: formDataAny.driver?.employedByInsured || false,
+          drivingWithPermission: formDataAny.driver?.drivingWithPermission || false,
+          yearsOfDriving: formDataAny.driver?.yearsOfDriving || 0,
+          blameToBareForAccident: formDataAny.driver?.blameToBareForAccident || false,
+          admittedLiability: formDataAny.driver?.admittedLiability || false,
+          previousAccidents: formDataAny.driver?.previousAccidents || false,
+          convictions: formDataAny.driver?.convictions || false,
+          licenseType: formDataAny.driver?.licenseType || "",
+          ownsMotorVehicle: formDataAny.driver?.ownsMotorVehicle || false,
         },
-        // Bank details (server expects nested object)
+        // Bank details - READ FROM CORRECT NESTED LOCATION
         bankDetails: {
-          bankName: formDataAny.bankBankName || "",
-          accountName: formDataAny.bankAccountName || "",
-          accountNumber: formDataAny.bankAccountNumber || "",
-          branch: formDataAny.bankBranch || "",
-          swiftCode: formDataAny.bankSwiftCode || "",
-          sortCode: formDataAny.bankSortCode || "",
+          bankName: formDataAny.bank?.bankName || "",
+          accountName: formDataAny.bank?.accountName || "",
+          accountNumber: formDataAny.bank?.accountNumber || "",
+          branch: formDataAny.bank?.branch || "",
+          swiftCode: formDataAny.bank?.swiftCode || "",
+          sortCode: formDataAny.bank?.sortCode || "",
         }
       };
+
+      console.log("🔍 SUBMIT - Transformed submit data:", submitData);
 
       // Submit the claim (change status from draft to submitted)
       const response = await apiRequest('POST', `/api/claims/${claimId}/submit`, submitData);
