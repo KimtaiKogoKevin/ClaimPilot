@@ -6,6 +6,7 @@ import AppHeader from "@/components/AppHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -437,7 +438,7 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="lg:hidden space-y-4">
+                <div className="md:hidden space-y-4">
                   {usersLoading ? (
                     <p className="text-center text-muted-foreground">Loading...</p>
                   ) : users.length === 0 ? (
@@ -500,8 +501,8 @@ export default function AdminDashboard() {
                     ))
                   )}
                 </div>
-                <div className="overflow-x-auto lg:overflow-visible">
-                  <Table className="hidden lg:table">
+                <div className="overflow-x-auto md:overflow-visible">
+                  <Table className="hidden md:table">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
@@ -580,32 +581,37 @@ export default function AdminDashboard() {
                     <CardTitle>Claims Management</CardTitle>
                   </div>
                   {selectedClaims.length > 0 && (
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                      <Select value={bulkStatus} onValueChange={setBulkStatus}>
-                        <SelectTrigger className="w-full lg:w-[180px]" data-testid="select-bulk-status">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="submitted">Submitted</SelectItem>
-                          <SelectItem value="under_review">Under Review</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                          <SelectItem value="rejected">Rejected</SelectItem>
-                          <SelectItem value="paid">Paid</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button onClick={handleBulkUpdateStatus} className="w-full lg:w-auto min-h-[44px]" data-testid="button-bulk-update">
-                        Update Status ({selectedClaims.length})
-                      </Button>
-                      <Button variant="destructive" onClick={handleBulkDeleteClaims} className="w-full lg:w-auto min-h-[44px]" data-testid="button-bulk-delete">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete ({selectedClaims.length})
-                      </Button>
-                    </div>
+                    <>
+                      <p className="text-sm text-muted-foreground mb-2 md:hidden" data-testid="text-selected-count">
+                        {selectedClaims.length} claim{selectedClaims.length !== 1 ? 's' : ''} selected
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+                        <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                          <SelectTrigger className="w-full sm:w-auto" data-testid="select-bulk-status">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="submitted">Submitted</SelectItem>
+                            <SelectItem value="under_review">Under Review</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectItem value="paid">Paid</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button onClick={handleBulkUpdateStatus} className="w-full sm:w-auto min-h-[44px]" data-testid="button-bulk-update">
+                          Update Status ({selectedClaims.length})
+                        </Button>
+                        <Button variant="destructive" onClick={handleBulkDeleteClaims} className="w-full sm:w-auto min-h-[44px]" data-testid="button-bulk-delete">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete ({selectedClaims.length})
+                        </Button>
+                      </div>
+                    </>
                   )}
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="lg:hidden space-y-4">
+                <div className="md:hidden space-y-4">
                   {claimsLoading ? (
                     <p className="text-center text-muted-foreground">Loading...</p>
                   ) : claims.length === 0 ? (
@@ -616,12 +622,12 @@ export default function AdminDashboard() {
                         <CardContent className="p-4">
                           <div className="space-y-3">
                             <div className="flex items-start gap-3">
-                              <input
-                                type="checkbox"
+                              <Checkbox
                                 checked={selectedClaims.includes(claim.id)}
-                                onChange={() => handleToggleClaimSelection(claim.id)}
-                                className="mt-1 min-w-[44px] min-h-[44px]"
-                                data-testid={`checkbox-claim-${claim.id}`}
+                                onCheckedChange={() => handleToggleClaimSelection(claim.id)}
+                                aria-label={`Select claim ${claim.claimReferenceNumber}`}
+                                className="mt-1"
+                                data-testid={`checkbox-select-claim-${claim.id}`}
                               />
                               <div className="flex-1 space-y-3">
                                 <div>
@@ -652,21 +658,21 @@ export default function AdminDashboard() {
                     ))
                   )}
                 </div>
-                <div className="overflow-x-auto lg:overflow-visible">
-                  <Table className="hidden lg:table">
+                <div className="overflow-x-auto md:overflow-visible">
+                  <Table className="hidden md:table">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={selectedClaims.length === claims.length && claims.length > 0}
-                            onChange={(e) => {
-                              if (e.target.checked) {
+                            onCheckedChange={(checked) => {
+                              if (checked) {
                                 setSelectedClaims(claims.map(c => c.id));
                               } else {
                                 setSelectedClaims([]);
                               }
                             }}
+                            aria-label="Select all claims"
                             data-testid="checkbox-select-all-claims"
                           />
                         </TableHead>
@@ -689,11 +695,11 @@ export default function AdminDashboard() {
                         claims.map((claim) => (
                           <TableRow key={claim.id} data-testid={`row-claim-${claim.id}`}>
                             <TableCell>
-                              <input
-                                type="checkbox"
+                              <Checkbox
                                 checked={selectedClaims.includes(claim.id)}
-                                onChange={() => handleToggleClaimSelection(claim.id)}
-                                data-testid={`checkbox-claim-${claim.id}`}
+                                onCheckedChange={() => handleToggleClaimSelection(claim.id)}
+                                aria-label={`Select claim ${claim.claimReferenceNumber}`}
+                                data-testid={`checkbox-select-claim-${claim.id}`}
                               />
                             </TableCell>
                             <TableCell data-testid={`text-claim-ref-${claim.id}`}>
@@ -739,7 +745,7 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="lg:hidden space-y-4">
+                <div className="md:hidden space-y-4">
                   {settingsLoading ? (
                     <p className="text-center text-muted-foreground">Loading...</p>
                   ) : settings.length === 0 ? (
@@ -807,8 +813,8 @@ export default function AdminDashboard() {
                     ))
                   )}
                 </div>
-                <div className="overflow-x-auto lg:overflow-visible">
-                  <Table className="hidden lg:table">
+                <div className="overflow-x-auto md:overflow-visible">
+                  <Table className="hidden md:table">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Key</TableHead>
@@ -888,14 +894,14 @@ export default function AdminDashboard() {
                 <CardTitle>Audit Logs</CardTitle>
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <Select
-                    value={auditFilter.entityType}
-                    onValueChange={(value) => setAuditFilter(prev => ({ ...prev, entityType: value }))}
+                    value={auditFilter.entityType || "all"}
+                    onValueChange={(value) => setAuditFilter(prev => ({ ...prev, entityType: value === "all" ? "" : value }))}
                   >
                     <SelectTrigger className="w-full sm:w-[200px]" data-testid="select-entity-filter">
                       <SelectValue placeholder="Filter by entity type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
                       <SelectItem value="user">User</SelectItem>
                       <SelectItem value="claim">Claim</SelectItem>
                       <SelectItem value="system_setting">System Setting</SelectItem>
@@ -904,7 +910,7 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="lg:hidden space-y-4">
+                <div className="md:hidden space-y-4">
                   {auditLogsLoading ? (
                     <p className="text-center text-muted-foreground">Loading...</p>
                   ) : auditLogs.length === 0 ? (
@@ -938,8 +944,8 @@ export default function AdminDashboard() {
                     ))
                   )}
                 </div>
-                <div className="overflow-x-auto lg:overflow-visible">
-                  <Table className="hidden lg:table">
+                <div className="overflow-x-auto md:overflow-visible">
+                  <Table className="hidden md:table">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Timestamp</TableHead>
