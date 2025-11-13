@@ -30,6 +30,14 @@ The application serves four primary user roles: **Insured/Clients** who submit c
 
 **Complete Forgot Password System Implemented**: Added comprehensive forgot password functionality with secure token generation, database schema updates for password reset tokens with expiry timestamps, backend API endpoints for forgot password request and validation, and frontend UI components integrated with existing authentication page. Email service created with support for Gmail, custom SMTP, and development testing. Users can now reset passwords through secure email links with 1-hour expiry. System includes proper security measures and comprehensive email templates.
 
+**Real-Time Collaborative Claim Editing (January 2025)**: Implemented WebSocket-based collaborative editing system with lock-based concurrency control. When administrators edit a claim, users see real-time notifications and cannot modify the claim until the admin finishes. The system includes presence indicators showing who is viewing/editing, field-level change tracking with animations highlighting recently modified fields, comprehensive change history visible to all stakeholders, and JWT-authenticated WebSocket connections for secure real-time communication. Database tables `claim_edit_sessions` and `claim_change_history` track all editing activity with full audit trails.
+
+**Security Considerations**: The current WebSocket implementation uses JWT authentication but has considerations for production deployment:
+- Token expiry is validated by the JWT library (tokens expire after 7 days by default)
+- For enhanced security, consider implementing token revocation checks during active sessions
+- WebSocket connections currently accept tokens via query parameters (convenient for development but may expose tokens in logs)
+- Production deployments should consider additional token transmission methods and periodic revalidation
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
