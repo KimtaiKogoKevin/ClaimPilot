@@ -307,31 +307,33 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="analytics" data-testid="tab-analytics">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="users" data-testid="tab-users">
-              <Users className="h-4 w-4 mr-2" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="claims" data-testid="tab-claims">
-              <FileText className="h-4 w-4 mr-2" />
-              Claims
-            </TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-settings">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </TabsTrigger>
-            <TabsTrigger value="audit" data-testid="tab-audit">
-              <Activity className="h-4 w-4 mr-2" />
-              Audit Logs
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-5 min-w-max lg:min-w-0">
+              <TabsTrigger value="analytics" data-testid="tab-analytics">
+                <BarChart3 className="h-4 w-4 sm:mr-2" aria-label="Analytics" />
+                <span className="sr-only sm:not-sr-only">Analytics</span>
+              </TabsTrigger>
+              <TabsTrigger value="users" data-testid="tab-users">
+                <Users className="h-4 w-4 sm:mr-2" aria-label="Users" />
+                <span className="sr-only sm:not-sr-only">Users</span>
+              </TabsTrigger>
+              <TabsTrigger value="claims" data-testid="tab-claims">
+                <FileText className="h-4 w-4 sm:mr-2" aria-label="Claims" />
+                <span className="sr-only sm:not-sr-only">Claims</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" data-testid="tab-settings">
+                <Settings className="h-4 w-4 sm:mr-2" aria-label="Settings" />
+                <span className="sr-only sm:not-sr-only">Settings</span>
+              </TabsTrigger>
+              <TabsTrigger value="audit" data-testid="tab-audit">
+                <Activity className="h-4 w-4 sm:mr-2" aria-label="Audit Logs" />
+                <span className="sr-only sm:not-sr-only">Audit Logs</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="analytics" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
               <Card data-testid="card-total-users">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -410,7 +412,7 @@ export default function AdminDashboard() {
                     Create User
                   </Button>
                 </div>
-                <div className="flex gap-4 mt-4">
+                <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <div className="flex-1">
                     <Input
                       placeholder="Search users..."
@@ -420,7 +422,7 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
-                    <SelectTrigger className="w-[180px]" data-testid="select-role-filter">
+                    <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-role-filter">
                       <SelectValue placeholder="Filter by role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -435,56 +437,52 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {usersLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center">Loading...</TableCell>
-                      </TableRow>
-                    ) : users.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center">No users found</TableCell>
-                      </TableRow>
-                    ) : (
-                      users.map((u) => (
-                        <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
-                          <TableCell data-testid={`text-user-name-${u.id}`}>
-                            {u.firstName} {u.lastName}
-                          </TableCell>
-                          <TableCell data-testid={`text-user-email-${u.id}`}>{u.email}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" data-testid={`badge-role-${u.id}`}>
-                              {u.role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
+                <div className="lg:hidden space-y-4">
+                  {usersLoading ? (
+                    <p className="text-center text-muted-foreground">Loading...</p>
+                  ) : users.length === 0 ? (
+                    <p className="text-center text-muted-foreground">No users found</p>
+                  ) : (
+                    users.map((u) => (
+                      <Card key={u.id} data-testid={`card-user-${u.id}`}>
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Name</p>
+                              <p className="font-medium" data-testid={`text-user-name-${u.id}`}>
+                                {u.firstName} {u.lastName}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Email</p>
+                              <p data-testid={`text-user-email-${u.id}`}>{u.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Role</p>
+                              <Badge variant="outline" data-testid={`badge-role-${u.id}`}>
+                                {u.role}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Created</p>
+                              <p>{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}</p>
+                            </div>
+                            <div className="flex gap-2 pt-2">
                               <Button
                                 variant="outline"
-                                size="sm"
+                                className="flex-1 min-h-[44px]"
                                 onClick={() => {
                                   setSelectedUser(u);
                                   setShowUserDialog(true);
                                 }}
                                 data-testid={`button-edit-user-${u.id}`}
                               >
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
                               </Button>
                               <Button
                                 variant="outline"
-                                size="sm"
+                                className="flex-1 min-h-[44px]"
                                 onClick={() => {
                                   setSelectedUser(u);
                                   setShowDeleteUserDialog(true);
@@ -492,15 +490,84 @@ export default function AdminDashboard() {
                                 disabled={u.id === user?.id}
                                 data-testid={`button-delete-user-${u.id}`}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
                               </Button>
                             </div>
-                          </TableCell>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+                <div className="overflow-x-auto lg:overflow-visible">
+                  <Table className="hidden lg:table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usersLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">Loading...</TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : users.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">No users found</TableCell>
+                        </TableRow>
+                      ) : (
+                        users.map((u) => (
+                          <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
+                            <TableCell data-testid={`text-user-name-${u.id}`}>
+                              {u.firstName} {u.lastName}
+                            </TableCell>
+                            <TableCell data-testid={`text-user-email-${u.id}`}>{u.email}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" data-testid={`badge-role-${u.id}`}>
+                                {u.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setShowUserDialog(true);
+                                  }}
+                                  data-testid={`button-edit-user-${u.id}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setShowDeleteUserDialog(true);
+                                  }}
+                                  disabled={u.id === user?.id}
+                                  data-testid={`button-delete-user-${u.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -508,98 +575,145 @@ export default function AdminDashboard() {
           <TabsContent value="claims" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Claims Management</CardTitle>
-                  <div className="flex gap-2">
-                    {selectedClaims.length > 0 && (
-                      <>
-                        <div className="flex gap-2 items-center">
-                          <Select value={bulkStatus} onValueChange={setBulkStatus}>
-                            <SelectTrigger className="w-[180px]" data-testid="select-bulk-status">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="submitted">Submitted</SelectItem>
-                              <SelectItem value="under_review">Under Review</SelectItem>
-                              <SelectItem value="approved">Approved</SelectItem>
-                              <SelectItem value="rejected">Rejected</SelectItem>
-                              <SelectItem value="paid">Paid</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button onClick={handleBulkUpdateStatus} data-testid="button-bulk-update">
-                            Update Status ({selectedClaims.length})
-                          </Button>
-                          <Button variant="destructive" onClick={handleBulkDeleteClaims} data-testid="button-bulk-delete">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete ({selectedClaims.length})
-                          </Button>
-                        </div>
-                      </>
-                    )}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Claims Management</CardTitle>
                   </div>
+                  {selectedClaims.length > 0 && (
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                      <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                        <SelectTrigger className="w-full lg:w-[180px]" data-testid="select-bulk-status">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="submitted">Submitted</SelectItem>
+                          <SelectItem value="under_review">Under Review</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                          <SelectItem value="paid">Paid</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button onClick={handleBulkUpdateStatus} className="w-full lg:w-auto min-h-[44px]" data-testid="button-bulk-update">
+                        Update Status ({selectedClaims.length})
+                      </Button>
+                      <Button variant="destructive" onClick={handleBulkDeleteClaims} className="w-full lg:w-auto min-h-[44px]" data-testid="button-bulk-delete">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete ({selectedClaims.length})
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <input
-                          type="checkbox"
-                          checked={selectedClaims.length === claims.length && claims.length > 0}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedClaims(claims.map(c => c.id));
-                            } else {
-                              setSelectedClaims([]);
-                            }
-                          }}
-                          data-testid="checkbox-select-all-claims"
-                        />
-                      </TableHead>
-                      <TableHead>Reference</TableHead>
-                      <TableHead>Policy Number</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {claimsLoading ? (
+                <div className="lg:hidden space-y-4">
+                  {claimsLoading ? (
+                    <p className="text-center text-muted-foreground">Loading...</p>
+                  ) : claims.length === 0 ? (
+                    <p className="text-center text-muted-foreground">No claims found</p>
+                  ) : (
+                    claims.map((claim) => (
+                      <Card key={claim.id} data-testid={`card-claim-${claim.id}`}>
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedClaims.includes(claim.id)}
+                                onChange={() => handleToggleClaimSelection(claim.id)}
+                                className="mt-1 min-w-[44px] min-h-[44px]"
+                                data-testid={`checkbox-claim-${claim.id}`}
+                              />
+                              <div className="flex-1 space-y-3">
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Reference</p>
+                                  <p className="font-medium" data-testid={`text-claim-ref-${claim.id}`}>
+                                    {claim.claimReferenceNumber}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Status</p>
+                                  <Badge variant="outline" data-testid={`badge-status-${claim.id}`}>
+                                    {claim.status}
+                                  </Badge>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Policy Number</p>
+                                  <p>{claim.policyNumber}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Created</p>
+                                  <p>{new Date(claim.createdAt).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+                <div className="overflow-x-auto lg:overflow-visible">
+                  <Table className="hidden lg:table">
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                        <TableHead className="w-12">
+                          <input
+                            type="checkbox"
+                            checked={selectedClaims.length === claims.length && claims.length > 0}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedClaims(claims.map(c => c.id));
+                              } else {
+                                setSelectedClaims([]);
+                              }
+                            }}
+                            data-testid="checkbox-select-all-claims"
+                          />
+                        </TableHead>
+                        <TableHead>Reference</TableHead>
+                        <TableHead>Policy Number</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
                       </TableRow>
-                    ) : claims.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center">No claims found</TableCell>
-                      </TableRow>
-                    ) : (
-                      claims.map((claim) => (
-                        <TableRow key={claim.id} data-testid={`row-claim-${claim.id}`}>
-                          <TableCell>
-                            <input
-                              type="checkbox"
-                              checked={selectedClaims.includes(claim.id)}
-                              onChange={() => handleToggleClaimSelection(claim.id)}
-                              data-testid={`checkbox-claim-${claim.id}`}
-                            />
-                          </TableCell>
-                          <TableCell data-testid={`text-claim-ref-${claim.id}`}>
-                            {claim.claimReferenceNumber}
-                          </TableCell>
-                          <TableCell>{claim.policyNumber}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" data-testid={`badge-status-${claim.id}`}>
-                              {claim.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(claim.createdAt).toLocaleDateString()}
-                          </TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      {claimsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">Loading...</TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : claims.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">No claims found</TableCell>
+                        </TableRow>
+                      ) : (
+                        claims.map((claim) => (
+                          <TableRow key={claim.id} data-testid={`row-claim-${claim.id}`}>
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                checked={selectedClaims.includes(claim.id)}
+                                onChange={() => handleToggleClaimSelection(claim.id)}
+                                data-testid={`checkbox-claim-${claim.id}`}
+                              />
+                            </TableCell>
+                            <TableCell data-testid={`text-claim-ref-${claim.id}`}>
+                              {claim.claimReferenceNumber}
+                            </TableCell>
+                            <TableCell>{claim.policyNumber}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" data-testid={`badge-status-${claim.id}`}>
+                                {claim.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(claim.createdAt).toLocaleDateString()}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -625,45 +739,42 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Key</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {settingsLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center">Loading...</TableCell>
-                      </TableRow>
-                    ) : settings.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center">No settings configured</TableCell>
-                      </TableRow>
-                    ) : (
-                      settings.map((setting) => (
-                        <TableRow key={setting.id} data-testid={`row-setting-${setting.key}`}>
-                          <TableCell className="font-mono" data-testid={`text-setting-key-${setting.key}`}>
-                            {setting.key}
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate" data-testid={`text-setting-value-${setting.key}`}>
-                            {setting.value}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{setting.category}</Badge>
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate text-muted-foreground">
-                            {setting.description || 'No description'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
+                <div className="lg:hidden space-y-4">
+                  {settingsLoading ? (
+                    <p className="text-center text-muted-foreground">Loading...</p>
+                  ) : settings.length === 0 ? (
+                    <p className="text-center text-muted-foreground">No settings configured</p>
+                  ) : (
+                    settings.map((setting) => (
+                      <Card key={setting.id} data-testid={`card-setting-${setting.key}`}>
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Key</p>
+                              <p className="font-mono font-medium" data-testid={`text-setting-key-${setting.key}`}>
+                                {setting.key}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Value</p>
+                              <p className="break-words" data-testid={`text-setting-value-${setting.key}`}>
+                                {setting.value}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Category</p>
+                              <Badge variant="outline">{setting.category}</Badge>
+                            </div>
+                            {setting.description && (
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Description</p>
+                                <p className="text-sm">{setting.description}</p>
+                              </div>
+                            )}
+                            <div className="flex gap-2 pt-2">
                               <Button
                                 variant="outline"
-                                size="sm"
+                                className="flex-1 min-h-[44px]"
                                 onClick={() => {
                                   setSettingKey(setting.key);
                                   setSettingValue(setting.value);
@@ -673,11 +784,12 @@ export default function AdminDashboard() {
                                 }}
                                 data-testid={`button-edit-setting-${setting.key}`}
                               >
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
                               </Button>
                               <Button
                                 variant="outline"
-                                size="sm"
+                                className="flex-1 min-h-[44px]"
                                 onClick={() => {
                                   if (confirm(`Delete setting "${setting.key}"?`)) {
                                     deleteSettingMutation.mutate(setting.key);
@@ -685,15 +797,87 @@ export default function AdminDashboard() {
                                 }}
                                 data-testid={`button-delete-setting-${setting.key}`}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
                               </Button>
                             </div>
-                          </TableCell>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+                <div className="overflow-x-auto lg:overflow-visible">
+                  <Table className="hidden lg:table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Key</TableHead>
+                        <TableHead>Value</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {settingsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">Loading...</TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : settings.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">No settings configured</TableCell>
+                        </TableRow>
+                      ) : (
+                        settings.map((setting) => (
+                          <TableRow key={setting.id} data-testid={`row-setting-${setting.key}`}>
+                            <TableCell className="font-mono" data-testid={`text-setting-key-${setting.key}`}>
+                              {setting.key}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate" data-testid={`text-setting-value-${setting.key}`}>
+                              {setting.value}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{setting.category}</Badge>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate text-muted-foreground">
+                              {setting.description || 'No description'}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSettingKey(setting.key);
+                                    setSettingValue(setting.value);
+                                    setSettingCategory(setting.category || 'general');
+                                    setSettingDescription(setting.description || '');
+                                    setShowSettingDialog(true);
+                                  }}
+                                  data-testid={`button-edit-setting-${setting.key}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (confirm(`Delete setting "${setting.key}"?`)) {
+                                      deleteSettingMutation.mutate(setting.key);
+                                    }
+                                  }}
+                                  data-testid={`button-delete-setting-${setting.key}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -702,12 +886,12 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Audit Logs</CardTitle>
-                <div className="flex gap-4 mt-4">
+                <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <Select
                     value={auditFilter.entityType}
                     onValueChange={(value) => setAuditFilter(prev => ({ ...prev, entityType: value }))}
                   >
-                    <SelectTrigger className="w-[200px]" data-testid="select-entity-filter">
+                    <SelectTrigger className="w-full sm:w-[200px]" data-testid="select-entity-filter">
                       <SelectValue placeholder="Filter by entity type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -720,46 +904,82 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Timestamp</TableHead>
-                      <TableHead>Admin</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Entity Type</TableHead>
-                      <TableHead>Entity ID</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {auditLogsLoading ? (
+                <div className="lg:hidden space-y-4">
+                  {auditLogsLoading ? (
+                    <p className="text-center text-muted-foreground">Loading...</p>
+                  ) : auditLogs.length === 0 ? (
+                    <p className="text-center text-muted-foreground">No audit logs found</p>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <Card key={log.id} data-testid={`card-audit-${log.id}`}>
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Timestamp</p>
+                              <p>{new Date(log.createdAt!).toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Admin</p>
+                              <p className="font-medium">{log.adminId}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Action</p>
+                              <Badge variant="outline" data-testid={`badge-action-${log.action}`}>
+                                {log.action}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Entity</p>
+                              <p className="capitalize">{log.entityType}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+                <div className="overflow-x-auto lg:overflow-visible">
+                  <Table className="hidden lg:table">
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                        <TableHead>Timestamp</TableHead>
+                        <TableHead>Admin</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Entity Type</TableHead>
+                        <TableHead>Entity ID</TableHead>
                       </TableRow>
-                    ) : auditLogs.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center">No audit logs found</TableCell>
-                      </TableRow>
-                    ) : (
-                      auditLogs.map((log) => (
-                        <TableRow key={log.id} data-testid={`row-audit-${log.id}`}>
-                          <TableCell>
-                            {new Date(log.createdAt!).toLocaleString()}
-                          </TableCell>
-                          <TableCell>{log.adminId}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" data-testid={`badge-action-${log.action}`}>
-                              {log.action}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{log.entityType}</TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {log.entityId?.slice(0, 8)}...
-                          </TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      {auditLogsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">Loading...</TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : auditLogs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">No audit logs found</TableCell>
+                        </TableRow>
+                      ) : (
+                        auditLogs.map((log) => (
+                          <TableRow key={log.id} data-testid={`row-audit-${log.id}`}>
+                            <TableCell>
+                              {new Date(log.createdAt!).toLocaleString()}
+                            </TableCell>
+                            <TableCell>{log.adminId}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" data-testid={`badge-action-${log.action}`}>
+                                {log.action}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{log.entityType}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {log.entityId?.slice(0, 8)}...
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -767,14 +987,14 @@ export default function AdminDashboard() {
       </div>
 
       <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
-        <DialogContent data-testid="dialog-user-form">
+        <DialogContent className="max-w-full sm:max-w-2xl" data-testid="dialog-user-form">
           <DialogHeader>
             <DialogTitle>{selectedUser?.id ? 'Edit User' : 'Create User'}</DialogTitle>
             <DialogDescription>
               {selectedUser?.id ? 'Update user information' : 'Create a new user account'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="firstName">First Name</Label>
               <Input
@@ -793,7 +1013,7 @@ export default function AdminDashboard() {
                 data-testid="input-user-lastname"
               />
             </div>
-            <div>
+            <div className="md:col-span-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -803,7 +1023,7 @@ export default function AdminDashboard() {
                 data-testid="input-user-email"
               />
             </div>
-            <div>
+            <div className="md:col-span-2">
               <Label htmlFor="role">Role</Label>
               <Select
                 value={selectedUser?.role || 'insured'}
@@ -822,13 +1042,14 @@ export default function AdminDashboard() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUserDialog(false)} data-testid="button-cancel-user">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowUserDialog(false)} className="w-full sm:w-auto" data-testid="button-cancel-user">
               Cancel
             </Button>
             <Button
               onClick={handleSaveUser}
               disabled={createUserMutation.isPending || updateUserMutation.isPending}
+              className="w-full sm:w-auto"
               data-testid="button-save-user"
             >
               {createUserMutation.isPending || updateUserMutation.isPending ? 'Saving...' : 'Save'}
@@ -838,18 +1059,18 @@ export default function AdminDashboard() {
       </Dialog>
 
       <AlertDialog open={showDeleteUserDialog} onOpenChange={setShowDeleteUserDialog}>
-        <AlertDialogContent data-testid="dialog-delete-user">
+        <AlertDialogContent className="max-w-full sm:max-w-2xl" data-testid="dialog-delete-user">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this user? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete-user">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto" data-testid="button-cancel-delete-user">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedUser && deleteUserMutation.mutate(selectedUser.id)}
-              className="bg-destructive text-destructive-foreground"
+              className="bg-destructive text-destructive-foreground w-full sm:w-auto"
               data-testid="button-confirm-delete-user"
             >
               Delete
@@ -859,15 +1080,15 @@ export default function AdminDashboard() {
       </AlertDialog>
 
       <Dialog open={showSettingDialog} onOpenChange={setShowSettingDialog}>
-        <DialogContent data-testid="dialog-setting-form">
+        <DialogContent className="max-w-full sm:max-w-2xl" data-testid="dialog-setting-form">
           <DialogHeader>
             <DialogTitle>{settingKey ? 'Edit Setting' : 'Add Setting'}</DialogTitle>
             <DialogDescription>
               Configure system settings
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
               <Label htmlFor="settingKey">Key</Label>
               <Input
                 id="settingKey"
@@ -877,7 +1098,7 @@ export default function AdminDashboard() {
                 data-testid="input-setting-key"
               />
             </div>
-            <div>
+            <div className="md:col-span-2">
               <Label htmlFor="settingValue">Value</Label>
               <Textarea
                 id="settingValue"
@@ -901,7 +1122,7 @@ export default function AdminDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <Label htmlFor="settingDescription">Description</Label>
               <Textarea
                 id="settingDescription"
@@ -912,8 +1133,8 @@ export default function AdminDashboard() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSettingDialog(false)} data-testid="button-cancel-setting">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowSettingDialog(false)} className="w-full sm:w-auto" data-testid="button-cancel-setting">
               Cancel
             </Button>
             <Button
@@ -924,6 +1145,7 @@ export default function AdminDashboard() {
                 description: settingDescription || undefined,
               })}
               disabled={!settingKey || !settingValue || upsertSettingMutation.isPending}
+              className="w-full sm:w-auto"
               data-testid="button-save-setting"
             >
               {upsertSettingMutation.isPending ? 'Saving...' : 'Save'}
