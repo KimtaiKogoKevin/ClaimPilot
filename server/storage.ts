@@ -11,6 +11,8 @@ import {
   detectedDamages,
   auditLogs,
   systemSettings,
+  claimEditSessions,
+  claimChangeHistory,
   type User,
   type UpsertUser,
   type InsertClaim,
@@ -29,6 +31,10 @@ import {
   type InsertAuditLog,
   type SystemSetting,
   type InsertSystemSetting,
+  type ClaimEditSession,
+  type InsertClaimEditSession,
+  type ClaimChangeHistory,
+  type InsertClaimChangeHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, or, like, ilike, inArray, count } from "drizzle-orm";
@@ -121,6 +127,17 @@ export interface IStorage {
   saveDraftProgress(claimId: string, step: number, data: any, progressPercentage: number): Promise<void>;
   getDraftClaims(userId: string): Promise<ClaimWithDetails[]>;
   resumeDraft(claimId: string): Promise<ClaimWithDetails | undefined>;
+  
+  // Claim collaboration methods
+  startEditSession(claimId: string, userId: string, userName: string, userRole: string): Promise<ClaimEditSession>;
+  endEditSession(sessionId: string): Promise<void>;
+  updateEditSessionActivity(sessionId: string): Promise<void>;
+  getActiveEditSession(claimId: string): Promise<ClaimEditSession | undefined>;
+  getAllActiveEditSessions(claimId: string): Promise<ClaimEditSession[]>;
+  
+  // Change history methods
+  addClaimChange(change: InsertClaimChangeHistory): Promise<ClaimChangeHistory>;
+  getClaimChangeHistory(claimId: string, limit?: number): Promise<ClaimChangeHistory[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -827,6 +844,109 @@ export class DatabaseStorage implements IStorage {
     }
     
     return await query.orderBy(desc(auditLogs.createdAt));
+  }
+
+  // Claim collaboration operations
+  async startEditSession(claimId: string, userId: string, userName: string, userRole: string): Promise<ClaimEditSession> {
+    // First, check if there's already an active session
+    const existingSession = await this.getActiveEditSession(claimId);
+    
+    if (existingSession && existingSession.userId !== userId) {
+      throw new Error('Claim is already being edited by another user');
+    }
+    
+    // End any existing session for this user on this claim (in case of reconnect)
+    const [existingUserSessions] = await db
+      .select()
+      .from(claimEditSessions)
+      .where(
+        and(
+          eq(claimEditSessions.claimId, claimId),
+          eq(claimEditSessions.userId, userId),
+          eq(claimEditSessions.isActive, true)
+        )
+      );
+    
+    if (existingUserSessions) {
+      await db
+        .update(claimEditSessions)
+        .set({ isActive: false })
+        .where(eq(claimEditSessions.id, existingUserSessions.id));
+    }
+    
+    const [session] = await db
+      .insert(claimEditSessions)
+      .values({
+        claimId,
+        userId,
+        userName,
+        userRole: userRole as any,
+        isActive: true,
+      })
+      .returning();
+    
+    return session;
+  }
+
+  async endEditSession(sessionId: string): Promise<void> {
+    await db
+      .update(claimEditSessions)
+      .set({ isActive: false })
+      .where(eq(claimEditSessions.id, sessionId));
+  }
+
+  async updateEditSessionActivity(sessionId: string): Promise<void> {
+    await db
+      .update(claimEditSessions)
+      .set({ lastActivityAt: new Date() })
+      .where(eq(claimEditSessions.id, sessionId));
+  }
+
+  async getActiveEditSession(claimId: string): Promise<ClaimEditSession | undefined> {
+    const [session] = await db
+      .select()
+      .from(claimEditSessions)
+      .where(
+        and(
+          eq(claimEditSessions.claimId, claimId),
+          eq(claimEditSessions.isActive, true)
+        )
+      )
+      .orderBy(desc(claimEditSessions.startedAt))
+      .limit(1);
+    
+    return session;
+  }
+
+  async getAllActiveEditSessions(claimId: string): Promise<ClaimEditSession[]> {
+    return await db
+      .select()
+      .from(claimEditSessions)
+      .where(
+        and(
+          eq(claimEditSessions.claimId, claimId),
+          eq(claimEditSessions.isActive, true)
+        )
+      )
+      .orderBy(claimEditSessions.startedAt);
+  }
+
+  async addClaimChange(change: InsertClaimChangeHistory): Promise<ClaimChangeHistory> {
+    const [result] = await db
+      .insert(claimChangeHistory)
+      .values(change)
+      .returning();
+    
+    return result;
+  }
+
+  async getClaimChangeHistory(claimId: string, limit: number = 50): Promise<ClaimChangeHistory[]> {
+    return await db
+      .select()
+      .from(claimChangeHistory)
+      .where(eq(claimChangeHistory.claimId, claimId))
+      .orderBy(desc(claimChangeHistory.createdAt))
+      .limit(limit);
   }
 }
 

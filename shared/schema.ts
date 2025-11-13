@@ -667,6 +667,33 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Claim edit sessions - tracks who is currently editing a claim
+export const claimEditSessions = pgTable("claim_edit_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  userName: varchar("user_name").notNull(), // Cached for quick display
+  userRole: userRoleEnum("user_role").notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+// Claim change history - audit trail of all claim edits
+export const claimChangeHistory = pgTable("claim_change_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  claimId: varchar("claim_id").notNull().references(() => claims.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  userName: varchar("user_name").notNull(),
+  userRole: userRoleEnum("user_role").notNull(),
+  action: varchar("action").notNull(), // 'updated', 'created', 'submitted', etc.
+  fieldName: varchar("field_name"), // Which field changed (null for bulk operations)
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  description: text("description"), // Human-readable change description
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas for new tables
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
@@ -678,11 +705,26 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit
   updatedAt: true,
 });
 
+export const insertClaimEditSessionSchema = createInsertSchema(claimEditSessions).omit({
+  id: true,
+  startedAt: true,
+  lastActivityAt: true,
+});
+
+export const insertClaimChangeHistorySchema = createInsertSchema(claimChangeHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types for new tables
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertClaimEditSession = z.infer<typeof insertClaimEditSessionSchema>;
+export type ClaimEditSession = typeof claimEditSessions.$inferSelect;
+export type InsertClaimChangeHistory = z.infer<typeof insertClaimChangeHistorySchema>;
+export type ClaimChangeHistory = typeof claimChangeHistory.$inferSelect;
 
 // Admin operation schemas
 export const adminCreateUserSchema = z.object({
