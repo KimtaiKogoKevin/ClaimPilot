@@ -787,7 +787,7 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                             </div>
-                            <Link href={`/claim-form?claimId=${claim.id}`} className="w-full">
+                            <Link href={`/claim-form/${claim.id}`} className="w-full">
                               <Button variant="outline" size="sm" className="w-full min-h-[44px]" data-testid={`button-edit-claim-card-${claim.id}`}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 View/Edit Claim
@@ -857,7 +857,7 @@ export default function AdminDashboard() {
                               {new Date(claim.createdAt).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
-                              <Link href={`/claim-form?claimId=${claim.id}`}>
+                              <Link href={`/claim-form/${claim.id}`}>
                                 <Button variant="outline" size="sm" data-testid={`button-edit-claim-${claim.id}`}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit
