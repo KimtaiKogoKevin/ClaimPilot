@@ -122,6 +122,8 @@ function Router() {
         <Route path="/admin/claims" component={AdminDashboard} />
         <Route path="/admin/settings" component={AdminDashboard} />
         <Route path="/admin/audit" component={AdminDashboard} />
+        <Route path="/claim-form/:id" component={ClaimForm} />
+        <Route path="/claim-form" component={ClaimForm} />
         <Route path="/claim-details/:id" component={ClaimDetails} />
         <Route path="/role-selection" component={RoleSelection} />
         <Route component={NotFound} />
