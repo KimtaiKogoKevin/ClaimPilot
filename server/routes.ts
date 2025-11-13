@@ -1569,6 +1569,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Collaboration API Routes
+  // Get active edit session for a claim
+  app.get("/api/claims/:id/edit-session", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const session = await storage.getActiveEditSession(id);
+      res.json({ session });
+    } catch (error) {
+      console.error("Error fetching edit session:", error);
+      res.status(500).json({ message: "Failed to fetch edit session" });
+    }
+  });
+
+  // Get claim change history
+  app.get("/api/claims/:id/change-history", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const history = await storage.getClaimChangeHistory(id, limit);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching change history:", error);
+      res.status(500).json({ message: "Failed to fetch change history" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
