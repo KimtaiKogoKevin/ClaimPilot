@@ -60,7 +60,12 @@ export function useClaimCollaboration(
     if (!claimId || !userId || ws.current?.readyState === WebSocket.OPEN) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/collaboration`;
+    
+    // Get auth token from localStorage (set by authentication)
+    const authToken = localStorage.getItem('authToken');
+    const wsUrl = authToken
+      ? `${protocol}//${window.location.host}/ws/collaboration?token=${authToken}`
+      : `${protocol}//${window.location.host}/ws/collaboration`;
     
     console.log('[Collaboration] Connecting to:', wsUrl);
     ws.current = new WebSocket(wsUrl);
@@ -68,13 +73,21 @@ export function useClaimCollaboration(
     ws.current.onopen = () => {
       console.log('[Collaboration] Connected');
       
+      // If no token in URL, authenticate via message
+      if (!authToken) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          ws.current?.send(JSON.stringify({
+            type: 'authenticate',
+            token,
+          }));
+        }
+      }
+      
       // Join the claim room
       ws.current?.send(JSON.stringify({
         type: 'join_claim',
         claimId,
-        userId,
-        userName,
-        userRole,
       }));
 
       // Start heartbeat

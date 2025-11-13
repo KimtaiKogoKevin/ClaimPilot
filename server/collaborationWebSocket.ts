@@ -2,6 +2,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { storage } from './storage';
 import type { ClaimEditSession } from '@shared/schema';
+import { verifyToken } from './auth/jwt';
+import { parse } from 'url';
 
 interface AuthenticatedWebSocket extends WebSocket {
   userId?: string;
@@ -9,16 +11,15 @@ interface AuthenticatedWebSocket extends WebSocket {
   userRole?: string;
   claimId?: string;
   sessionId?: string;
+  isAuthenticated?: boolean;
 }
 
 interface WebSocketMessage {
-  type: 'join_claim' | 'leave_claim' | 'field_update' | 'heartbeat' | 'lock_status' | 'request_history';
+  type: 'authenticate' | 'join_claim' | 'leave_claim' | 'field_update' | 'heartbeat' | 'lock_status' | 'request_history';
+  token?: string;
   claimId?: string;
   field?: string;
   value?: any;
-  userId?: string;
-  userName?: string;
-  userRole?: string;
 }
 
 export function setupCollaborationWebSocket(server: Server) {
@@ -48,6 +49,29 @@ export function setupCollaborationWebSocket(server: Server) {
   wss.on('connection', async (ws: AuthenticatedWebSocket, req) => {
     console.log('[Collaboration WS] New connection');
     (ws as any).isAlive = true;
+    ws.isAuthenticated = false;
+
+    // Try to authenticate from query params if token is provided
+    const parsedUrl = parse(req.url || '', true);
+    const tokenFromQuery = parsedUrl.query.token as string;
+
+    if (tokenFromQuery) {
+      try {
+        const decoded = verifyToken(tokenFromQuery);
+        if (decoded && decoded.userId) {
+          const user = await storage.getUser(decoded.userId);
+          if (user) {
+            ws.userId = user.id;
+            ws.userName = `${user.firstName} ${user.lastName}`;
+            ws.userRole = user.role;
+            ws.isAuthenticated = true;
+            console.log('[Collaboration WS] Authenticated via query param:', ws.userName);
+          }
+        }
+      } catch (error) {
+        console.error('[Collaboration WS] Token validation failed:', error);
+      }
+    }
 
     ws.on('pong', () => {
       (ws as any).isAlive = true;
@@ -59,6 +83,10 @@ export function setupCollaborationWebSocket(server: Server) {
         console.log('[Collaboration WS] Received:', message.type, message.claimId);
 
         switch (message.type) {
+          case 'authenticate':
+            await handleAuthenticate(ws, message);
+            break;
+
           case 'join_claim':
             await handleJoinClaim(ws, message);
             break;
@@ -102,11 +130,57 @@ export function setupCollaborationWebSocket(server: Server) {
     });
   });
 
-  async function handleJoinClaim(ws: AuthenticatedWebSocket, message: WebSocketMessage) {
-    const { claimId, userId, userName, userRole } = message;
+  async function handleAuthenticate(ws: AuthenticatedWebSocket, message: WebSocketMessage) {
+    if (!message.token) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Authentication token required' }));
+      return;
+    }
 
-    if (!claimId || !userId || !userName || !userRole) {
-      ws.send(JSON.stringify({ type: 'error', message: 'Missing required fields' }));
+    try {
+      const decoded = verifyToken(message.token);
+      if (!decoded || !decoded.userId) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Invalid token' }));
+        return;
+      }
+
+      const user = await storage.getUser(decoded.userId);
+      if (!user) {
+        ws.send(JSON.stringify({ type: 'error', message: 'User not found' }));
+        return;
+      }
+
+      ws.userId = user.id;
+      ws.userName = `${user.firstName} ${user.lastName}`;
+      ws.userRole = user.role;
+      ws.isAuthenticated = true;
+
+      ws.send(JSON.stringify({ 
+        type: 'authenticated',
+        user: {
+          id: user.id,
+          name: ws.userName,
+          role: user.role
+        }
+      }));
+
+      console.log('[Collaboration WS] Authenticated:', ws.userName);
+    } catch (error) {
+      console.error('[Collaboration WS] Authentication error:', error);
+      ws.send(JSON.stringify({ type: 'error', message: 'Authentication failed' }));
+    }
+  }
+
+  async function handleJoinClaim(ws: AuthenticatedWebSocket, message: WebSocketMessage) {
+    const { claimId } = message;
+
+    // Validate authentication
+    if (!ws.isAuthenticated || !ws.userId || !ws.userName || !ws.userRole) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Not authenticated. Please authenticate first.' }));
+      return;
+    }
+
+    if (!claimId) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Missing claimId' }));
       return;
     }
 
@@ -114,7 +188,7 @@ export function setupCollaborationWebSocket(server: Server) {
       // Check if there's already an active edit session
       const existingSession = await storage.getActiveEditSession(claimId);
 
-      if (existingSession && existingSession.userId !== userId) {
+      if (existingSession && existingSession.userId !== ws.userId) {
         // Claim is locked by another user
         ws.send(JSON.stringify({ 
           type: 'claim_locked',
@@ -127,9 +201,6 @@ export function setupCollaborationWebSocket(server: Server) {
         }));
         
         // Add to room as viewer only (can't edit)
-        ws.userId = userId;
-        ws.userName = userName;
-        ws.userRole = userRole;
         ws.claimId = claimId;
         
         if (!claimRooms.has(claimId)) {
@@ -141,11 +212,8 @@ export function setupCollaborationWebSocket(server: Server) {
       }
 
       // Start edit session (or rejoin existing session)
-      const session = await storage.startEditSession(claimId, userId, userName, userRole);
+      const session = await storage.startEditSession(claimId, ws.userId, ws.userName, ws.userRole);
 
-      ws.userId = userId;
-      ws.userName = userName;
-      ws.userRole = userRole;
       ws.claimId = claimId;
       ws.sessionId = session.id;
 
@@ -159,9 +227,9 @@ export function setupCollaborationWebSocket(server: Server) {
       broadcastToRoom(claimId, {
         type: 'user_joined',
         user: {
-          userId,
-          userName,
-          userRole,
+          userId: ws.userId,
+          userName: ws.userName,
+          userRole: ws.userRole,
           isEditor: true
         }
       }, ws);
@@ -173,7 +241,7 @@ export function setupCollaborationWebSocket(server: Server) {
         isEditor: true
       }));
 
-      console.log(`[Collaboration WS] User ${userName} joined claim ${claimId} as editor`);
+      console.log(`[Collaboration WS] User ${ws.userName} joined claim ${claimId} as editor`);
     } catch (error) {
       console.error('[Collaboration WS] Error joining claim:', error);
       ws.send(JSON.stringify({ 
