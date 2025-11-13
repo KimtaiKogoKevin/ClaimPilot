@@ -38,6 +38,15 @@ The application serves four primary user roles: **Insured/Clients** who submit c
 - WebSocket connections currently accept tokens via query parameters (convenient for development but may expose tokens in logs)
 - Production deployments should consider additional token transmission methods and periodic revalidation
 
+**Admin Analytics Dashboard (January 2025)**: Enhanced the admin dashboard with comprehensive operational analytics visualizations powered by Recharts. The analytics system provides critical business intelligence through four key visualizations:
+
+1. **User Growth Trend**: 12-month stacked area chart tracking new user registrations segmented by role (Admin, Broker, Insured, Service Provider), enabling identification of growth patterns and role-specific trends
+2. **Role Mix Distribution**: Grouped bar chart comparing new user composition between current and previous month, helping track demographic shifts in platform adoption
+3. **Claims SLA Compliance**: Bar chart displaying average processing times against predefined SLA targets for different claim statuses, highlighting operational efficiency metrics
+4. **Operational Backlog Aging**: Stacked bar chart showing distribution of open claims across age buckets (0-7, 8-14, 15-30, 30+ days), identifying bottlenecks requiring attention
+
+The analytics data is aggregated efficiently using Drizzle ORM with PostgreSQL time-series queries, cached via React Query for optimal performance, and protected by admin-only authorization to ensure sensitive operational data remains secure.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
