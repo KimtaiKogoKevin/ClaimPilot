@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftManager } from "@/hooks/useDraftManager";
+import { useClaimCollaboration } from "@/hooks/useClaimCollaboration";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Clock, Type } from "lucide-react";
+import { ArrowLeft, Save, Clock, Type, History, ChevronDown, ChevronUp } from "lucide-react";
 import ProgressBar from "@/components/claim-form/progress-bar";
 import { DraftPersistenceManager } from "@/lib/draftPersistence";
 import { calculateFormProgress, transformFormDataForAPI, restoreFormDataFromAPI } from "@/lib/formPersistenceUtils";
@@ -15,6 +17,9 @@ import PolicyDetailsStep from "@/components/claim-form/policy-details-step";
 import VehicleAccidentStep from "@/components/claim-form/vehicle-accident-step";
 import EnhancedDamageAssessment from "@/components/claim-form/enhanced-damage-assessment";
 import DriverDeclarationStep from "@/components/claim-form/driver-declaration-step";
+import { ClaimCollaborationStatus } from "@/components/ClaimCollaborationStatus";
+import { ClaimChangeHistory } from "@/components/ClaimChangeHistory";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function ClaimForm() {
   const { id } = useParams();
@@ -38,6 +43,69 @@ export default function ClaimForm() {
     getCurrentStep, 
     getLastSaved 
   } = useDraftManager(claimId || undefined);
+
+  // Get current user data for collaboration
+  const { data: user } = useQuery<{
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  }>({
+    queryKey: ['/api/auth/user'],
+  });
+
+  // Track highlighted fields for remote updates
+  const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Collaboration hook for real-time updates
+  const collaboration = useClaimCollaboration(
+    claimId || undefined,
+    user?.id,
+    `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Unknown User',
+    user?.role || 'insured',
+    (update) => {
+      // Handle remote field updates
+      console.log('Field updated remotely:', update.field, update.value);
+      
+      // Parse the field path and update formData
+      const fieldParts = update.field.split('.');
+      setFormData(prev => {
+        const newData = { ...prev };
+        let current: any = newData;
+        
+        // Navigate to the nested property
+        for (let i = 0; i < fieldParts.length - 1; i++) {
+          if (!current[fieldParts[i]]) {
+            current[fieldParts[i]] = {};
+          }
+          current = current[fieldParts[i]];
+        }
+        
+        // Set the value
+        current[fieldParts[fieldParts.length - 1]] = update.value;
+        return newData;
+      });
+      
+      // Add field to highlighted set
+      setHighlightedFields(prev => {
+        const newSet = new Set(prev);
+        newSet.add(update.field);
+        return newSet;
+      });
+      
+      // Show toast notification
+      toast({
+        title: "Field Updated",
+        description: `${update.changedBy.userName} updated ${update.field}`,
+        duration: 3000,
+      });
+    }
+  );
+
+  // Determine if form should be read-only
+  const isReadOnly = collaboration.status.isLocked && !collaboration.status.isEditor;
   const [formData, setFormData] = useState({
     // Policy details
     branchName: "",
@@ -659,6 +727,7 @@ export default function ClaimForm() {
                 size="sm"
                 onClick={handleBackToLanding}
                 className="text-neutral-600 hover:text-neutral-900"
+                data-testid="button-back-to-dashboard"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard
@@ -686,8 +755,9 @@ export default function ClaimForm() {
                   variant="outline"
                   size="sm"
                   onClick={handleSaveDraft}
-                  disabled={isSaving}
+                  disabled={isSaving || isReadOnly}
                   className="text-neutral-700 hover:text-neutral-900"
+                  data-testid="button-save-draft"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save Draft'}
@@ -699,6 +769,13 @@ export default function ClaimForm() {
               </div>
             </div>
           </div>
+
+          {/* Collaboration Status */}
+          {claimId && (
+            <div className="mb-4">
+              <ClaimCollaborationStatus status={collaboration.status} />
+            </div>
+          )}
           
           <ProgressBar currentStep={currentStep} totalSteps={totalSteps} />
         </div>
@@ -706,6 +783,31 @@ export default function ClaimForm() {
 
       {/* Form Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Change History Panel */}
+        {claimId && collaboration.history.length > 0 && (
+          <Collapsible open={showHistory} onOpenChange={setShowHistory} className="mb-6">
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between"
+                data-testid="button-toggle-history"
+              >
+                <span className="flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  Change History ({collaboration.history.length} {collaboration.history.length === 1 ? 'change' : 'changes'})
+                </span>
+                {showHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <ClaimChangeHistory 
+                history={collaboration.history}
+                onRefresh={collaboration.refreshHistory}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         {currentStep === 1 && (
           <PolicyDetailsStep
             formData={formData}
@@ -742,24 +844,37 @@ export default function ClaimForm() {
             variant="outline"
             onClick={handlePrevStep}
             disabled={currentStep === 1}
+            data-testid="button-previous-step"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Previous
           </Button>
           <div className="flex space-x-4">
-            <Button variant="outline" onClick={handleManualSave}>
+            <Button 
+              variant="outline" 
+              onClick={handleManualSave}
+              disabled={isReadOnly}
+              data-testid="button-manual-save"
+            >
               Save Draft
             </Button>
             {currentStep < totalSteps ? (
               <Button 
                 onClick={handleNextStep}
                 className="bg-primary hover:bg-primary/90 text-white"
+                disabled={isReadOnly}
+                data-testid="button-next-step"
               >
                 Next
                 <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
               </Button>
             ) : (
-              <Button onClick={handleSubmitClaim} className="bg-secondary hover:bg-green-600">
+              <Button 
+                onClick={handleSubmitClaim} 
+                className="bg-secondary hover:bg-green-600"
+                disabled={isReadOnly}
+                data-testid="button-submit-claim"
+              >
                 Submit Claim
               </Button>
             )}

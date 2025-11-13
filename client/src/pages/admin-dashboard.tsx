@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 import {
   Users,
   FileText,
@@ -652,6 +653,12 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                             </div>
+                            <Link href={`/claim-form?claimId=${claim.id}`} className="w-full">
+                              <Button variant="outline" size="sm" className="w-full min-h-[44px]" data-testid={`button-edit-claim-card-${claim.id}`}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                View/Edit Claim
+                              </Button>
+                            </Link>
                           </div>
                         </CardContent>
                       </Card>
@@ -680,16 +687,17 @@ export default function AdminDashboard() {
                         <TableHead>Policy Number</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {claimsLoading ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                          <TableCell colSpan={6} className="text-center">Loading...</TableCell>
                         </TableRow>
                       ) : claims.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center">No claims found</TableCell>
+                          <TableCell colSpan={6} className="text-center">No claims found</TableCell>
                         </TableRow>
                       ) : (
                         claims.map((claim) => (
@@ -713,6 +721,14 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>
                               {new Date(claim.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <Link href={`/claim-form?claimId=${claim.id}`}>
+                                <Button variant="outline" size="sm" data-testid={`button-edit-claim-${claim.id}`}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </Button>
+                              </Link>
                             </TableCell>
                           </TableRow>
                         ))
