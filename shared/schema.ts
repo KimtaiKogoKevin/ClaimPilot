@@ -769,3 +769,43 @@ export const adminSystemSettingSchema = z.object({
   category: z.enum(['general', 'email', 'security', 'api']).optional(),
   description: z.string().optional(),
 });
+
+// Admin Analytics Types
+export const userGrowthDataPointSchema = z.object({
+  month: z.string(),
+  roleData: z.record(z.string(), z.number()),
+});
+
+export const roleMixDataSchema = z.object({
+  role: z.string(),
+  count: z.number(),
+  activePercent: z.number(),
+});
+
+export const slaComplianceDataSchema = z.object({
+  status: z.string(),
+  avgDays: z.number(),
+  slaTarget: z.number(),
+  count: z.number(),
+});
+
+export const backlogAgingDataSchema = z.object({
+  bucket: z.string(),
+  count: z.number(),
+});
+
+export const adminAnalyticsSchema = z.object({
+  userGrowth: z.array(userGrowthDataPointSchema),
+  roleMix: z.object({
+    current: z.array(roleMixDataSchema),
+    previous: z.array(roleMixDataSchema),
+  }),
+  slaCompliance: z.array(slaComplianceDataSchema),
+  backlogAging: z.array(backlogAgingDataSchema),
+});
+
+export type UserGrowthDataPoint = z.infer<typeof userGrowthDataPointSchema>;
+export type RoleMixData = z.infer<typeof roleMixDataSchema>;
+export type SLAComplianceData = z.infer<typeof slaComplianceDataSchema>;
+export type BacklogAgingData = z.infer<typeof backlogAgingDataSchema>;
+export type AdminAnalytics = z.infer<typeof adminAnalyticsSchema>;

@@ -113,6 +113,7 @@ export interface IStorage {
   // Analytics methods
   getAnalyticsDashboard(brokerId?: string): Promise<any>;
   getSystemStats(): Promise<any>;
+  getAdminAnalytics(): Promise<any>;
   
   // Admin system settings
   getSystemSettings(category?: string): Promise<SystemSetting[]>;
@@ -767,6 +768,141 @@ export class DatabaseStorage implements IStorage {
       claimsByStatus: claimsByStatusResult,
       usersByRole: usersByRoleResult,
       recentClaims,
+    };
+  }
+
+  async getAdminAnalytics(): Promise<any> {
+    // 1. User Growth Trend (12 months)
+    const userGrowthData = await db
+      .select({
+        month: sql<string>`TO_CHAR(DATE_TRUNC('month', ${users.createdAt}), 'YYYY-MM')`,
+        role: users.role,
+        count: count(),
+      })
+      .from(users)
+      .where(sql`${users.createdAt} >= NOW() - INTERVAL '12 months'`)
+      .groupBy(sql`DATE_TRUNC('month', ${users.createdAt})`, users.role)
+      .orderBy(sql`DATE_TRUNC('month', ${users.createdAt}) DESC`);
+
+    // Transform user growth data into chart-friendly format
+    const monthsMap = new Map<string, Record<string, number>>();
+    userGrowthData.forEach(row => {
+      if (!monthsMap.has(row.month)) {
+        monthsMap.set(row.month, {});
+      }
+      const monthData = monthsMap.get(row.month)!;
+      monthData[row.role || 'unknown'] = Number(row.count);
+    });
+
+    const userGrowth = Array.from(monthsMap.entries())
+      .map(([month, roleData]) => ({ month, roleData }))
+      .reverse(); // Oldest to newest for chart
+
+    // 2. Role Mix - Current and Previous Month (month-specific, not cumulative)
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const currentRoleMix = await db
+      .select({
+        role: users.role,
+        count: count(),
+      })
+      .from(users)
+      .where(sql`${users.createdAt} >= ${startOfCurrentMonth.toISOString()} AND ${users.createdAt} < ${startOfNextMonth.toISOString()}`)
+      .groupBy(users.role);
+
+    const previousRoleMix = await db
+      .select({
+        role: users.role,
+        count: count(),
+      })
+      .from(users)
+      .where(sql`${users.createdAt} >= ${startOfPreviousMonth.toISOString()} AND ${users.createdAt} < ${startOfCurrentMonth.toISOString()}`)
+      .groupBy(users.role);
+
+    // Calculate active percentages (users created in that month)
+    const totalCurrent = currentRoleMix.reduce((sum, r) => sum + Number(r.count), 0);
+    const totalPrevious = previousRoleMix.reduce((sum, r) => sum + Number(r.count), 0);
+
+    const roleMix = {
+      current: currentRoleMix.map(r => ({
+        role: r.role || 'unknown',
+        count: Number(r.count),
+        activePercent: totalCurrent > 0 ? Math.round((Number(r.count) / totalCurrent) * 100) : 0,
+      })),
+      previous: previousRoleMix.map(r => ({
+        role: r.role || 'unknown',
+        count: Number(r.count),
+        activePercent: totalPrevious > 0 ? Math.round((Number(r.count) / totalPrevious) * 100) : 0,
+      })),
+    };
+
+    // 3. SLA Compliance (processing time by status)
+    const slaData = await db
+      .select({
+        status: claims.status,
+        avgDays: sql<number>`AVG(EXTRACT(DAY FROM (COALESCE(${claims.updatedAt}, NOW()) - ${claims.createdAt})))`,
+        count: count(),
+      })
+      .from(claims)
+      .groupBy(claims.status);
+
+    // Define SLA targets (in days)
+    const slaTargets: Record<string, number> = {
+      'submitted': 1,
+      'under_review': 3,
+      'investigating': 7,
+      'assessment_pending': 5,
+      'approved': 2,
+      'rejected': 2,
+      'settlement_pending': 5,
+      'paid': 1,
+      'closed': 0,
+    };
+
+    const slaCompliance = slaData.map(row => ({
+      status: row.status || 'unknown',
+      avgDays: Math.round(Number(row.avgDays) || 0),
+      slaTarget: slaTargets[row.status || ''] || 7,
+      count: Number(row.count),
+    }));
+
+    // 4. Backlog Aging (open claims by age bucket)
+    const backlogData = await db
+      .select({
+        ageDays: sql<number>`EXTRACT(DAY FROM (NOW() - ${claims.createdAt}))`,
+      })
+      .from(claims)
+      .where(sql`${claims.status} IN ('submitted', 'under_review', 'investigating', 'assessment_pending')`);
+
+    // Group into age buckets
+    const buckets = {
+      '0-7': 0,
+      '8-14': 0,
+      '15-30': 0,
+      '30+': 0,
+    };
+
+    backlogData.forEach(row => {
+      const days = Number(row.ageDays);
+      if (days <= 7) buckets['0-7']++;
+      else if (days <= 14) buckets['8-14']++;
+      else if (days <= 30) buckets['15-30']++;
+      else buckets['30+']++;
+    });
+
+    const backlogAging = Object.entries(buckets).map(([bucket, count]) => ({
+      bucket,
+      count,
+    }));
+
+    return {
+      userGrowth,
+      roleMix,
+      slaCompliance,
+      backlogAging,
     };
   }
 

@@ -62,7 +62,21 @@ import {
   UserPlus,
   ClipboardList,
 } from "lucide-react";
-import type { User, AuditLog, SystemSetting } from "@shared/schema";
+import type { User, AuditLog, SystemSetting, AdminAnalytics } from "@shared/schema";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 interface SystemStats {
   totalUsers: number;
@@ -70,6 +84,7 @@ interface SystemStats {
   claimsByStatus: Array<{ status: string; count: number }>;
   usersByRole: Array<{ role: string; count: number }>;
   recentClaims: any[];
+  analytics?: AdminAnalytics;
 }
 
 interface ClaimForAdmin {
@@ -396,6 +411,125 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Analytics Visualizations */}
+            {stats?.analytics && (
+              <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mt-4">
+                {/* User Growth Trend */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Growth Trend (12 Months)</CardTitle>
+                    <CardDescription>New users registered per month by role</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={stats.analytics.userGrowth}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Area type="monotone" dataKey="roleData.admin" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" name="Admin" />
+                          <Area type="monotone" dataKey="roleData.insurer" stackId="1" stroke="#3b82f6" fill="#3b82f6" name="Insurer" />
+                          <Area type="monotone" dataKey="roleData.broker" stackId="1" stroke="#10b981" fill="#10b981" name="Broker" />
+                          <Area type="monotone" dataKey="roleData.insured" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Insured" />
+                          <Area type="monotone" dataKey="roleData.service_provider" stackId="1" stroke="#ef4444" fill="#ef4444" name="Service Provider" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Role Mix Distribution */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Role Mix: Current vs Previous Month</CardTitle>
+                    <CardDescription>New user composition comparison</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={(() => {
+                          // Restructure data to group by role with current and previous values
+                          if (!stats?.analytics) return [];
+                          
+                          const analytics = stats.analytics; // Store to satisfy TypeScript
+                          const roles = new Set([
+                            ...analytics.roleMix.current.map(d => d.role),
+                            ...analytics.roleMix.previous.map(d => d.role)
+                          ]);
+                          
+                          return Array.from(roles).map(role => {
+                            const currentData = analytics.roleMix.current.find(d => d.role === role);
+                            const previousData = analytics.roleMix.previous.find(d => d.role === role);
+                            
+                            return {
+                              role: role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' '),
+                              current: currentData?.count || 0,
+                              previous: previousData?.count || 0,
+                            };
+                          });
+                        })()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="role" angle={-20} textAnchor="end" height={80} />
+                          <YAxis label={{ value: 'New Users', angle: -90, position: 'insideLeft' }} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="previous" fill="#94a3b8" name="Previous Month" />
+                          <Bar dataKey="current" fill="#3b82f6" name="Current Month" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* SLA Compliance */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Claims SLA Compliance</CardTitle>
+                    <CardDescription>Average processing time vs SLA targets (days)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stats.analytics.slaCompliance}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="status" angle={-45} textAnchor="end" height={100} />
+                          <YAxis label={{ value: 'Days', angle: -90, position: 'insideLeft' }} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="avgDays" fill="#3b82f6" name="Avg Processing Days" />
+                          <Bar dataKey="slaTarget" fill="#10b981" name="SLA Target" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Backlog Aging */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Operational Backlog Aging</CardTitle>
+                    <CardDescription>Open claims grouped by age (days)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stats.analytics.backlogAging}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="bucket" />
+                          <YAxis label={{ value: 'Claims Count', angle: -90, position: 'insideLeft' }} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="count" fill="#f59e0b" name="Claims Count" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
