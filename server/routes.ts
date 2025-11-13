@@ -27,6 +27,14 @@ import {
   insertBankDetailsSchema,
   insertOtherVehicleSchema,
   insertDamagedPhotoSchema,
+  adminCreateUserSchema,
+  adminUpdateUserSchema,
+  adminUpdateRoleSchema,
+  adminBulkStatusSchema,
+  adminBulkDeleteSchema,
+  adminAssignBrokerSchema,
+  adminAssignProviderSchema,
+  adminSystemSettingSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { generateClaimPDF } from "./pdfGenerator";
@@ -994,6 +1002,533 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error searching for public object:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Admin Routes - RBAC protected (admin role required)
+  
+  // User Management Routes
+  app.get("/api/admin/users", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { role, search } = req.query;
+      const filters: any = {};
+      if (role) filters.role = role as string;
+      if (search) filters.search = search as string;
+      
+      const users = await storage.getAllUsers(filters);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/admin/users", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const validatedData = adminCreateUserSchema.parse(req.body);
+      const newUser = await storage.createUser(validatedData);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'create',
+        entityType: 'user',
+        entityId: newUser.id,
+        changes: { created: validatedData },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.status(201).json(newUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { id } = req.params;
+      const validatedData = adminUpdateUserSchema.parse(req.body);
+      
+      const updatedUser = await storage.updateUser(id, validatedData);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'update',
+        entityType: 'user',
+        entityId: id,
+        changes: { updates: validatedData },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { id } = req.params;
+      
+      if (id === userId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      
+      await storage.deleteUser(id);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'delete',
+        entityType: 'user',
+        entityId: id,
+        changes: null,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id/role", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { id } = req.params;
+      const validatedData = adminUpdateRoleSchema.parse(req.body);
+      
+      const updatedUser = await storage.updateUserRole(id, validatedData.role);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'update_role',
+        entityType: 'user',
+        entityId: id,
+        changes: { role: validatedData.role },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  app.post("/api/admin/users/:id/reset-password", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { id } = req.params;
+      const targetUser = await storage.getUser(id);
+      
+      if (!targetUser || !targetUser.email) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const resetToken = Math.random().toString(36).substring(2, 15);
+      const expires = new Date();
+      expires.setHours(expires.getHours() + 24);
+      
+      await storage.setPasswordResetToken(targetUser.email, resetToken, expires);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'reset_password',
+        entityType: 'user',
+        entityId: id,
+        changes: null,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json({ message: "Password reset initiated", resetToken });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Claim Management Routes
+  app.post("/api/admin/claims/bulk-status", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const validatedData = adminBulkStatusSchema.parse(req.body);
+      
+      await storage.bulkUpdateClaimStatus(validatedData.claimIds, validatedData.status);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'bulk_update_status',
+        entityType: 'claim',
+        entityId: validatedData.claimIds.join(','),
+        changes: { status: validatedData.status, count: validatedData.claimIds.length },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json({ message: `Updated ${validatedData.claimIds.length} claims to ${validatedData.status}` });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error bulk updating claims:", error);
+      res.status(500).json({ message: "Failed to bulk update claims" });
+    }
+  });
+
+  app.post("/api/admin/claims/bulk-delete", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const validatedData = adminBulkDeleteSchema.parse(req.body);
+      
+      await storage.bulkDeleteClaims(validatedData.claimIds);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'bulk_delete',
+        entityType: 'claim',
+        entityId: validatedData.claimIds.join(','),
+        changes: { count: validatedData.claimIds.length },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json({ message: `Deleted ${validatedData.claimIds.length} claims` });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error bulk deleting claims:", error);
+      res.status(500).json({ message: "Failed to bulk delete claims" });
+    }
+  });
+
+  app.put("/api/admin/claims/:id/assign-broker", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { id } = req.params;
+      const validatedData = adminAssignBrokerSchema.parse(req.body);
+      
+      await storage.assignClaimToBroker(id, validatedData.brokerId);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'assign_broker',
+        entityType: 'claim',
+        entityId: id,
+        changes: { brokerId: validatedData.brokerId },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json({ message: "Broker assigned successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error assigning broker:", error);
+      res.status(500).json({ message: "Failed to assign broker" });
+    }
+  });
+
+  app.put("/api/admin/claims/:id/assign-provider", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { id } = req.params;
+      const validatedData = adminAssignProviderSchema.parse(req.body);
+      
+      await storage.assignClaimToServiceProvider(id, validatedData.providerId);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'assign_provider',
+        entityType: 'claim',
+        entityId: id,
+        changes: { providerId: validatedData.providerId },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json({ message: "Service provider assigned successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error assigning provider:", error);
+      res.status(500).json({ message: "Failed to assign provider" });
+    }
+  });
+
+  // Analytics & Stats Routes
+  app.get("/api/admin/stats", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const stats = await storage.getSystemStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching system stats:", error);
+      res.status(500).json({ message: "Failed to fetch system stats" });
+    }
+  });
+
+  // System Settings Routes
+  app.get("/api/admin/settings", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { category } = req.query;
+      const settings = await storage.getSystemSettings(category as string);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.put("/api/admin/settings", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const validatedData = adminSystemSettingSchema.parse(req.body);
+      const settingData = { ...validatedData, updatedBy: userId };
+      const setting = await storage.upsertSystemSetting(settingData);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'upsert_setting',
+        entityType: 'system_setting',
+        entityId: setting.key,
+        changes: settingData,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json(setting);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error upserting setting:", error);
+      res.status(500).json({ message: "Failed to save setting" });
+    }
+  });
+
+  app.delete("/api/admin/settings/:key", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { key } = req.params;
+      await storage.deleteSystemSetting(key);
+      
+      await storage.createAuditLog({
+        adminId: userId,
+        action: 'delete_setting',
+        entityType: 'system_setting',
+        entityId: key,
+        changes: null,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      
+      res.json({ message: "Setting deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting setting:", error);
+      res.status(500).json({ message: "Failed to delete setting" });
+    }
+  });
+
+  // Audit Log Routes
+  app.get("/api/admin/audit-logs", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+      
+      const { adminId, entityType, startDate, endDate } = req.query;
+      const filters: any = {};
+      
+      if (adminId) filters.adminId = adminId as string;
+      if (entityType) filters.entityType = entityType as string;
+      if (startDate) filters.startDate = new Date(startDate as string);
+      if (endDate) filters.endDate = new Date(endDate as string);
+      
+      const logs = await storage.getAuditLogs(filters);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ message: "Failed to fetch audit logs" });
     }
   });
 

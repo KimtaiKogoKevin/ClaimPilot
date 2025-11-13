@@ -9,6 +9,8 @@ import {
   otherVehicles,
   damagedPhotos,
   detectedDamages,
+  auditLogs,
+  systemSettings,
   type User,
   type UpsertUser,
   type InsertClaim,
@@ -23,9 +25,13 @@ import {
   type InsertDamagedPhoto,
   type DamagedPhoto,
   type DetectedDamage,
+  type AuditLog,
+  type InsertAuditLog,
+  type SystemSetting,
+  type InsertSystemSetting,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, or, like, ilike, inArray, count } from "drizzle-orm";
 
 // Generate a unique claimant reference number in format CLM-YYYY-###
 async function generateClaimantReferenceNumber(): Promise<string> {
@@ -62,6 +68,10 @@ export interface IStorage {
   getUserByPasswordResetToken(token: string): Promise<User | undefined>;
   clearPasswordResetToken(userId: string): Promise<void>;
   
+  // Admin user operations
+  getAllUsers(filters?: {role?: string, search?: string}): Promise<User[]>;
+  deleteUser(id: string): Promise<void>;
+  
   // Claim operations
   createClaim(claim: InsertClaim): Promise<Claim>;
   updateClaim(id: string, claim: Partial<InsertClaim>): Promise<Claim>;
@@ -71,6 +81,12 @@ export interface IStorage {
   getClaimsByUser(userId: string): Promise<ClaimWithDetails[]>;
   getUserClaims(userId: string): Promise<ClaimWithDetails[]>;
   getAllClaims(): Promise<ClaimWithDetails[]>;
+  
+  // Admin claim operations
+  bulkUpdateClaimStatus(claimIds: string[], status: string): Promise<void>;
+  bulkDeleteClaims(claimIds: string[]): Promise<void>;
+  assignClaimToBroker(claimId: string, brokerId: string): Promise<void>;
+  assignClaimToServiceProvider(claimId: string, providerId: string): Promise<void>;
   
   // Claim details operations
   upsertIndividualDetails(details: InsertIndividualDetails): Promise<void>;
@@ -90,6 +106,16 @@ export interface IStorage {
 
   // Analytics methods
   getAnalyticsDashboard(brokerId?: string): Promise<any>;
+  getSystemStats(): Promise<any>;
+  
+  // Admin system settings
+  getSystemSettings(category?: string): Promise<SystemSetting[]>;
+  upsertSystemSetting(setting: InsertSystemSetting): Promise<SystemSetting>;
+  deleteSystemSetting(key: string): Promise<void>;
+  
+  // Admin audit logging
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(filters?: {adminId?: string, entityType?: string, startDate?: Date, endDate?: Date}): Promise<AuditLog[]>;
   
   // Draft management methods
   saveDraftProgress(claimId: string, step: number, data: any, progressPercentage: number): Promise<void>;
@@ -635,6 +661,172 @@ export class DatabaseStorage implements IStorage {
       console.error("Error in getAnalyticsDashboard:", error);
       throw error;
     }
+  }
+
+  // Admin user operations
+  async getAllUsers(filters?: {role?: string, search?: string}): Promise<User[]> {
+    let query = db.select().from(users);
+    
+    const conditions = [];
+    
+    if (filters?.role) {
+      conditions.push(eq(users.role, filters.role as any));
+    }
+    
+    if (filters?.search) {
+      conditions.push(
+        or(
+          ilike(users.email, `%${filters.search}%`),
+          ilike(users.firstName, `%${filters.search}%`),
+          ilike(users.lastName, `%${filters.search}%`)
+        )
+      );
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    const allUsers = await query.orderBy(desc(users.createdAt));
+    return allUsers;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  // Admin claim operations
+  async bulkUpdateClaimStatus(claimIds: string[], status: string): Promise<void> {
+    await db
+      .update(claims)
+      .set({ status: status as any, updatedAt: new Date() })
+      .where(inArray(claims.id, claimIds));
+  }
+
+  async bulkDeleteClaims(claimIds: string[]): Promise<void> {
+    for (const claimId of claimIds) {
+      await this.deleteClaim(claimId);
+    }
+  }
+
+  async assignClaimToBroker(claimId: string, brokerId: string): Promise<void> {
+    await db
+      .update(claims)
+      .set({ brokerId, updatedAt: new Date() })
+      .where(eq(claims.id, claimId));
+  }
+
+  async assignClaimToServiceProvider(claimId: string, providerId: string): Promise<void> {
+    await db
+      .update(claims)
+      .set({ assignedServiceProviderId: providerId, updatedAt: new Date() })
+      .where(eq(claims.id, claimId));
+  }
+
+  // System statistics
+  async getSystemStats(): Promise<any> {
+    const [userCount] = await db.select({ count: count() }).from(users);
+    const [claimCount] = await db.select({ count: count() }).from(claims);
+    
+    const claimsByStatusResult = await db
+      .select({ status: claims.status, count: count() })
+      .from(claims)
+      .groupBy(claims.status);
+    
+    const usersByRoleResult = await db
+      .select({ role: users.role, count: count() })
+      .from(users)
+      .groupBy(users.role);
+    
+    const recentClaims = await db
+      .select()
+      .from(claims)
+      .orderBy(desc(claims.createdAt))
+      .limit(10);
+    
+    return {
+      totalUsers: userCount.count,
+      totalClaims: claimCount.count,
+      claimsByStatus: claimsByStatusResult,
+      usersByRole: usersByRoleResult,
+      recentClaims,
+    };
+  }
+
+  // System settings operations
+  async getSystemSettings(category?: string): Promise<SystemSetting[]> {
+    if (category) {
+      return await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.category, category))
+        .orderBy(systemSettings.key);
+    }
+    
+    return await db
+      .select()
+      .from(systemSettings)
+      .orderBy(systemSettings.category, systemSettings.key);
+  }
+
+  async upsertSystemSetting(setting: InsertSystemSetting): Promise<SystemSetting> {
+    const [result] = await db
+      .insert(systemSettings)
+      .values({ ...setting, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: { ...setting, updatedAt: new Date() },
+      })
+      .returning();
+    
+    return result;
+  }
+
+  async deleteSystemSetting(key: string): Promise<void> {
+    await db.delete(systemSettings).where(eq(systemSettings.key, key));
+  }
+
+  // Audit logging operations
+  async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+    const [result] = await db
+      .insert(auditLogs)
+      .values(log)
+      .returning();
+    
+    return result;
+  }
+
+  async getAuditLogs(filters?: {
+    adminId?: string;
+    entityType?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<AuditLog[]> {
+    let query = db.select().from(auditLogs);
+    
+    const conditions = [];
+    
+    if (filters?.adminId) {
+      conditions.push(eq(auditLogs.adminId, filters.adminId));
+    }
+    
+    if (filters?.entityType) {
+      conditions.push(eq(auditLogs.entityType, filters.entityType));
+    }
+    
+    if (filters?.startDate) {
+      conditions.push(sql`${auditLogs.createdAt} >= ${filters.startDate}`);
+    }
+    
+    if (filters?.endDate) {
+      conditions.push(sql`${auditLogs.createdAt} <= ${filters.endDate}`);
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return await query.orderBy(desc(auditLogs.createdAt));
   }
 }
 

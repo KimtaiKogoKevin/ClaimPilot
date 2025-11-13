@@ -17,6 +17,7 @@ import AdjudicatorSignup from "@/pages/adjudicator-signup";
 import ClaimantSignup from "@/pages/claimant-signup";
 import AuthPage from "@/pages/auth-page";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
+import AdminDashboard from "@/pages/admin-dashboard";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useStandaloneAuth();
@@ -105,6 +106,22 @@ function Router() {
       <Switch>
         <Route path="/" component={StaffPortal} />
         <Route path="/assigned-claims" component={StaffPortal} />
+        <Route path="/claim-details/:id" component={ClaimDetails} />
+        <Route path="/role-selection" component={RoleSelection} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  if (user.role === 'admin') {
+    return (
+      <Switch>
+        <Route path="/" component={AdminDashboard} />
+        <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin/users" component={AdminDashboard} />
+        <Route path="/admin/claims" component={AdminDashboard} />
+        <Route path="/admin/settings" component={AdminDashboard} />
+        <Route path="/admin/audit" component={AdminDashboard} />
         <Route path="/claim-details/:id" component={ClaimDetails} />
         <Route path="/role-selection" component={RoleSelection} />
         <Route component={NotFound} />

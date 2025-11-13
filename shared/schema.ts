@@ -642,3 +642,88 @@ export const resetPasswordSchema = z.object({
   token: z.string().min(1, "Reset token is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
+
+// Admin audit log table - tracks all admin actions
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adminId: varchar("admin_id").notNull().references(() => users.id),
+  action: varchar("action").notNull(), // create, update, delete, etc.
+  entityType: varchar("entity_type").notNull(), // user, claim, etc.
+  entityId: varchar("entity_id"), // ID of affected entity
+  changes: jsonb("changes"), // What changed (before/after)
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// System settings table for platform configuration
+export const systemSettings = pgTable("system_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key").notNull().unique(),
+  value: text("value").notNull(),
+  category: varchar("category").default("general"), // general, email, security, etc.
+  description: text("description"),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for new tables
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+// Types for new tables
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+export type SystemSetting = typeof systemSettings.$inferSelect;
+
+// Admin operation schemas
+export const adminCreateUserSchema = z.object({
+  email: z.string().email(),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  password: z.string().min(8),
+  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']),
+});
+
+export const adminUpdateUserSchema = z.object({
+  email: z.string().email().optional(),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']).optional(),
+});
+
+export const adminUpdateRoleSchema = z.object({
+  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']),
+});
+
+export const adminBulkStatusSchema = z.object({
+  claimIds: z.array(z.string()),
+  status: z.enum(['draft', 'submitted', 'under_review', 'investigating', 'assessment_pending', 'approved', 'rejected', 'settlement_pending', 'paid', 'closed']),
+});
+
+export const adminBulkDeleteSchema = z.object({
+  claimIds: z.array(z.string()),
+});
+
+export const adminAssignBrokerSchema = z.object({
+  brokerId: z.string(),
+});
+
+export const adminAssignProviderSchema = z.object({
+  providerId: z.string(),
+});
+
+export const adminSystemSettingSchema = z.object({
+  key: z.string().min(1),
+  value: z.string(),
+  category: z.enum(['general', 'email', 'security', 'api']).optional(),
+  description: z.string().optional(),
+});
