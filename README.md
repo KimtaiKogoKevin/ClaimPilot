@@ -9,10 +9,11 @@ A modern, intelligent web application that streamlines motor accident insurance 
 - **🤖 AI Damage Analysis**: Computer vision automatically detects and classifies vehicle damage
 - **📱 Guided Photo Capture**: Step-by-step photo upload with angle guidance
 - **🔄 Multi-Step Forms**: Intelligent claim forms with auto-save functionality
-- **👥 Role-Based Access**: Separate portals for claimants, brokers, and adjusters
-- **🔐 Secure Authentication**: Google OAuth integration for user management
+- **👥 Role-Based Access**: Two-tier system with insured users and administrators
+- **🔐 Secure Authentication**: JWT-based authentication for standalone deployments, or Replit Auth for cloud
 - **📊 Real-Time Processing**: Instant AI analysis with confidence scoring
-- **💾 Cloud Storage**: Secure file storage with access controls
+- **💾 Flexible Storage**: Local file storage or optional cloud storage integration
+- **📈 Admin Dashboard**: Comprehensive analytics and user management for administrators
 
 ## 🏗️ Architecture
 

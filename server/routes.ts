@@ -32,8 +32,6 @@ import {
   adminUpdateRoleSchema,
   adminBulkStatusSchema,
   adminBulkDeleteSchema,
-  adminAssignBrokerSchema,
-  adminAssignProviderSchema,
   adminSystemSettingSchema,
 } from "@shared/schema";
 import { z } from "zod";
@@ -98,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/forgot-password', forgotPassword);
   app.post('/api/auth/reset-password', resetPassword);
 
-  // Update user role
+  // Update user role - simplified to only allow admin and insured
   app.put('/api/auth/update-role', authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.userId;
@@ -107,8 +105,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { role } = req.body;
       
-      if (!['insured', 'broker', 'insurer', 'service_provider'].includes(role)) {
-        return res.status(400).json({ message: "Invalid role" });
+      if (!['insured', 'admin'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Only 'insured' and 'admin' are allowed." });
       }
       
       const updatedUser = await storage.updateUser(userId, { role });
@@ -1399,86 +1397,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/claims/:id/assign-broker", authenticateToken, async (req: any, res) => {
-    try {
-      const userId = req.user?.id || req.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
-      
-      const user = await storage.getUser(userId);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Admin role required." });
-      }
-      
-      const { id } = req.params;
-      const validatedData = adminAssignBrokerSchema.parse(req.body);
-      
-      await storage.assignClaimToBroker(id, validatedData.brokerId);
-      
-      await storage.createAuditLog({
-        adminId: userId,
-        action: 'assign_broker',
-        entityType: 'claim',
-        entityId: id,
-        changes: { brokerId: validatedData.brokerId },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'],
-      });
-      
-      res.json({ message: "Broker assigned successfully" });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation failed", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error assigning broker:", error);
-      res.status(500).json({ message: "Failed to assign broker" });
-    }
-  });
-
-  app.put("/api/admin/claims/:id/assign-provider", authenticateToken, async (req: any, res) => {
-    try {
-      const userId = req.user?.id || req.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
-      
-      const user = await storage.getUser(userId);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Admin role required." });
-      }
-      
-      const { id } = req.params;
-      const validatedData = adminAssignProviderSchema.parse(req.body);
-      
-      await storage.assignClaimToServiceProvider(id, validatedData.providerId);
-      
-      await storage.createAuditLog({
-        adminId: userId,
-        action: 'assign_provider',
-        entityType: 'claim',
-        entityId: id,
-        changes: { providerId: validatedData.providerId },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'],
-      });
-      
-      res.json({ message: "Service provider assigned successfully" });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation failed", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error assigning provider:", error);
-      res.status(500).json({ message: "Failed to assign provider" });
-    }
-  });
-
   // Analytics & Stats Routes
   app.get("/api/admin/stats", authenticateToken, async (req: any, res) => {
     try {
@@ -1627,7 +1545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analytics dashboard endpoint with role-based permissions
+  // Analytics dashboard endpoint - admin only
   app.get("/api/analytics/dashboard", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.userId;
@@ -1637,25 +1555,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const user = await storage.getUser(userId);
       
-      // Check if user has permission to access analytics
-      if (!user || !['broker', 'insurer'].includes(user.role)) {
+      // Check if user has permission to access analytics (admin only)
+      if (!user || user.role !== 'admin') {
         return res.status(403).json({ 
-          error: "Access denied. Analytics available only for Broker and Insurer roles." 
+          error: "Access denied. Analytics available only for admin users." 
         });
       }
 
-      const hasFullAccess = user.role === 'insurer';
-
-      // Get analytics data based on role permissions
-      let analyticsData;
-
-      if (hasFullAccess) {
-        // Insurers can see all claims across all brokers
-        analyticsData = await storage.getAnalyticsDashboard();
-      } else {
-        // Brokers can only see their assigned clients' claims
-        analyticsData = await storage.getAnalyticsDashboard(userId);
-      }
+      // Admins can see all claims
+      const analyticsData = await storage.getAnalyticsDashboard();
 
       res.json(analyticsData);
     } catch (error) {

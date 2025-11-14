@@ -176,20 +176,29 @@ The application will start on:
 
 ## User Roles and Permissions
 
-The platform supports four user roles with different capabilities:
+The platform supports two simplified user roles:
 
-- **Insured (Client)**: Can create and edit their own claims only
-- **Admin**: Can view and edit ANY claim in the system, access admin dashboard with analytics
-- **Broker/Agent**: Can assist clients with claims and coordinate between parties
-- **Service Provider**: Can provide repair estimates and services
+- **Insured**: Regular users who can create and edit their own claims only. They have access to:
+  - Create new insurance claims
+  - Edit their own claims
+  - View their claim history
+  - Upload damage photos and documents
+
+- **Admin**: Administrative users with full system access, including:
+  - View and edit ANY claim in the system
+  - Access comprehensive analytics dashboard
+  - Manage all user accounts
+  - View audit logs and system activity
+  - Access system settings and configuration
 
 ### Admin Features
-Admin users have full access to:
+Admin users have complete control over the platform:
 - Edit any claim (not just their own)
 - View all claims across all users
-- Access comprehensive analytics dashboard
-- Manage user accounts
-- View audit logs and system activity
+- Access real-time analytics and reports
+- Create, update, and delete user accounts
+- View complete audit trail of all system activities
+- Configure system-wide settings
 
 ### Creating an Admin User
 To create an admin user, register normally and then update the user role in the database:

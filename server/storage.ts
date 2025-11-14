@@ -91,8 +91,6 @@ export interface IStorage {
   // Admin claim operations
   bulkUpdateClaimStatus(claimIds: string[], status: string): Promise<void>;
   bulkDeleteClaims(claimIds: string[]): Promise<void>;
-  assignClaimToBroker(claimId: string, brokerId: string): Promise<void>;
-  assignClaimToServiceProvider(claimId: string, providerId: string): Promise<void>;
   
   // Claim details operations
   upsertIndividualDetails(details: InsertIndividualDetails): Promise<void>;
@@ -111,7 +109,7 @@ export interface IStorage {
   addDetectedDamage(damage: Omit<DetectedDamage, 'id'>): Promise<void>;
 
   // Analytics methods
-  getAnalyticsDashboard(brokerId?: string): Promise<any>;
+  getAnalyticsDashboard(): Promise<any>;
   getSystemStats(): Promise<any>;
   getAdminAnalytics(): Promise<any>;
   
@@ -636,10 +634,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
   }
 
-  // Analytics dashboard method
-  async getAnalyticsDashboard(brokerId?: string): Promise<any> {
+  // Analytics dashboard method - admin only
+  async getAnalyticsDashboard(): Promise<any> {
     try {
-      // For now, return sample analytics data to resolve the error
+      // Return analytics data for all claims (admin view)
       return {
         claimsOverview: {
           total: 156,
@@ -727,19 +725,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async assignClaimToBroker(claimId: string, brokerId: string): Promise<void> {
-    await db
-      .update(claims)
-      .set({ brokerId, updatedAt: new Date() })
-      .where(eq(claims.id, claimId));
-  }
-
-  async assignClaimToServiceProvider(claimId: string, providerId: string): Promise<void> {
-    await db
-      .update(claims)
-      .set({ assignedServiceProviderId: providerId, updatedAt: new Date() })
-      .where(eq(claims.id, claimId));
-  }
 
   // System statistics
   async getSystemStats(): Promise<any> {

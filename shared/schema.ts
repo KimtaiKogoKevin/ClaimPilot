@@ -26,8 +26,8 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User roles enum - Claims Management System
-export const userRoleEnum = pgEnum('user_role', ['insured', 'insurer', 'broker', 'service_provider', 'admin']);
+// User roles enum - Simplified to admin and insured
+export const userRoleEnum = pgEnum('user_role', ['insured', 'admin']);
 
 // User storage table (supports both Replit Auth and standalone auth)
 export const users = pgTable("users", {
@@ -625,7 +625,7 @@ export const registerSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  role: z.enum(['claimant', 'broker', 'adjudicator']).default('claimant'),
+  role: z.enum(['insured', 'admin']).default('insured'),
 });
 
 export const loginSchema = z.object({
@@ -732,18 +732,18 @@ export const adminCreateUserSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   password: z.string().min(8),
-  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']),
+  role: z.enum(['insured', 'admin']),
 });
 
 export const adminUpdateUserSchema = z.object({
   email: z.string().email().optional(),
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
-  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']).optional(),
+  role: z.enum(['insured', 'admin']).optional(),
 });
 
 export const adminUpdateRoleSchema = z.object({
-  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']),
+  role: z.enum(['insured', 'admin']),
 });
 
 export const adminBulkStatusSchema = z.object({
@@ -753,14 +753,6 @@ export const adminBulkStatusSchema = z.object({
 
 export const adminBulkDeleteSchema = z.object({
   claimIds: z.array(z.string()),
-});
-
-export const adminAssignBrokerSchema = z.object({
-  brokerId: z.string(),
-});
-
-export const adminAssignProviderSchema = z.object({
-  providerId: z.string(),
 });
 
 export const adminSystemSettingSchema = z.object({
