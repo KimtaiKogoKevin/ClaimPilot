@@ -39,6 +39,19 @@ import {
 import { z } from "zod";
 import { generateClaimPDF } from "./pdfGenerator";
 
+// Helper function to check if user can access a claim
+// Admins can access any claim, regular users can only access their own
+async function canAccessClaim(userId: string, claim: any): Promise<boolean> {
+  if (!claim) return false;
+  
+  // Check if user is admin (avoid DB call if role is in req.user)
+  const user = await storage.getUser(userId);
+  if (user?.role === 'admin') return true;
+  
+  // Non-admins can only access their own claims
+  return claim.insuredId === userId;
+}
+
 // Roboflow analysis function
 async function analyzeImageWithRoboflow(imageUrl: string, isGoodsPhoto: boolean = false) {
   const apiKey = process.env.ROBOFLOW_API_KEY;
@@ -138,9 +151,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      // Verify user owns this claim
+      // Verify user can access this claim (admins can access any claim)
       const existingClaim = await storage.getClaim(id);
-      if (!existingClaim || existingClaim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, existingClaim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -198,9 +212,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
 
-      // Verify user owns this claim
+      // Verify user can access this claim (admins can access any claim)
       const existingClaim = await storage.getClaim(id);
-      if (!existingClaim || existingClaim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, existingClaim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
       }
 
@@ -228,7 +243,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const claim = await storage.resumeDraft(id);
-      if (!claim || claim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Draft not found" });
       }
 
@@ -262,15 +278,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const claim = await storage.getClaim(id);
-      if (!claim) {
-        console.log("Claim not found in database:", id);
-        return res.status(404).json({ message: "Claim not found" });
-      }
-      
-      if (claim.insuredId !== userId) {
-        console.log("Claim access denied:", { 
-          claimInsuredId: claim.insuredId, 
-          requestUserId: userId 
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        console.log("Claim not found or access denied:", { 
+          claimId: id,
+          userId
         });
         return res.status(404).json({ message: "Claim not found" });
       }
@@ -388,9 +400,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      // Verify user owns this claim
+      // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
-      if (!claim || claim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -450,9 +463,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      // Verify user owns this claim
+      // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
-      if (!claim || claim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -545,9 +559,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      // Verify user owns this claim
+      // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
-      if (!claim || claim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -623,9 +638,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      // Verify user owns this claim
+      // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
-      if (!claim || claim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -661,9 +677,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      // Verify user owns this claim
+      // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
-      if (!claim || claim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
@@ -688,9 +705,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      // Verify user owns this claim
+      // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
-      if (!claim || claim.insuredId !== userId) {
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
       }
       
