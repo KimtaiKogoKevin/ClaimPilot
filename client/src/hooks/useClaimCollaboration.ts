@@ -55,9 +55,10 @@ export function useClaimCollaboration(
   const ws = useRef<WebSocket | null>(null);
   const heartbeatInterval = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const isMounted = useRef(true);
 
   const connect = useCallback(() => {
-    if (!claimId || !userId || ws.current?.readyState === WebSocket.OPEN) return;
+    if (!claimId || !userId || !isMounted.current || ws.current?.readyState === WebSocket.OPEN) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     
@@ -227,10 +228,12 @@ export function useClaimCollaboration(
   }, [claimId]);
 
   useEffect(() => {
+    isMounted.current = true;
     if (claimId && userId) {
       connect();
     }
     return () => {
+      isMounted.current = false;
       disconnect();
     };
   }, [claimId, userId, connect, disconnect]);
