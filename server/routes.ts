@@ -295,9 +295,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Claim details routes
-  app.post("/api/claims/:id/individual-details", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/individual-details", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const details = insertIndividualDetailsSchema.parse({
         ...req.body,
         claimId: id,
@@ -311,9 +323,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/corporate-details", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/corporate-details", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const details = insertCorporateDetailsSchema.parse({
         ...req.body,
         claimId: id,
@@ -327,9 +351,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/vehicle", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/vehicle", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const vehicle = insertVehicleSchema.parse({
         ...req.body,
         claimId: id,
@@ -343,9 +379,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/driver", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/driver", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const driver = insertDriverSchema.parse({
         ...req.body,
         claimId: id,
@@ -359,9 +407,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/bank-details", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/bank-details", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const bankDetails = insertBankDetailsSchema.parse({
         ...req.body,
         claimId: id,
@@ -375,9 +435,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/other-vehicles", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/other-vehicles", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const vehicle = insertOtherVehicleSchema.parse({
         ...req.body,
         claimId: id,

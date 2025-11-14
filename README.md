@@ -26,8 +26,8 @@ A modern, intelligent web application that streamlines motor accident insurance 
 ### Backend
 - **Express.js** with TypeScript
 - **PostgreSQL** with Drizzle ORM
-- **Google Cloud Storage** for file management
-- **Session-based authentication**
+- **Local file storage** or optional cloud storage (Google Cloud/AWS S3)
+- **JWT-based authentication** (standalone) or Replit Auth (cloud)
 
 ### AI Integration
 - **Roboflow Universe** models for damage detection
@@ -36,10 +36,10 @@ A modern, intelligent web application that streamlines motor accident insurance 
 
 ## 🚀 Deployment Options
 
-### Option 1: Replit (Recommended)
+### Option 1: Replit (Cloud Deployment)
 This platform is optimized for Replit and includes:
-- Integrated Google Cloud Storage
-- Replit Authentication (Google OAuth)
+- Optional Google Cloud Storage integration
+- Replit Authentication (OIDC)
 - Managed PostgreSQL
 - Auto-deployment
 
@@ -62,13 +62,12 @@ For local development, see [LOCAL_SETUP.md](./LOCAL_SETUP.md) for detailed instr
    git clone https://github.com/yourusername/claims-platform.git
    cd claims-platform
    npm install
-   node scripts/setup-local.js
    ```
 
 3. **Configure Environment**
-   - Update `.env` with your database credentials
-   - Add Google Cloud Storage service account
-   - Add Roboflow API keys
+   - Create `.env` file (copy from `.env.example`)
+   - Update database credentials
+   - Add Roboflow API keys (optional)
 
 4. **Database Setup**
    ```bash
@@ -77,7 +76,7 @@ For local development, see [LOCAL_SETUP.md](./LOCAL_SETUP.md) for detailed instr
 
 5. **Start Development**
    ```bash
-   npm run dev:local
+   npm run dev
    ```
 
 Visit `http://localhost:5000`
@@ -88,27 +87,35 @@ Visit `http://localhost:5000`
 
 ```env
 # Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/claims_db
+DATABASE_URL=postgresql://postgres:password@localhost:5432/claims_platform
 
-# Google Cloud Storage
-GOOGLE_APPLICATION_CREDENTIALS=./service-account.json
-DEFAULT_OBJECT_STORAGE_BUCKET_ID=your-bucket
-
-# Roboflow AI
-ROBOFLOW_API_KEY=your-api-key
-ROBOFLOW_VEHICLE_MODEL=vehicle-damage-model
-ROBOFLOW_GOODS_MODEL=goods-damage-model
-
-# Session
+# Security
 SESSION_SECRET=your-secret-key
+JWT_SECRET=your-jwt-secret
+
+# File Storage (local)
+PRIVATE_OBJECT_DIR=./uploads/private
+PUBLIC_OBJECT_SEARCH_PATHS=./uploads/public
+
+# Roboflow AI (optional)
+ROBOFLOW_API_KEY=your-api-key
+ROBOFLOW_VEHICLE_MODEL_ID=vehicle-damage-model
+ROBOFLOW_GOODS_MODEL_ID=goods-damage-model
+
+# Server
+PORT=5000
+NODE_ENV=development
 ```
 
 ## 📋 API Endpoints
 
 ### Authentication
-- `POST /api/auth/local-login` - Local development login
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login with email/password (JWT)
 - `GET /api/auth/user` - Get current user
 - `POST /api/auth/logout` - Logout
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password with token
 
 ### Claims Management
 - `GET /api/claims` - List user claims
@@ -117,8 +124,9 @@ SESSION_SECRET=your-secret-key
 - `PUT /api/claims/:id` - Update claim
 
 ### File Upload
-- `POST /api/objects/upload` - Get upload URL
-- `PUT /api/objects/analyze` - Trigger AI analysis
+- `POST /api/claims/:id/photos` - Upload damage photos
+- `POST /api/claims/:id/media` - Upload media files
+- `POST /api/claims/:id/analyze` - Trigger AI analysis
 
 ## 🎯 User Flows
 
@@ -147,11 +155,12 @@ The platform uses specialized Roboflow models:
 
 ## 🔒 Security
 
-- **Session Management**: Secure cookie-based sessions
-- **File Upload**: Presigned URLs for direct cloud upload
-- **Access Control**: Role-based permissions
+- **Authentication**: JWT-based (standalone) or OIDC (Replit)
+- **Password Hashing**: bcrypt for secure password storage
+- **Access Control**: Role-based permissions with centralized authorization
 - **Data Validation**: Zod schemas for type safety
-- **CSRF Protection**: Session-based request validation
+- **Admin Authorization**: Admins can edit any claim, users can only edit their own
+- **Secure Password Reset**: Time-limited tokens for password recovery
 
 ## 📊 Database Schema
 

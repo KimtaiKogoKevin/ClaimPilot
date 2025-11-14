@@ -174,6 +174,34 @@ The application will start on:
 3. Use email and password to create your account
 4. Start creating insurance claims!
 
+## User Roles and Permissions
+
+The platform supports four user roles with different capabilities:
+
+- **Insured (Client)**: Can create and edit their own claims only
+- **Admin**: Can view and edit ANY claim in the system, access admin dashboard with analytics
+- **Broker/Agent**: Can assist clients with claims and coordinate between parties
+- **Service Provider**: Can provide repair estimates and services
+
+### Admin Features
+Admin users have full access to:
+- Edit any claim (not just their own)
+- View all claims across all users
+- Access comprehensive analytics dashboard
+- Manage user accounts
+- View audit logs and system activity
+
+### Creating an Admin User
+To create an admin user, register normally and then update the user role in the database:
+
+```bash
+psql -U postgres -d claims_platform
+```
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'your-admin@example.com';
+```
+
 ## Default Test Credentials
 
 If you want to test with pre-configured data:
