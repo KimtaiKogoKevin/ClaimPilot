@@ -28,7 +28,7 @@ const registerSchema = z.object({
   confirmPassword: z.string().min(8, "Please confirm your password"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  role: z.enum(['insured', 'insurer', 'broker', 'service_provider']).default('insured')
+  role: z.enum(['insured', 'admin']).default('insured')
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -458,10 +458,8 @@ export default function AuthPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="insured">Insured/Client</SelectItem>
-                              <SelectItem value="broker">Broker/Agent</SelectItem>
-                              <SelectItem value="insurer">Insurer/Underwriter</SelectItem>
-                              <SelectItem value="service_provider">Service Provider</SelectItem>
+                              <SelectItem value="insured">Insured</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
