@@ -59,9 +59,9 @@ export default function ClaimForm() {
   const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
   const [showHistory, setShowHistory] = useState(false);
 
-  // Collaboration hook for real-time updates
+  // Collaboration hook for real-time updates (disabled for admins to prevent conflicts)
   const collaboration = useClaimCollaboration(
-    claimId || undefined,
+    user?.role === 'admin' ? undefined : (claimId || undefined),
     user?.id,
     `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Unknown User',
     user?.role || 'insured',

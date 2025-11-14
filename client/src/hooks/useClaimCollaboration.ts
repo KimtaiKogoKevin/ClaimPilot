@@ -74,22 +74,31 @@ export function useClaimCollaboration(
     ws.current.onopen = () => {
       console.log('[Collaboration] Connected');
       
-      // If no token in URL, authenticate via message
-      if (!authToken) {
-        const token = localStorage.getItem('authToken');
-        if (token) {
-          ws.current?.send(JSON.stringify({
-            type: 'authenticate',
-            token,
-          }));
-        }
+      // Ensure websocket is still open and mounted before sending
+      if (!ws.current || ws.current.readyState !== WebSocket.OPEN || !isMounted.current) {
+        return;
       }
       
-      // Join the claim room
-      ws.current?.send(JSON.stringify({
-        type: 'join_claim',
-        claimId,
-      }));
+      try {
+        // If no token in URL, authenticate via message
+        if (!authToken) {
+          const token = localStorage.getItem('authToken');
+          if (token) {
+            ws.current.send(JSON.stringify({
+              type: 'authenticate',
+              token,
+            }));
+          }
+        }
+        
+        // Join the claim room
+        ws.current.send(JSON.stringify({
+          type: 'join_claim',
+          claimId,
+        }));
+      } catch (error) {
+        console.error('[Collaboration] Error sending initial messages:', error);
+      }
 
       // Start heartbeat
       if (heartbeatInterval.current) {
@@ -97,7 +106,11 @@ export function useClaimCollaboration(
       }
       heartbeatInterval.current = setInterval(() => {
         if (ws.current?.readyState === WebSocket.OPEN) {
-          ws.current.send(JSON.stringify({ type: 'heartbeat' }));
+          try {
+            ws.current.send(JSON.stringify({ type: 'heartbeat' }));
+          } catch (error) {
+            console.error('[Collaboration] Error sending heartbeat:', error);
+          }
         }
       }, 30000);
     };
@@ -117,10 +130,16 @@ export function useClaimCollaboration(
               isLocked: false,
             }));
             // Request history when joined
-            ws.current?.send(JSON.stringify({ 
-              type: 'request_history',
-              claimId 
-            }));
+            if (ws.current?.readyState === WebSocket.OPEN) {
+              try {
+                ws.current.send(JSON.stringify({ 
+                  type: 'request_history',
+                  claimId 
+                }));
+              } catch (error) {
+                console.error('[Collaboration] Error requesting history:', error);
+              }
+            }
             break;
 
           case 'claim_locked':
@@ -193,7 +212,14 @@ export function useClaimCollaboration(
 
   const disconnect = useCallback(() => {
     if (ws.current) {
-      ws.current.send(JSON.stringify({ type: 'leave_claim' }));
+      // Only send leave message if websocket is already open
+      if (ws.current.readyState === WebSocket.OPEN) {
+        try {
+          ws.current.send(JSON.stringify({ type: 'leave_claim' }));
+        } catch (error) {
+          console.error('[Collaboration] Error sending leave message:', error);
+        }
+      }
       ws.current.close();
       ws.current = null;
     }
