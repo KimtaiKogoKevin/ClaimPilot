@@ -13,6 +13,7 @@ import {
   systemSettings,
   claimEditSessions,
   claimChangeHistory,
+  adminSignupRequests,
   type User,
   type UpsertUser,
   type InsertClaim,
@@ -35,6 +36,8 @@ import {
   type InsertClaimEditSession,
   type ClaimChangeHistory,
   type InsertClaimChangeHistory,
+  type AdminSignupRequest,
+  type InsertAdminSignupRequest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, or, like, ilike, inArray, count } from "drizzle-orm";
@@ -137,6 +140,14 @@ export interface IStorage {
   // Change history methods
   addClaimChange(change: InsertClaimChangeHistory): Promise<ClaimChangeHistory>;
   getClaimChangeHistory(claimId: string, limit?: number): Promise<ClaimChangeHistory[]>;
+  
+  // Admin signup request methods
+  createAdminSignupRequest(request: InsertAdminSignupRequest): Promise<AdminSignupRequest>;
+  getAdminSignupRequests(status?: string): Promise<AdminSignupRequest[]>;
+  getAdminSignupRequestById(id: string): Promise<AdminSignupRequest | undefined>;
+  getAdminSignupRequestByEmail(email: string): Promise<AdminSignupRequest | undefined>;
+  approveAdminSignupRequest(id: string, reviewerId: string): Promise<AdminSignupRequest>;
+  rejectAdminSignupRequest(id: string, reviewerId: string, reason: string): Promise<AdminSignupRequest>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1068,6 +1079,74 @@ export class DatabaseStorage implements IStorage {
       .where(eq(claimChangeHistory.claimId, claimId))
       .orderBy(desc(claimChangeHistory.createdAt))
       .limit(limit);
+  }
+
+  // Admin signup request operations
+  async createAdminSignupRequest(request: InsertAdminSignupRequest): Promise<AdminSignupRequest> {
+    const [result] = await db
+      .insert(adminSignupRequests)
+      .values(request)
+      .returning();
+    return result;
+  }
+
+  async getAdminSignupRequests(status?: string): Promise<AdminSignupRequest[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(adminSignupRequests)
+        .where(eq(adminSignupRequests.status, status as any))
+        .orderBy(desc(adminSignupRequests.createdAt));
+    }
+    return await db
+      .select()
+      .from(adminSignupRequests)
+      .orderBy(desc(adminSignupRequests.createdAt));
+  }
+
+  async getAdminSignupRequestById(id: string): Promise<AdminSignupRequest | undefined> {
+    const [result] = await db
+      .select()
+      .from(adminSignupRequests)
+      .where(eq(adminSignupRequests.id, id));
+    return result;
+  }
+
+  async getAdminSignupRequestByEmail(email: string): Promise<AdminSignupRequest | undefined> {
+    const [result] = await db
+      .select()
+      .from(adminSignupRequests)
+      .where(eq(adminSignupRequests.email, email));
+    return result;
+  }
+
+  async approveAdminSignupRequest(id: string, reviewerId: string): Promise<AdminSignupRequest> {
+    const [result] = await db
+      .update(adminSignupRequests)
+      .set({
+        status: 'approved',
+        reviewedBy: reviewerId,
+        reviewedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(adminSignupRequests.id, id))
+      .returning();
+    return result;
+  }
+
+  async rejectAdminSignupRequest(id: string, reviewerId: string, reason: string): Promise<AdminSignupRequest> {
+    const [result] = await db
+      .update(adminSignupRequests)
+      .set({
+        status: 'rejected',
+        reviewedBy: reviewerId,
+        reviewedAt: new Date(),
+        rejectionReason: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(adminSignupRequests.id, id))
+      .returning();
+    return result;
   }
 }
 
