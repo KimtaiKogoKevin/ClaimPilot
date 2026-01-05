@@ -62,7 +62,8 @@ import {
   UserPlus,
   ClipboardList,
 } from "lucide-react";
-import type { User, AuditLog, SystemSetting, AdminAnalytics } from "@shared/schema";
+import type { User, AuditLog, SystemSetting, AdminAnalytics, AdminSignupRequest } from "@shared/schema";
+import { format } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -119,6 +120,10 @@ export default function AdminDashboard() {
 
   const [auditFilter, setAuditFilter] = useState({ entityType: "", adminId: "" });
 
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
   const { data: stats, isLoading: statsLoading } = useQuery<SystemStats>({
     queryKey: ['/api/admin/stats'],
     enabled: !!user && user.role === 'admin',
@@ -141,6 +146,11 @@ export default function AdminDashboard() {
 
   const { data: auditLogs = [], isLoading: auditLogsLoading } = useQuery<AuditLog[]>({
     queryKey: ['/api/admin/audit-logs', auditFilter],
+    enabled: !!user && user.role === 'admin',
+  });
+
+  const { data: signupRequests = [], isLoading: signupRequestsLoading } = useQuery<AdminSignupRequest[]>({
+    queryKey: ['/api/admin/signup-requests'],
     enabled: !!user && user.role === 'admin',
   });
 
@@ -262,6 +272,35 @@ export default function AdminDashboard() {
     },
   });
 
+  const approveRequestMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest(`/api/admin/signup-requests/${id}/approve`, 'POST');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/signup-requests'] });
+      toast({ title: "Success", description: "Signup request approved successfully." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to approve request.", variant: "destructive" });
+    },
+  });
+
+  const rejectRequestMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      return apiRequest(`/api/admin/signup-requests/${id}/reject`, 'POST', { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/signup-requests'] });
+      toast({ title: "Success", description: "Signup request rejected." });
+      setShowRejectDialog(false);
+      setRejectingRequestId(null);
+      setRejectionReason("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to reject request.", variant: "destructive" });
+    },
+  });
+
   const handleSaveUser = () => {
     if (!selectedUser) return;
 
@@ -325,7 +364,7 @@ export default function AdminDashboard() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <div className="overflow-x-auto">
-            <TabsList className="grid w-full grid-cols-5 min-w-max lg:min-w-0">
+            <TabsList className="grid w-full grid-cols-6 min-w-max lg:min-w-0">
               <TabsTrigger value="analytics" data-testid="tab-analytics">
                 <BarChart3 className="h-4 w-4 sm:mr-2" aria-label="Analytics" />
                 <span className="sr-only sm:not-sr-only">Analytics</span>
@@ -337,6 +376,10 @@ export default function AdminDashboard() {
               <TabsTrigger value="claims" data-testid="tab-claims">
                 <FileText className="h-4 w-4 sm:mr-2" aria-label="Claims" />
                 <span className="sr-only sm:not-sr-only">Claims</span>
+              </TabsTrigger>
+              <TabsTrigger value="signupRequests" data-testid="tab-signup-requests">
+                <UserPlus className="h-4 w-4 sm:mr-2" aria-label="Signup Requests" />
+                <span className="sr-only sm:not-sr-only">Signup Requests</span>
               </TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">
                 <Settings className="h-4 w-4 sm:mr-2" aria-label="Settings" />
@@ -1038,6 +1081,168 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="signupRequests" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Admin Signup Requests</CardTitle>
+                    <CardDescription>Review and manage pending admin account requests</CardDescription>
+                  </div>
+                  <Badge variant="secondary" data-testid="badge-pending-count">
+                    {signupRequests.filter(r => r.status === 'pending').length} pending
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="md:hidden space-y-4">
+                  {signupRequestsLoading ? (
+                    <p className="text-center text-muted-foreground">Loading...</p>
+                  ) : signupRequests.length === 0 ? (
+                    <p className="text-center text-muted-foreground">No signup requests</p>
+                  ) : (
+                    signupRequests.map((request) => (
+                      <Card key={request.id} data-testid={`card-signup-request-${request.id}`}>
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Company Name</p>
+                              <p className="font-medium">{request.companyName}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Company Type</p>
+                              <p className="capitalize">{request.companyType}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Applicant</p>
+                              <p>{request.firstName} {request.lastName}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Email</p>
+                              <p>{request.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Status</p>
+                              <Badge
+                                variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}
+                                data-testid={`badge-status-${request.id}`}
+                              >
+                                {request.status}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Submitted</p>
+                              <p>{request.createdAt ? format(new Date(request.createdAt), 'MMM d, yyyy') : 'N/A'}</p>
+                            </div>
+                            {request.status === 'pending' && (
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => approveRequestMutation.mutate(request.id)}
+                                  disabled={approveRequestMutation.isPending}
+                                  data-testid={`button-approve-${request.id}`}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    setRejectingRequestId(request.id);
+                                    setShowRejectDialog(true);
+                                  }}
+                                  data-testid={`button-reject-${request.id}`}
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+                <div className="overflow-x-auto md:overflow-visible">
+                  <Table className="hidden md:table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Company Name</TableHead>
+                        <TableHead>Company Type</TableHead>
+                        <TableHead>Applicant Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {signupRequestsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center">Loading...</TableCell>
+                        </TableRow>
+                      ) : signupRequests.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center">No signup requests</TableCell>
+                        </TableRow>
+                      ) : (
+                        signupRequests.map((request) => (
+                          <TableRow key={request.id} data-testid={`row-signup-request-${request.id}`}>
+                            <TableCell className="font-medium" data-testid={`text-company-${request.id}`}>
+                              {request.companyName}
+                            </TableCell>
+                            <TableCell className="capitalize">{request.companyType}</TableCell>
+                            <TableCell>{request.firstName} {request.lastName}</TableCell>
+                            <TableCell>{request.email}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}
+                                className={request.status === 'approved' ? 'bg-green-500' : ''}
+                                data-testid={`badge-status-${request.id}`}
+                              >
+                                {request.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {request.createdAt ? format(new Date(request.createdAt), 'MMM d, yyyy') : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {request.status === 'pending' ? (
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => approveRequestMutation.mutate(request.id)}
+                                    disabled={approveRequestMutation.isPending}
+                                    data-testid={`button-approve-${request.id}`}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      setRejectingRequestId(request.id);
+                                      setShowRejectDialog(true);
+                                    }}
+                                    data-testid={`button-reject-${request.id}`}
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="audit" className="space-y-4">
             <Card>
               <CardHeader>
@@ -1305,6 +1510,56 @@ export default function AdminDashboard() {
               data-testid="button-save-setting"
             >
               {upsertSettingMutation.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="max-w-full sm:max-w-md" data-testid="dialog-reject-request">
+          <DialogHeader>
+            <DialogTitle>Reject Signup Request</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this signup request.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rejectionReason">Rejection Reason</Label>
+              <Textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Enter the reason for rejection..."
+                data-testid="input-rejection-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRejectDialog(false);
+                setRejectingRequestId(null);
+                setRejectionReason("");
+              }}
+              className="w-full sm:w-auto"
+              data-testid="button-cancel-reject"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (rejectingRequestId) {
+                  rejectRequestMutation.mutate({ id: rejectingRequestId, reason: rejectionReason });
+                }
+              }}
+              disabled={!rejectionReason || rejectRequestMutation.isPending}
+              className="w-full sm:w-auto"
+              data-testid="button-confirm-reject"
+            >
+              {rejectRequestMutation.isPending ? 'Rejecting...' : 'Reject Request'}
             </Button>
           </DialogFooter>
         </DialogContent>
