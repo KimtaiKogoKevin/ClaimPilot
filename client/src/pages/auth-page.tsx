@@ -9,7 +9,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, EyeOff, Shield, Mail, Lock, User, UserCheck, ArrowLeft } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -22,17 +21,6 @@ const loginSchema = z.object({
   twoFactorCode: z.string().optional()
 });
 
-const registerSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string().min(8, "Please confirm your password"),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  role: z.enum(['insured', 'admin']).default('insured')
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address")
@@ -48,7 +36,6 @@ const resetPasswordSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
-type RegisterForm = z.infer<typeof registerSchema>;
 type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
@@ -74,17 +61,6 @@ export default function AuthPage() {
     }
   });
 
-  const registerForm = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      firstName: "",
-      lastName: "",
-      role: "insured"
-    }
-  });
 
   const forgotPasswordForm = useForm<ForgotPasswordForm>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -134,28 +110,6 @@ export default function AuthPage() {
     }
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterForm) => {
-      const response = await apiRequest("POST", "/api/auth/register", data);
-      return response.json();
-    },
-    onSuccess: (data) => {
-      localStorage.setItem("auth_token", data.token);
-      toast({
-        title: "Registration Successful",
-        description: "Welcome to Motor Claims Platform!",
-      });
-      // Force page reload to ensure authentication state is updated
-      window.location.href = "/";
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Failed to create account",
-        variant: "destructive",
-      });
-    }
-  });
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: ForgotPasswordForm) => {
@@ -209,10 +163,6 @@ export default function AuthPage() {
 
   const handleLogin = (data: LoginForm) => {
     loginMutation.mutate(data);
-  };
-
-  const handleRegister = (data: RegisterForm) => {
-    registerMutation.mutate(data);
   };
 
   const handleForgotPassword = (data: ForgotPasswordForm) => {
@@ -388,155 +338,50 @@ export default function AuthPage() {
               </TabsContent>
 
               {/* Register Tab */}
-              <TabsContent value="register" className="space-y-4">
-                <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="John" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+              <TabsContent value="register" className="space-y-6">
+                <div className="text-center space-y-2">
+                  <p className="text-gray-600">Choose your account type to get started</p>
+                </div>
 
-                      <FormField
-                        control={registerForm.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                <div className="space-y-4">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-auto p-4 flex flex-col items-start space-y-2"
+                    onClick={() => setLocation("/auth/insured")}
+                    data-testid="signup-insured-btn"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <User className="h-6 w-6 text-blue-500" />
+                      <div className="text-left">
+                        <div className="font-semibold">I'm an Insured User</div>
+                        <div className="text-sm text-gray-500 font-normal">
+                          Submit and manage your motor accident claims
+                        </div>
+                      </div>
                     </div>
+                  </Button>
 
-                    <FormField
-                      control={registerForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center space-x-2">
-                            <Mail className="h-4 w-4" />
-                            <span>Email</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="john.doe@example.com" 
-                              type="email"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-auto p-4 flex flex-col items-start space-y-2"
+                    onClick={() => setLocation("/auth/admin")}
+                    data-testid="signup-admin-btn"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Shield className="h-6 w-6 text-green-500" />
+                      <div className="text-left">
+                        <div className="font-semibold">I'm an Insurance Company / Broker</div>
+                        <div className="text-sm text-gray-500 font-normal">
+                          Request admin access to manage claims and users
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+                </div>
 
-                    <FormField
-                      control={registerForm.control}
-                      name="role"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center space-x-2">
-                            <User className="h-4 w-4" />
-                            <span>Role</span>
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select your role" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="insured">Insured</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={registerForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center space-x-2">
-                            <Lock className="h-4 w-4" />
-                            <span>Password</span>
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input 
-                                placeholder="Choose a strong password" 
-                                type={showPassword ? "text" : "password"}
-                                {...field} 
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3"
-                                onClick={() => setShowPassword(!showPassword)}
-                              >
-                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={registerForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input 
-                                placeholder="Confirm your password" 
-                                type={showConfirmPassword ? "text" : "password"}
-                                {...field} 
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              >
-                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={registerMutation.isPending}
-                    >
-                      {registerMutation.isPending ? "Creating Account..." : "Create Account"}
-                    </Button>
-                  </form>
-                </Form>
+                <p className="text-xs text-center text-gray-500">
+                  Admin accounts require approval from existing administrators
+                </p>
               </TabsContent>
             </Tabs>
           </CardContent>
