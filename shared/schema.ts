@@ -694,6 +694,30 @@ export const claimChangeHistory = pgTable("claim_change_history", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Admin signup request status enum
+export const adminSignupStatusEnum = pgEnum('admin_signup_status', ['pending', 'approved', 'rejected']);
+
+// Admin signup requests table - stores pending admin registration requests
+export const adminSignupRequests = pgTable("admin_signup_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").notNull().unique(),
+  password: varchar("password").notNull(), // Hashed password
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  companyName: varchar("company_name").notNull(),
+  companyType: varchar("company_type").notNull(), // 'insurance_company', 'broker', 'other'
+  businessRegistrationNumber: varchar("business_registration_number"),
+  phoneNumber: varchar("phone_number"),
+  address: text("address"),
+  reason: text("reason"), // Why they want admin access
+  status: adminSignupStatusEnum("status").default('pending').notNull(),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas for new tables
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
@@ -716,6 +740,16 @@ export const insertClaimChangeHistorySchema = createInsertSchema(claimChangeHist
   createdAt: true,
 });
 
+export const insertAdminSignupRequestSchema = createInsertSchema(adminSignupRequests).omit({
+  id: true,
+  status: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  rejectionReason: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types for new tables
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
@@ -725,6 +759,8 @@ export type InsertClaimEditSession = z.infer<typeof insertClaimEditSessionSchema
 export type ClaimEditSession = typeof claimEditSessions.$inferSelect;
 export type InsertClaimChangeHistory = z.infer<typeof insertClaimChangeHistorySchema>;
 export type ClaimChangeHistory = typeof claimChangeHistory.$inferSelect;
+export type InsertAdminSignupRequest = z.infer<typeof insertAdminSignupRequestSchema>;
+export type AdminSignupRequest = typeof adminSignupRequests.$inferSelect;
 
 // Admin operation schemas
 export const adminCreateUserSchema = z.object({
