@@ -11,6 +11,8 @@ import ClaimDetails from "@/pages/claim-details";
 import DraftDashboard from "@/pages/draft-dashboard";
 import ClaimantDashboard from "@/pages/claimant-dashboard";
 import AuthPage from "@/pages/auth-page";
+import InsuredSignupPage from "@/pages/insured-signup";
+import AdminSignupPage from "@/pages/admin-signup";
 import AdminDashboard from "@/pages/admin-dashboard";
 
 function Router() {
@@ -34,6 +36,8 @@ function Router() {
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/auth/insured" component={InsuredSignupPage} />
+        <Route path="/auth/admin" component={AdminSignupPage} />
         <Route component={NotFound} />
       </Switch>
     );
