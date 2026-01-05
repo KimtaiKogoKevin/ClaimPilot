@@ -11,7 +11,12 @@ import {
   disable2FA, 
   authenticateToken,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  registerInsured,
+  registerAdminRequest,
+  getAdminSignupRequests,
+  approveAdminSignupRequest,
+  rejectAdminSignupRequest
 } from "./standaloneAuth";
 import {
   ObjectStorageService,
@@ -95,6 +100,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/2fa/disable', authenticateToken, disable2FA);
   app.post('/api/auth/forgot-password', forgotPassword);
   app.post('/api/auth/reset-password', resetPassword);
+  
+  // Separate signup flows
+  app.post('/api/auth/signup/insured', registerInsured);
+  app.post('/api/auth/signup/admin', registerAdminRequest);
+  
+  // Admin signup request management (admin only)
+  app.get('/api/admin/signup-requests', authenticateToken, getAdminSignupRequests);
+  app.post('/api/admin/signup-requests/:id/approve', authenticateToken, approveAdminSignupRequest);
+  app.post('/api/admin/signup-requests/:id/reject', authenticateToken, rejectAdminSignupRequest);
 
   // Update user role - simplified to only allow admin and insured
   app.put('/api/auth/update-role', authenticateToken, async (req: any, res) => {
@@ -878,8 +892,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       
       // Check if user has staff access (broker or insurer)
-      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
-        return res.status(403).json({ message: "Access denied. Staff access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       // Get claims with full details for staff portal
@@ -900,8 +914,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
-        return res.status(403).json({ message: "Access denied. Staff access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       // Get claim with full details for staff portal
@@ -926,8 +940,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
-        return res.status(403).json({ message: "Access denied. Staff access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       // Get claim with full details for PDF generation
@@ -957,8 +971,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
-        return res.status(403).json({ message: "Access denied. Staff access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       const { status } = req.body;
@@ -974,7 +988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Edit claim (insurer only)
+  // Edit claim (admin only)
   app.put("/api/staff/claims/:id/edit", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.userId;
@@ -983,8 +997,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'insurer') {
-        return res.status(403).json({ message: "Access denied. Adjudicator access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       const updatedClaim = await storage.updateClaim(req.params.id, req.body);
@@ -995,7 +1009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete claim (insurer only)
+  // Delete claim (admin only)
   app.delete("/api/staff/claims/:id", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.userId;
@@ -1004,8 +1018,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'insurer') {
-        return res.status(403).json({ message: "Access denied. Adjudicator access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       await storage.deleteClaim(req.params.id);
