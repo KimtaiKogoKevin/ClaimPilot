@@ -5,6 +5,19 @@ This project is an AI-powered claims management system designed to streamline th
 
 ## Recent Changes
 
+**Separate Signup Flows (January 2025)**: Implemented distinct registration processes for different user types:
+- **Insured Users** (`/auth/insured`): Can register immediately and access their dashboard
+- **Admin Users** (`/auth/admin`): Must submit an application with company details for approval by existing administrators
+
+Admin signup requests are stored in the `admin_signup_requests` table with status tracking (pending, approved, rejected). Administrators can manage these requests through the new "Signup Requests" tab in the admin dashboard.
+
+**API Endpoints for Signup Flows**:
+- `POST /api/auth/signup/insured` - Direct registration for insured users
+- `POST /api/auth/signup/admin` - Create admin signup request (pending approval)
+- `GET /api/admin/signup-requests` - List all signup requests (admin only)
+- `POST /api/admin/signup-requests/:id/approve` - Approve a request (admin only)
+- `POST /api/admin/signup-requests/:id/reject` - Reject a request with reason (admin only)
+
 **Simplified Role Structure (January 2025)**: Streamlined the application to support only two user roles for clarity and simplicity:
 - **Insured**: Regular users who can create and edit their own insurance claims
 - **Admin**: Administrative users with full access to all claims, user management, analytics dashboard, and system settings
