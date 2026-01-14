@@ -763,6 +763,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
       const hasAccess = await canAccessClaim(userId, claim);
       if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
@@ -791,6 +794,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
       const hasAccess = await canAccessClaim(userId, claim);
       if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
