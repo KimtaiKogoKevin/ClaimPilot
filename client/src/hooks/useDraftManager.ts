@@ -37,24 +37,22 @@ export function useDraftManager(claimId?: string) {
     enabled: !claimId, // Only fetch when not working on a specific claim
   });
 
-  // Get specific draft for resuming with intelligent loading
+  // Get specific draft for resuming - always fetch fresh data from server
   const { data: currentDraft, isLoading: isLoadingDraft } = useQuery({
     queryKey: ['/api/claims', claimId, 'resume'],
     queryFn: async () => {
       if (!claimId) return null;
       
-      // Use the persistence manager for intelligent loading
-      if (persistenceManagerRef.current) {
-        return await persistenceManagerRef.current.loadDraft();
-      }
-      
-      // Fallback to direct API call
+      // Always fetch fresh data from server for accuracy
+      // The server is the source of truth, especially for multi-user scenarios
       const response = await apiRequest('GET', `/api/claims/${claimId}/resume`);
       return response.json();
     },
     enabled: !!claimId,
-    staleTime: 5000, // Consider data fresh for 5 seconds only
+    staleTime: 0, // Always consider data stale to ensure fresh fetch
+    gcTime: 0, // Don't cache (was cacheTime in v4)
     refetchOnWindowFocus: false, // Prevent excessive refetching
+    refetchOnMount: 'always', // Always refetch when component mounts
   });
 
   // Save draft mutation
@@ -67,18 +65,11 @@ export function useDraftManager(claimId?: string) {
       });
       return response;
     },
-    onSuccess: () => {
-      // Don't show toast for auto-saves, it's too disruptive
-      // toast({
-      //   title: "Draft Saved",
-      //   description: "Your progress has been saved automatically.",
-      //   variant: "default",
-      // });
-      // Don't invalidate the current draft query to prevent re-loading
-      // Only invalidate the list queries
+    onSuccess: (_, variables) => {
+      // Invalidate both list and specific draft queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/claims/drafts'] });
-      // Don't invalidate the current draft to prevent restoration loop
-      // queryClient.invalidateQueries({ queryKey: ['/api/claims'] });
+      // Also invalidate the specific claim's resume query for next load
+      queryClient.invalidateQueries({ queryKey: ['/api/claims', variables.claimId, 'resume'] });
     },
     onError: (error: Error) => {
       toast({
