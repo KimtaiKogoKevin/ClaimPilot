@@ -71,13 +71,42 @@ import {
   Line,
   AreaChart,
   Area,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
+  RadialBarChart,
+  RadialBar,
 } from "recharts";
+
+// Professional color palette for charts
+const CHART_COLORS = {
+  primary: '#3b82f6',
+  secondary: '#8b5cf6',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  info: '#06b6d4',
+  muted: '#94a3b8',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: '#94a3b8',
+  submitted: '#3b82f6',
+  under_review: '#8b5cf6',
+  approved: '#10b981',
+  rejected: '#ef4444',
+  pending: '#f59e0b',
+  completed: '#059669',
+  processing: '#6366f1',
+};
+
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899'];
 
 interface SystemStats {
   totalUsers: number;
@@ -445,8 +474,14 @@ export default function AdminDashboard() {
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : (
                     stats?.claimsByStatus.slice(0, 5).map(({ status, count }) => (
-                      <div key={status} className="flex justify-between text-sm" data-testid={`status-count-${status}`}>
-                        <span className="capitalize">{status.replace(/_/g, ' ')}</span>
+                      <div key={status} className="flex justify-between text-sm items-center" data-testid={`status-count-${status}`}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: STATUS_COLORS[status] || CHART_COLORS.muted }}
+                          />
+                          <span className="capitalize">{status.replace(/_/g, ' ')}</span>
+                        </div>
                         <span className="font-medium">{count}</span>
                       </div>
                     ))
@@ -454,6 +489,104 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Claims Status Pie Chart */}
+            {stats?.claimsByStatus && stats.claimsByStatus.length > 0 && (
+              <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Claims Distribution by Status</CardTitle>
+                    <CardDescription>Visual breakdown of all claims</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={stats.claimsByStatus.map(item => ({
+                              ...item,
+                              name: item.status.replace(/_/g, ' ').charAt(0).toUpperCase() + item.status.replace(/_/g, ' ').slice(1)
+                            }))}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="count"
+                            nameKey="name"
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {stats.claimsByStatus.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={STATUS_COLORS[entry.status] || PIE_COLORS[index % PIE_COLORS.length]} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number, name: string) => [`${value} claims`, name]}
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Users Distribution Pie Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Distribution by Role</CardTitle>
+                    <CardDescription>System users breakdown</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={stats.usersByRole.map(item => ({
+                              ...item,
+                              name: item.role.charAt(0).toUpperCase() + item.role.slice(1)
+                            }))}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            paddingAngle={3}
+                            dataKey="count"
+                            nameKey="name"
+                          >
+                            {stats.usersByRole.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.role === 'admin' ? CHART_COLORS.secondary : CHART_COLORS.primary} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number, name: string) => [`${value} users`, name]}
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Analytics Visualizations */}
             {stats?.analytics && (
@@ -468,16 +601,37 @@ export default function AdminDashboard() {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={stats.analytics.userGrowth}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
-                          <YAxis />
-                          <Tooltip />
+                          <defs>
+                            <linearGradient id="colorAdmin" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+                            </linearGradient>
+                            <linearGradient id="colorInsured" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="month" 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickLine={{ stroke: '#e2e8f0' }}
+                          />
+                          <YAxis 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickLine={{ stroke: '#e2e8f0' }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
                           <Legend />
-                          <Area type="monotone" dataKey="roleData.admin" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" name="Admin" />
-                          <Area type="monotone" dataKey="roleData.insurer" stackId="1" stroke="#3b82f6" fill="#3b82f6" name="Insurer" />
-                          <Area type="monotone" dataKey="roleData.broker" stackId="1" stroke="#10b981" fill="#10b981" name="Broker" />
-                          <Area type="monotone" dataKey="roleData.insured" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Insured" />
-                          <Area type="monotone" dataKey="roleData.service_provider" stackId="1" stroke="#ef4444" fill="#ef4444" name="Service Provider" />
+                          <Area type="monotone" dataKey="roleData.admin" stackId="1" stroke="#8b5cf6" fill="url(#colorAdmin)" name="Admin" />
+                          <Area type="monotone" dataKey="roleData.insured" stackId="1" stroke="#3b82f6" fill="url(#colorInsured)" name="Insured" />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -497,30 +651,42 @@ export default function AdminDashboard() {
                           // Restructure data to group by role with current and previous values
                           if (!stats?.analytics) return [];
                           
-                          const analytics = stats.analytics; // Store to satisfy TypeScript
-                          const roles = new Set([
-                            ...analytics.roleMix.current.map(d => d.role),
-                            ...analytics.roleMix.previous.map(d => d.role)
-                          ]);
+                          const analytics = stats.analytics;
+                          // Filter to only show admin and insured roles
+                          const relevantRoles = ['admin', 'insured'];
                           
-                          return Array.from(roles).map(role => {
+                          return relevantRoles.map(role => {
                             const currentData = analytics.roleMix.current.find(d => d.role === role);
                             const previousData = analytics.roleMix.previous.find(d => d.role === role);
                             
                             return {
-                              role: role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' '),
+                              role: role.charAt(0).toUpperCase() + role.slice(1),
                               current: currentData?.count || 0,
                               previous: previousData?.count || 0,
                             };
                           });
                         })()}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="role" angle={-20} textAnchor="end" height={80} />
-                          <YAxis label={{ value: 'New Users', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="role" 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickLine={{ stroke: '#e2e8f0' }}
+                          />
+                          <YAxis 
+                            label={{ value: 'New Users', angle: -90, position: 'insideLeft', fill: '#64748b' }} 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
                           <Legend />
-                          <Bar dataKey="previous" fill="#94a3b8" name="Previous Month" />
-                          <Bar dataKey="current" fill="#3b82f6" name="Current Month" />
+                          <Bar dataKey="previous" fill="#94a3b8" name="Previous Month" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="current" fill="#3b82f6" name="Current Month" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -537,13 +703,31 @@ export default function AdminDashboard() {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stats.analytics.slaCompliance}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="status" angle={-45} textAnchor="end" height={100} />
-                          <YAxis label={{ value: 'Days', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="status" 
+                            angle={-30} 
+                            textAnchor="end" 
+                            height={80}
+                            tick={{ fill: '#64748b', fontSize: 11 }}
+                            tickFormatter={(value) => value.replace(/_/g, ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                          />
+                          <YAxis 
+                            label={{ value: 'Days', angle: -90, position: 'insideLeft', fill: '#64748b' }} 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                            formatter={(value: number) => [`${value} days`, '']}
+                          />
                           <Legend />
-                          <Bar dataKey="avgDays" fill="#3b82f6" name="Avg Processing Days" />
-                          <Bar dataKey="slaTarget" fill="#10b981" name="SLA Target" />
+                          <Bar dataKey="avgDays" fill="#3b82f6" name="Avg Processing Days" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="slaTarget" fill="#10b981" name="SLA Target" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -560,12 +744,33 @@ export default function AdminDashboard() {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stats.analytics.backlogAging}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="bucket" />
-                          <YAxis label={{ value: 'Claims Count', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip />
+                          <defs>
+                            <linearGradient id="colorBacklog" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9}/>
+                              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.6}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="bucket" 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickLine={{ stroke: '#e2e8f0' }}
+                          />
+                          <YAxis 
+                            label={{ value: 'Claims Count', angle: -90, position: 'insideLeft', fill: '#64748b' }} 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                            formatter={(value: number) => [`${value} claims`, 'Count']}
+                          />
                           <Legend />
-                          <Bar dataKey="count" fill="#f59e0b" name="Claims Count" />
+                          <Bar dataKey="count" fill="url(#colorBacklog)" name="Claims Count" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
