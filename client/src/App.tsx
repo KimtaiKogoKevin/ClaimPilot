@@ -62,6 +62,7 @@ function Router() {
       <Switch>
         <Route path="/" component={AdminDashboard} />
         <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/users" component={AdminDashboard} />
         <Route path="/admin/claims" component={AdminDashboard} />
         <Route path="/admin/settings" component={AdminDashboard} />

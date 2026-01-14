@@ -26,6 +26,14 @@ All previous roles (broker, insurer, service provider, claimant, adjudicator) ha
 
 **Admin Claim Editing and Authorization (January 2025)**: Implemented comprehensive admin claim editing capabilities allowing administrators to edit any claim in the system. The system includes centralized authorization via `canAccessClaim()` helper function applied to ALL 16 claim mutation endpoints, security hardening with authorization checks on all detail endpoints (individual, corporate, vehicle, driver, bank, other-vehicles), admin dashboard integration with `/claim-form/:id` routing, WebSocket collaboration disabled for admins to prevent React hook errors, and proper access control where insured users can only edit their own claims while admins can edit any claim.
 
+**Enhanced Admin Dashboard Visualizations (January 2025)**: Improved admin analytics dashboard with professional chart visualizations:
+- **PieChart for Claims Distribution**: Color-coded pie chart showing claims by status with professional tooltips
+- **PieChart for User Distribution**: Donut-style chart showing user breakdown by role (admin vs insured)
+- **Gradient Fills**: Area charts now use gradient fills for improved visual appeal
+- **Rounded Bar Charts**: Role mix comparison charts feature rounded corners
+- **Simplified Role Display**: Charts only show the two-role structure (admin and insured)
+- **Professional Styling**: Enhanced tooltips with shadows, borders, and clean color palette
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
