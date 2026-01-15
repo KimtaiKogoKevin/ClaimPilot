@@ -329,17 +329,24 @@ export class DatabaseStorage implements IStorage {
       .set(claimData)
       .where(eq(claims.id, claimId));
     
-    // Only save individual details if the required fields are filled
-    if (data.insuredType === 'individual' && 
-        data.individualFirstName && 
-        data.individualSurname && 
-        data.individualIdNumber) {
+    // Save individual details if ANY of the individual fields are filled
+    // This allows partial saves during form filling
+    const hasAnyIndividualData = data.insuredType === 'individual' && (
+        data.individualFirstName || 
+        data.individualSurname || 
+        data.individualIdNumber ||
+        data.individualMobile ||
+        data.individualEmail ||
+        data.individualNationality
+    );
+    
+    if (hasAnyIndividualData) {
       const individualData = {
         claimId,
-        firstName: data.individualFirstName,
+        firstName: data.individualFirstName || '',
         middleName: data.individualMiddleName || null,
-        surname: data.individualSurname,
-        idNumber: data.individualIdNumber,
+        surname: data.individualSurname || '',
+        idNumber: data.individualIdNumber || '',
         nationality: data.individualNationality || null,
         dateOfBirth: convertToDate(data.individualDateOfBirth),
         pinNumber: data.individualPinNumber || null,
@@ -358,14 +365,19 @@ export class DatabaseStorage implements IStorage {
       await this.upsertIndividualDetails(individualData);
     }
     
-    // Only save corporate details if the required fields are filled
-    if (data.insuredType === 'corporate' && 
-        data.corporateRegisteredName && 
-        data.corporateRegistrationNumber) {
+    // Save corporate details if ANY of the corporate fields are filled
+    const hasAnyCorporateData = data.insuredType === 'corporate' && (
+        data.corporateRegisteredName || 
+        data.corporateRegistrationNumber ||
+        data.corporateEmail ||
+        data.corporateMobileContact
+    );
+    
+    if (hasAnyCorporateData) {
       const corporateData = {
         claimId,
-        registeredName: data.corporateRegisteredName,
-        registrationNumber: data.corporateRegistrationNumber,
+        registeredName: data.corporateRegisteredName || '',
+        registrationNumber: data.corporateRegistrationNumber || '',
         countryOfRegistration: data.corporateCountryOfRegistration || null,
         pinNumber: data.corporatePinNumber || null,
         vatRegNumber: data.corporateVatRegNumber || null,
@@ -382,9 +394,13 @@ export class DatabaseStorage implements IStorage {
       await this.upsertCorporateDetails(corporateData);
     }
     
-    // Save vehicle details when available with required fields
-    if ((data.vehicleMake || data.vehicle?.make) && 
-        (data.vehicleModel || data.vehicle?.model)) {
+    // Save vehicle details when ANY vehicle field is filled
+    const hasAnyVehicleData = 
+        data.vehicleMake || data.vehicle?.make ||
+        data.vehicleModel || data.vehicle?.model ||
+        data.vehicleRegistrationNumber || data.vehicle?.registrationNumber_primemover;
+    
+    if (hasAnyVehicleData) {
       const vehicleData = {
         claimId,
         make: data.vehicleMake || data.vehicle?.make || '',
@@ -401,9 +417,13 @@ export class DatabaseStorage implements IStorage {
       await this.upsertVehicle(vehicleData);
     }
     
-    // Save driver details when available with required fields
-    if ((data.driverName || data.driver?.name) && 
-        (data.driverLicenseNumber || data.driver?.licenseNumber)) {
+    // Save driver details when ANY driver field is filled
+    const hasAnyDriverData = 
+        data.driverName || data.driver?.name ||
+        data.driverLicenseNumber || data.driver?.licenseNumber ||
+        data.driverTelephone || data.driver?.telephone;
+    
+    if (hasAnyDriverData) {
       const driverData = {
         claimId,
         name: data.driverName || data.driver?.name || '',
@@ -432,9 +452,13 @@ export class DatabaseStorage implements IStorage {
       await this.upsertDriver(driverData);
     }
     
-    // Save bank details when available with required fields
-    if ((data.bankBankName || data.bank?.bankName) && 
-        (data.bankAccountNumber || data.bank?.accountNumber)) {
+    // Save bank details when ANY bank field is filled
+    const hasAnyBankData = 
+        data.bankBankName || data.bank?.bankName ||
+        data.bankAccountNumber || data.bank?.accountNumber ||
+        data.bankAccountName || data.bank?.accountName;
+    
+    if (hasAnyBankData) {
       const bankData = {
         claimId,
         bankName: data.bankBankName || data.bank?.bankName || '',

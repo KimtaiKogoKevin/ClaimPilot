@@ -108,13 +108,19 @@ export default function PolicyDetailsStep({
 
   // Handler functions (no changes needed)
   const handleInputChange = (section: string, field: string, value: any) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value,
-      },
-    }));
+    console.log(`[PolicyDetailsStep] handleInputChange called: section="${section}", field="${field}", value="${value}"`);
+    setFormData((prev: any) => {
+      console.log(`[PolicyDetailsStep] Previous ${section} state:`, prev[section]);
+      const newState = {
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [field]: value,
+        },
+      };
+      console.log(`[PolicyDetailsStep] New ${section} state:`, newState[section]);
+      return newState;
+    });
   };
 
   const handleDirectFieldChange = (field: string, value: any) => {

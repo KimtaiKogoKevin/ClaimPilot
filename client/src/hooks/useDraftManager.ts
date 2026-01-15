@@ -80,12 +80,22 @@ export function useDraftManager(claimId?: string) {
     },
   });
 
-  // Smart save function that uses persistence manager
+  // Smart save function - uses mutation directly for reliability
   const saveDraft = (claimId: string, step: number, data: any, progressPercentage: number) => {
-    if (!claimId || !persistenceManagerRef.current) return;
+    if (!claimId) {
+      console.log('saveDraft: No claimId, skipping');
+      return;
+    }
     
-    // Use persistence manager for intelligent saving
-    persistenceManagerRef.current.saveDraft(data, step);
+    console.log('saveDraft: Saving draft for claim', claimId, 'with data:', JSON.stringify(data).substring(0, 200));
+    
+    // Use mutation directly for reliability - persistence manager can have race conditions
+    saveDraftMutation.mutate({
+      claimId,
+      step,
+      data,
+      progressPercentage,
+    });
   };
 
   // Manual save with immediate feedback

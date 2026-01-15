@@ -313,6 +313,16 @@ export default function ClaimForm() {
     }
   }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification, hasRestoredFromDraft]);
 
+  // Update URL when claim is created (so refresh works correctly)
+  useEffect(() => {
+    // Only update URL if we have a new claimId that's not already in the URL
+    if (claimId && !id) {
+      console.log("Updating URL to include claim ID:", claimId);
+      // Use replaceState to update URL without adding to history
+      window.history.replaceState(null, '', `/claim-form/${claimId}`);
+    }
+  }, [claimId, id]);
+
   // Initialize persistence manager
   useEffect(() => {
     if (claimId && !persistenceManagerRef.current) {
@@ -342,6 +352,10 @@ export default function ClaimForm() {
       console.log("No claimId, skipping auto-save");
       return;
     }
+    
+    console.log("🔍 AUTO-SAVE: Current formData.individual:", formData.individual);
+    console.log("🔍 AUTO-SAVE: formData.individual?.firstName:", formData.individual?.firstName);
+    console.log("🔍 AUTO-SAVE: formData.individual?.surname:", formData.individual?.surname);
     
     // Build the data to save
     const dataToSave = {
@@ -699,18 +713,41 @@ export default function ClaimForm() {
     }
   };
 
-  // Auto-save functionality
-  // Smart auto-save that triggers only when there's meaningful data
+  // Track when auto-save should be triggered
+  const autoSaveCounterRef = useRef(0);
+  const [autoSaveTrigger, setAutoSaveTrigger] = useState(0);
+
+  // Reset hasRestoredFromDraft after short delay to re-enable auto-save for new changes
   useEffect(() => {
-    // Only trigger auto-save if we have meaningful form data and haven't just restored from draft
-    if (!hasRestoredFromDraft && claimId) {
+    if (hasRestoredFromDraft) {
+      // After restoring, wait a moment then re-enable auto-save for future changes
+      const timeoutId = setTimeout(() => {
+        setHasRestoredFromDraft(false);
+        // Force a re-trigger of auto-save after reset
+        autoSaveCounterRef.current += 1;
+        setAutoSaveTrigger(autoSaveCounterRef.current);
+      }, 1000); // 1 second delay before re-enabling auto-save
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [hasRestoredFromDraft]);
+
+  // Auto-save functionality
+  // Smart auto-save that triggers only when there's meaningful data and a claimId exists
+  useEffect(() => {
+    // Skip auto-save during initial restore to prevent overwriting with incomplete data
+    if (hasRestoredFromDraft) return;
+    
+    // Only trigger auto-save if we have a claimId
+    if (claimId) {
+      console.log('Auto-save effect triggered, will save in 2 seconds...');
       const timeoutId = setTimeout(() => {
         autoSave();
       }, 2000); // 2 second delay to allow user to finish typing
       
       return () => clearTimeout(timeoutId);
     }
-  }, [formData, autoSave, hasRestoredFromDraft, claimId]);
+  }, [formData, autoSave, hasRestoredFromDraft, claimId, autoSaveTrigger]);
 
   // Remove duplicate authentication checks - handled by App.tsx router
   // The Router in App.tsx already ensures only authenticated users reach this component
