@@ -271,6 +271,10 @@ export default function ClaimForm() {
     }>,
   });
 
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+  const lastSavedDataRef = useRef<string>("");
+
   // Restore draft data when loading a draft claim (fires only ONCE)
   useEffect(() => {
     if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object' && !hasRestoredRef.current) {
@@ -330,123 +334,125 @@ export default function ClaimForm() {
       return;
     }
     
+    const fd = formDataRef.current;
+    
     // Build the data to save
     const dataToSave = {
       // Policy details
-      branchName: formData.branchName || "",
-      agentName: formData.agentName || "",
-      policyNumber: formData.policyNumber || "",
-      lastPaymentDate: formData.lastPaymentDate || "",
-      typeOfCover: formData.typeOfCover || "",
-      insuredType: formData.insuredType || "individual",
+      branchName: fd.branchName || "",
+      agentName: fd.agentName || "",
+      policyNumber: fd.policyNumber || "",
+      lastPaymentDate: fd.lastPaymentDate || "",
+      typeOfCover: fd.typeOfCover || "",
+      insuredType: fd.insuredType || "individual",
 
       // Individual details (save all individual form fields INCLUDING AGE BAND)
-      individualFirstName: formData.individual?.firstName || "",
-      individualMiddleName: formData.individual?.middleName || "",
-      individualSurname: formData.individual?.surname || "",
-      individualIdNumber: formData.individual?.idNumber || "",
-      individualNationality: formData.individual?.nationality || "",
-      individualDateOfBirth: formData.individual?.dateOfBirth || "",
-      individualPinNumber: formData.individual?.pinNumber || "",
-      individualOccupation: formData.individual?.occupation || "",
-      individualResidentialPhone: formData.individual?.residentialPhone || "",
-      individualOfficePhone: formData.individual?.officePhone || "",
-      individualMobile: formData.individual?.mobile || "",
-      individualPostalAddress: formData.individual?.postalAddress || "",
-      individualPostalCode: formData.individual?.postalCode || "",
-      individualPhysicalAddress: formData.individual?.physicalAddress || "",
-      individualEmail: formData.individual?.email || "",
-      individualTradeBusiness: formData.individual?.tradeBusiness || "",
-      individualAgeBand: formData.individual?.ageBand || "", // ← CRITICAL: The missing age band field!
+      individualFirstName: fd.individual?.firstName || "",
+      individualMiddleName: fd.individual?.middleName || "",
+      individualSurname: fd.individual?.surname || "",
+      individualIdNumber: fd.individual?.idNumber || "",
+      individualNationality: fd.individual?.nationality || "",
+      individualDateOfBirth: fd.individual?.dateOfBirth || "",
+      individualPinNumber: fd.individual?.pinNumber || "",
+      individualOccupation: fd.individual?.occupation || "",
+      individualResidentialPhone: fd.individual?.residentialPhone || "",
+      individualOfficePhone: fd.individual?.officePhone || "",
+      individualMobile: fd.individual?.mobile || "",
+      individualPostalAddress: fd.individual?.postalAddress || "",
+      individualPostalCode: fd.individual?.postalCode || "",
+      individualPhysicalAddress: fd.individual?.physicalAddress || "",
+      individualEmail: fd.individual?.email || "",
+      individualTradeBusiness: fd.individual?.tradeBusiness || "",
+      individualAgeBand: fd.individual?.ageBand || "",
       // Corporate details (save all corporate form fields)
-      corporateRegisteredName: formData.corporate?.registeredName || "",
-      corporateRegistrationNumber: formData.corporate?.registrationNumber || "",
-      corporateCountryOfRegistration: formData.corporate?.countryOfRegistration || "",
-      corporatePinNumber: formData.corporate?.pinNumber || "",
-      corporateVatRegNumber: formData.corporate?.vatRegNumber || "",
-      corporateOfficePhone: formData.corporate?.officePhone || "",
-      corporateMobileContact: formData.corporate?.mobileContact || "",
-      corporatePostalAddress: formData.corporate?.postalAddress || "",
-      corporatePostalCode: formData.corporate?.postalCode || "",
-      corporatePhysicalAddress: formData.corporate?.physicalAddress || "",
-      corporateEmail: formData.corporate?.email || "",
-      corporateTradeBusiness: formData.corporate?.tradeBusiness || "",
-      corporateYearsInOperation: formData.corporate?.yearsInOperation || "",
+      corporateRegisteredName: fd.corporate?.registeredName || "",
+      corporateRegistrationNumber: fd.corporate?.registrationNumber || "",
+      corporateCountryOfRegistration: fd.corporate?.countryOfRegistration || "",
+      corporatePinNumber: fd.corporate?.pinNumber || "",
+      corporateVatRegNumber: fd.corporate?.vatRegNumber || "",
+      corporateOfficePhone: fd.corporate?.officePhone || "",
+      corporateMobileContact: fd.corporate?.mobileContact || "",
+      corporatePostalAddress: fd.corporate?.postalAddress || "",
+      corporatePostalCode: fd.corporate?.postalCode || "",
+      corporatePhysicalAddress: fd.corporate?.physicalAddress || "",
+      corporateEmail: fd.corporate?.email || "",
+      corporateTradeBusiness: fd.corporate?.tradeBusiness || "",
+      corporateYearsInOperation: fd.corporate?.yearsInOperation || "",
       // Accident details
-      accidentDate: formData.accident?.date || "",
-      accidentTime: formData.accident?.time || "",
-      accidentLocation: formData.accident?.location || "",
-      accidentDescription: formData.accident?.description || "",
+      accidentDate: fd.accident?.date || "",
+      accidentTime: fd.accident?.time || "",
+      accidentLocation: fd.accident?.location || "",
+      accidentDescription: fd.accident?.description || "",
       // Damage details
-      vehicleDamageDescription: formData.damage?.vehicleDescription || "",
-      goodsDamaged: formData.damage?.goodsDamaged || false,
-      goodsDescription: formData.damage?.goodsDescription || "",
+      vehicleDamageDescription: fd.damage?.vehicleDescription || "",
+      goodsDamaged: fd.damage?.goodsDamaged || false,
+      goodsDescription: fd.damage?.goodsDescription || "",
       // COMPLETE Vehicle details - ALL fields
-      vehicleMake: formData.vehicle?.make || "",
-      vehicleModel: formData.vehicle?.model || "",
-      vehicleYearOfManufacture: formData.vehicle?.yearOfManufacture || null,
-      vehicleRegistrationNumber_primemover: formData.vehicle?.registrationNumber_primemover || "",
-      vehicleRegistrationNumber_trailer: formData.vehicle?.registrationNumber_trailer || "",
-      vehicleCarryingCapacity: formData.vehicle?.carryingCapacity || "",
-      vehicleLoadingCapacity: formData.vehicle?.loadingCapacity || "",
-      vehicleOwnerName: formData.vehicle?.ownerName || "",
-      vehicleOwnerAddress: formData.vehicle?.ownerAddress || "",
-      vehicleVehicleUse: formData.vehicle?.vehicleUse || "",
+      vehicleMake: fd.vehicle?.make || "",
+      vehicleModel: fd.vehicle?.model || "",
+      vehicleYearOfManufacture: fd.vehicle?.yearOfManufacture || null,
+      vehicleRegistrationNumber_primemover: fd.vehicle?.registrationNumber_primemover || "",
+      vehicleRegistrationNumber_trailer: fd.vehicle?.registrationNumber_trailer || "",
+      vehicleCarryingCapacity: fd.vehicle?.carryingCapacity || "",
+      vehicleLoadingCapacity: fd.vehicle?.loadingCapacity || "",
+      vehicleOwnerName: fd.vehicle?.ownerName || "",
+      vehicleOwnerAddress: fd.vehicle?.ownerAddress || "",
+      vehicleVehicleUse: fd.vehicle?.vehicleUse || "",
       
       // COMPLETE Driver details - ALL fields
-      driverName: formData.driver?.name || "",
-      driverOccupation: formData.driver?.occupation || "",
-      driverAddress: formData.driver?.address || "",
-      driverDateOfBirth: formData.driver?.dateOfBirth || "",
-      driverTelephone: formData.driver?.telephone || "",
-      driverLicenseNumber: formData.driver?.licenseNumber || "",
-      driverEmployedByInsured: formData.driver?.employedByInsured || false,
-      driverDrivingWithPermission: formData.driver?.drivingWithPermission || false,
-      driverYearsOfDriving: formData.driver?.yearsOfDriving || null,
-      driverBlameToBareForAccident: formData.driver?.blameToBareForAccident || false,
-      driverAdmittedLiability: formData.driver?.admittedLiability || false,
-      driverPreviousAccidents: formData.driver?.previousAccidents || false,
-      driverPreviousAccidentsDetails: formData.driver?.previousAccidentsDetails || "",
-      driverConvictions: formData.driver?.convictions || false,
-      driverConvictionsDetails: formData.driver?.convictionsDetails || "",
-      driverLicenseType: formData.driver?.licenseType || "",
-      driverDrivingTestPassedDate: formData.driver?.drivingTestPassedDate || "",
-      driverOwnsMotorVehicle: formData.driver?.ownsMotorVehicle || false,
-      driverOwnVehicleInsurer: formData.driver?.ownVehicleInsurer || "",
-      driverOwnVehiclePolicyNumber: formData.driver?.ownVehiclePolicyNumber || "",
-      driverYearsInService: formData.driver?.yearsInService || "",
+      driverName: fd.driver?.name || "",
+      driverOccupation: fd.driver?.occupation || "",
+      driverAddress: fd.driver?.address || "",
+      driverDateOfBirth: fd.driver?.dateOfBirth || "",
+      driverTelephone: fd.driver?.telephone || "",
+      driverLicenseNumber: fd.driver?.licenseNumber || "",
+      driverEmployedByInsured: fd.driver?.employedByInsured || false,
+      driverDrivingWithPermission: fd.driver?.drivingWithPermission || false,
+      driverYearsOfDriving: fd.driver?.yearsOfDriving || null,
+      driverBlameToBareForAccident: fd.driver?.blameToBareForAccident || false,
+      driverAdmittedLiability: fd.driver?.admittedLiability || false,
+      driverPreviousAccidents: fd.driver?.previousAccidents || false,
+      driverPreviousAccidentsDetails: fd.driver?.previousAccidentsDetails || "",
+      driverConvictions: fd.driver?.convictions || false,
+      driverConvictionsDetails: fd.driver?.convictionsDetails || "",
+      driverLicenseType: fd.driver?.licenseType || "",
+      driverDrivingTestPassedDate: fd.driver?.drivingTestPassedDate || "",
+      driverOwnsMotorVehicle: fd.driver?.ownsMotorVehicle || false,
+      driverOwnVehicleInsurer: fd.driver?.ownVehicleInsurer || "",
+      driverOwnVehiclePolicyNumber: fd.driver?.ownVehiclePolicyNumber || "",
+      driverYearsInService: fd.driver?.yearsInService || "",
       
       // COMPLETE Bank details - ALL fields
-      bankBankName: formData.bank?.bankName || "",
-      bankAccountName: formData.bank?.accountName || "",
-      bankAccountNumber: formData.bank?.accountNumber || "",
-      bankBranch: formData.bank?.branch || "",
-      bankSwiftCode: formData.bank?.swiftCode || "",
-      bankSortCode: formData.bank?.sortCode || "",
+      bankBankName: fd.bank?.bankName || "",
+      bankAccountName: fd.bank?.accountName || "",
+      bankAccountNumber: fd.bank?.accountNumber || "",
+      bankBranch: fd.bank?.branch || "",
+      bankSwiftCode: fd.bank?.swiftCode || "",
+      bankSortCode: fd.bank?.sortCode || "",
       
       // COMPLETE Accident details - ALL fields  
-      accidentRoadSurface: formData.accident?.roadSurface || "",
-      accidentVisibility: formData.accident?.visibility || "",
-      accidentDriverWarningGiven: formData.accident?.driverWarningGiven || "",
-      accidentVehicleLightsOn: formData.accident?.vehicleLightsOn || "",
-      accidentPoliceTookParticulars: formData.accident?.policeTookParticulars || false,
-      accidentPoliceConstableNumber: formData.accident?.policeConstableNumber || "",
-      accidentPoliceStation: formData.accident?.policeStation || "",
+      accidentRoadSurface: fd.accident?.roadSurface || "",
+      accidentVisibility: fd.accident?.visibility || "",
+      accidentDriverWarningGiven: fd.accident?.driverWarningGiven || "",
+      accidentVehicleLightsOn: fd.accident?.vehicleLightsOn || "",
+      accidentPoliceTookParticulars: fd.accident?.policeTookParticulars || false,
+      accidentPoliceConstableNumber: fd.accident?.policeConstableNumber || "",
+      accidentPoliceStation: fd.accident?.policeStation || "",
       
       // STEP 3: Complete Damage Assessment Fields
-      inspectionLocation: formData.inspectionLocation || "",
-      repairerName: formData.repairerName || "",
-      repairerPhone: formData.repairerPhone || "",
-      repairerAddress: formData.repairerAddress || "",
-      isVehicleInUse: formData.isVehicleInUse || false,
-      thirdPartyProperties: JSON.stringify((formData as any).thirdPartyProperties || []),
-      personsInjured: JSON.stringify((formData as any).personsInjured || []),
+      inspectionLocation: fd.inspectionLocation || "",
+      repairerName: fd.repairerName || "",
+      repairerPhone: fd.repairerPhone || "",
+      repairerAddress: fd.repairerAddress || "",
+      isVehicleInUse: fd.isVehicleInUse || false,
+      thirdPartyProperties: JSON.stringify((fd as any).thirdPartyProperties || []),
+      personsInjured: JSON.stringify((fd as any).personsInjured || []),
       
       // STEP 4: Final Declaration Fields
-      ownerStatement: formData.ownerStatement || "",
-      declarationName: formData.declarationName || "",
-      declarationTitle: formData.declarationTitle || "",
-      declarationAccepted: formData.declarationAccepted || false,
+      ownerStatement: fd.ownerStatement || "",
+      declarationName: fd.declarationName || "",
+      declarationTitle: fd.declarationTitle || "",
+      declarationAccepted: fd.declarationAccepted || false,
     };
     
     // Check if we have meaningful data to save (not just empty strings)
@@ -468,7 +474,7 @@ export default function ClaimForm() {
     const progressPercentage = calculateProgress();
     
     saveDraft(claimId, currentStep, dataToSave, progressPercentage);
-  }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
+  }, [claimId, currentStep, saveDraft, calculateProgress]);
 
   // Manual save button handler
   const handleManualSave = () => {
@@ -645,16 +651,17 @@ export default function ClaimForm() {
 
   // Auto-save functionality
   useEffect(() => {
-    if (!autoSaveEnabledRef.current) return;
-    
-    if (claimId) {
-      const timeoutId = setTimeout(() => {
-        autoSave();
-      }, 2000);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [formData, autoSave, claimId]);
+    if (!autoSaveEnabledRef.current || !claimId) return;
+
+    const timeoutId = setTimeout(() => {
+      const currentDataStr = JSON.stringify(formDataRef.current);
+      if (currentDataStr === lastSavedDataRef.current) return;
+      lastSavedDataRef.current = currentDataStr;
+      autoSave();
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, claimId, autoSave]);
 
   // Enable auto-save immediately when there's no draft to restore (new claim)
   useEffect(() => {

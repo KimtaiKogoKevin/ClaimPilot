@@ -225,35 +225,50 @@ export default function VehicleAccidentStep({
     };
 
   
-   const handleSketchUpload = async (
-     event: React.ChangeEvent<HTMLInputElement>
-   ) => {
-     const file = event.target.files?.[0];
-     if (!file || !claimId) return;
-     setIsUploadingSketch(true);
-     const uploadFormData = new FormData();
-     uploadFormData.append("sketchFile", file);
-     uploadFormData.append("category", "documents");
-     uploadFormData.append("subCategory", "sketches");
-     try {
-       const response = await fetch(`/api/claims/${claimId}/upload-sketch`, {
-         method: "POST",
-         body: uploadFormData,
-       });
-       if (!response.ok) throw new Error("Upload failed");
-       const result = await response.json();
-       handleAccidentChange("accidentSketchPath", result.filePath);
-       toast({ title: "Success", description: "Accident sketch uploaded." });
-     } catch (error) {
-       toast({
-         title: "Error",
-         description: "Could not upload sketch.",
-         variant: "destructive",
-       });
-     } finally {
-       setIsUploadingSketch(false);
-     }
-   };
+  const handleSketchUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !claimId) return;
+    setIsUploadingSketch(true);
+    try {
+      const paramsResponse = await apiRequest("POST", "/api/objects/upload", {});
+      const { uploadURL } = await paramsResponse.json();
+
+      const uploadResponse = await fetch(uploadURL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) throw new Error("Upload failed");
+
+      const documentResponse = await apiRequest(
+        "POST",
+        `/api/claims/${claimId}/documents`,
+        {
+          documentUrl: uploadURL.split("?")[0],
+          documentType: "accident_sketch",
+        }
+      );
+
+      if (!documentResponse.ok) throw new Error("Failed to save document");
+
+      handleAccidentChange("accidentSketchPath", uploadURL.split("?")[0]);
+      toast({ title: "Success", description: "Accident sketch uploaded." });
+    } catch (error) {
+      console.error("Sketch upload error:", error);
+      toast({
+        title: "Error",
+        description: "Could not upload sketch.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingSketch(false);
+    }
+  };
 
   return (
     <Card className="shadow-sm border-neutral-200">
