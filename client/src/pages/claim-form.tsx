@@ -4,13 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftManager } from "@/hooks/useDraftManager";
-import { useClaimCollaboration } from "@/hooks/useClaimCollaboration";
+import { useClaimCollaboration, type FieldUpdate } from "@/hooks/useClaimCollaboration";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Clock, Type, History, ChevronDown, ChevronUp } from "lucide-react";
 import ProgressBar from "@/components/claim-form/progress-bar";
-import { DraftPersistenceManager } from "@/lib/draftPersistence";
 import { calculateFormProgress, transformFormDataForAPI, restoreFormDataFromAPI } from "@/lib/formPersistenceUtils";
 import { validateStep } from "@/lib/formValidation";
 import PolicyDetailsStep from "@/components/claim-form/policy-details-step";
@@ -30,8 +29,8 @@ export default function ClaimForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [claimId, setClaimId] = useState<string | null>(id || null);
   const [hasShownRestoreNotification, setHasShownRestoreNotification] = useState(false);
-  const [hasRestoredFromDraft, setHasRestoredFromDraft] = useState(false);
-  const persistenceManagerRef = useRef<DraftPersistenceManager | null>(null);
+  const hasRestoredRef = useRef(false);
+  const autoSaveEnabledRef = useRef(false);
   
   // Draft management with enterprise-grade persistence
   const { 
@@ -59,49 +58,45 @@ export default function ClaimForm() {
   const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
   const [showHistory, setShowHistory] = useState(false);
 
+  const onFieldUpdateRef = useRef<(update: FieldUpdate) => void>();
+
+  onFieldUpdateRef.current = (update) => {
+    const fieldParts = update.field.split('.');
+    setFormData(prev => {
+      const newData = { ...prev };
+      if (fieldParts.length === 1) {
+        (newData as any)[fieldParts[0]] = update.value;
+      } else if (fieldParts.length === 2) {
+        const [section, field] = fieldParts;
+        (newData as any)[section] = { ...(prev as any)[section], [field]: update.value };
+      }
+      return newData;
+    });
+    
+    setHighlightedFields(prev => {
+      const newSet = new Set(prev);
+      newSet.add(update.field);
+      return newSet;
+    });
+    
+    toast({
+      title: "Field Updated",
+      description: `${update.changedBy.userName} updated ${update.field}`,
+      duration: 3000,
+    });
+  };
+
+  const stableOnFieldUpdate = useCallback((update: FieldUpdate) => {
+    onFieldUpdateRef.current?.(update);
+  }, []);
+
   // Collaboration hook for real-time updates (disabled for admins to prevent conflicts)
   const collaboration = useClaimCollaboration(
     user?.role === 'admin' ? undefined : (claimId || undefined),
     user?.id,
     `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Unknown User',
     user?.role || 'insured',
-    (update) => {
-      // Handle remote field updates
-      console.log('Field updated remotely:', update.field, update.value);
-      
-      // Parse the field path and update formData
-      const fieldParts = update.field.split('.');
-      setFormData(prev => {
-        const newData = { ...prev };
-        let current: any = newData;
-        
-        // Navigate to the nested property
-        for (let i = 0; i < fieldParts.length - 1; i++) {
-          if (!current[fieldParts[i]]) {
-            current[fieldParts[i]] = {};
-          }
-          current = current[fieldParts[i]];
-        }
-        
-        // Set the value
-        current[fieldParts[fieldParts.length - 1]] = update.value;
-        return newData;
-      });
-      
-      // Add field to highlighted set
-      setHighlightedFields(prev => {
-        const newSet = new Set(prev);
-        newSet.add(update.field);
-        return newSet;
-      });
-      
-      // Show toast notification
-      toast({
-        title: "Field Updated",
-        description: `${update.changedBy.userName} updated ${update.field}`,
-        duration: 3000,
-      });
-    }
+    stableOnFieldUpdate
   );
 
   // Determine if form should be read-only
@@ -276,32 +271,32 @@ export default function ClaimForm() {
     }>,
   });
 
-  // Restore draft data when loading a draft claim
+  // Restore draft data when loading a draft claim (fires only ONCE)
   useEffect(() => {
-    // Only restore if we haven't already restored from this draft
-    if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object' && !hasRestoredFromDraft) {
-      console.log("=== RESTORING DRAFT DATA ===");
-      console.log("Loading draft data:", JSON.stringify(currentDraft, null, 2));
-      console.log("Current form data before restore:", JSON.stringify(formData, null, 2));
+    if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object' && !hasRestoredRef.current) {
+      hasRestoredRef.current = true;
       
       const savedStep = getCurrentStep(currentDraft);
-      console.log("Restoring to step:", savedStep);
       setCurrentStep(savedStep);
-      setHasRestoredFromDraft(true); // Mark that we've restored from this draft
       
-      // Use the proper transformation function instead of manual mapping
       const restoredData = restoreFormDataFromAPI(currentDraft);
-      console.log("Restored form data:", JSON.stringify(restoredData, null, 2));
-      setFormData(restoredData);
-      
-      console.log("=== RESTORATION COMPLETE ===");
-      
-      // Log the restored form data after state update
-      setTimeout(() => {
-        console.log("=== FORM DATA AFTER RESTORATION (delayed check) ===");
-      }, 100);
+      setFormData(prev => ({
+        ...prev,
+        ...restoredData,
+        individual: { ...prev.individual, ...restoredData.individual },
+        corporate: { ...prev.corporate, ...restoredData.corporate },
+        vehicle: { ...prev.vehicle, ...restoredData.vehicle },
+        accident: { ...prev.accident, ...restoredData.accident },
+        damage: { ...prev.damage, ...restoredData.damage },
+        driver: { ...prev.driver, ...restoredData.driver },
+        bank: { ...prev.bank, ...restoredData.bank },
+      }));
 
-      // Show restoration notification only once
+      // Enable auto-save after 2 second delay
+      setTimeout(() => {
+        autoSaveEnabledRef.current = true;
+      }, 2000);
+
       if (claimId && !hasShownRestoreNotification) {
         toast({
           title: "Draft Restored",
@@ -311,33 +306,16 @@ export default function ClaimForm() {
         setHasShownRestoreNotification(true);
       }
     }
-  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification, hasRestoredFromDraft]);
+  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification]);
 
   // Update URL when claim is created (so refresh works correctly)
   useEffect(() => {
     // Only update URL if we have a new claimId that's not already in the URL
     if (claimId && !id) {
-      console.log("Updating URL to include claim ID:", claimId);
       // Use replaceState to update URL without adding to history
       window.history.replaceState(null, '', `/claim-form/${claimId}`);
     }
   }, [claimId, id]);
-
-  // Initialize persistence manager
-  useEffect(() => {
-    if (claimId && !persistenceManagerRef.current) {
-      persistenceManagerRef.current = new DraftPersistenceManager({
-        claimId,
-        autoSaveDelay: 2000, // 2 second debounce
-        enableLocalBackup: true,
-        conflictResolution: 'merge'
-      });
-    }
-    
-    return () => {
-      persistenceManagerRef.current?.destroy();
-    };
-  }, [claimId]);
 
   const totalSteps = 4;
   
@@ -349,13 +327,8 @@ export default function ClaimForm() {
   // Smart auto-save that only saves meaningful data and never overwrites complete data with empty data
   const autoSave = useCallback(() => {
     if (!claimId) {
-      console.log("No claimId, skipping auto-save");
       return;
     }
-    
-    console.log("🔍 AUTO-SAVE: Current formData.individual:", formData.individual);
-    console.log("🔍 AUTO-SAVE: formData.individual?.firstName:", formData.individual?.firstName);
-    console.log("🔍 AUTO-SAVE: formData.individual?.surname:", formData.individual?.surname);
     
     // Build the data to save
     const dataToSave = {
@@ -489,45 +462,17 @@ export default function ClaimForm() {
     const hasMeaningfulData = hasBasicPolicyData || hasIndividualData || hasCorporateData || hasAccidentData || hasVehicleData || hasDriverData || hasBankData;
     
     if (!hasMeaningfulData) {
-      console.log("Skipping auto-save - no meaningful data to save");
       return;
     }
     
-    console.log("Auto-saving form data with meaningful content...");
-    console.log("🔍 DRIVER DATA DEBUG:", {
-      driverObject: formData.driver,
-      driverName: formData.driver?.name,
-      driverLicense: formData.driver?.licenseNumber,
-      flatDriverName: dataToSave.driverName,
-      flatDriverLicense: dataToSave.driverLicenseNumber
-    });
-    console.log("🔍 BANK DATA DEBUG:", {
-      bankObject: formData.bank,
-      bankName: formData.bank?.bankName,
-      accountNumber: formData.bank?.accountNumber,
-      flatBankName: dataToSave.bankBankName,
-      flatAccountNumber: dataToSave.bankAccountNumber
-    });
     const progressPercentage = calculateProgress();
-    
-    console.log("Saving data with step:", currentStep, "Sections with data:", {
-      hasBasicPolicyData,
-      hasIndividualData,
-      hasCorporateData,
-      hasAccidentData,
-      hasVehicleData,
-      hasDriverData,
-      hasBankData
-    });
     
     saveDraft(claimId, currentStep, dataToSave, progressPercentage);
   }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
 
   // Manual save button handler
   const handleManualSave = () => {
-    console.log("Manual save triggered");
     if (!claimId) {
-      console.log("No claimId for manual save");
       return;
     }
     
@@ -546,8 +491,6 @@ export default function ClaimForm() {
   };
 
   const handleNextStep = () => {
-    console.log("Next button clicked, current step:", currentStep, "total steps:", totalSteps);
-    
     // Validate current step before proceeding
     const validation = validateStep(currentStep, formData);
     if (!validation.isValid) {
@@ -561,15 +504,11 @@ export default function ClaimForm() {
     
     if (currentStep < totalSteps) {
       const nextStep = currentStep + 1;
-      console.log("Moving to next step:", nextStep);
       setCurrentStep(nextStep);
       // Auto-save when moving to next step
       if (claimId) {
-        console.log("Auto-saving before moving to next step");
         autoSave();
       }
-    } else {
-      console.log("Already at last step, cannot proceed");
     }
   };
 
@@ -609,16 +548,10 @@ export default function ClaimForm() {
     }
 
     try {
-      console.log("🔍 SUBMIT - Force-saving data before submission...");
       // CRITICAL: Force-save all current data before submitting
       autoSave();
       // Wait for save to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log("🔍 SUBMIT - Current form data:", {
-        driver: formData.driver,
-        bank: formData.bank
-      });
       
       // Transform data to match server validation requirements
       const formDataAny = formData as any;
@@ -652,14 +585,11 @@ export default function ClaimForm() {
         }
       };
 
-      console.log("🔍 SUBMIT - Transformed submit data:", submitData);
-
       // Submit the claim (change status from draft to submitted)
       const response = await apiRequest('POST', `/api/claims/${claimId}/submit`, submitData);
       
       if (!response.ok) {
         const errorResult = await response.json();
-        console.log("🔍 SUBMIT ERROR RESPONSE:", errorResult);
         
         // Show detailed validation errors if available
         if (errorResult.errors && Array.isArray(errorResult.errors)) {
@@ -713,41 +643,25 @@ export default function ClaimForm() {
     }
   };
 
-  // Track when auto-save should be triggered
-  const autoSaveCounterRef = useRef(0);
-  const [autoSaveTrigger, setAutoSaveTrigger] = useState(0);
-
-  // Reset hasRestoredFromDraft after short delay to re-enable auto-save for new changes
-  useEffect(() => {
-    if (hasRestoredFromDraft) {
-      // After restoring, wait a moment then re-enable auto-save for future changes
-      const timeoutId = setTimeout(() => {
-        setHasRestoredFromDraft(false);
-        // Force a re-trigger of auto-save after reset
-        autoSaveCounterRef.current += 1;
-        setAutoSaveTrigger(autoSaveCounterRef.current);
-      }, 1000); // 1 second delay before re-enabling auto-save
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [hasRestoredFromDraft]);
-
   // Auto-save functionality
-  // Smart auto-save that triggers only when there's meaningful data and a claimId exists
   useEffect(() => {
-    // Skip auto-save during initial restore to prevent overwriting with incomplete data
-    if (hasRestoredFromDraft) return;
+    if (!autoSaveEnabledRef.current) return;
     
-    // Only trigger auto-save if we have a claimId
     if (claimId) {
-      console.log('Auto-save effect triggered, will save in 2 seconds...');
       const timeoutId = setTimeout(() => {
         autoSave();
-      }, 2000); // 2 second delay to allow user to finish typing
+      }, 2000);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [formData, autoSave, hasRestoredFromDraft, claimId, autoSaveTrigger]);
+  }, [formData, autoSave, claimId]);
+
+  // Enable auto-save immediately when there's no draft to restore (new claim)
+  useEffect(() => {
+    if (!currentDraft && !isLoadingDraft && claimId) {
+      autoSaveEnabledRef.current = true;
+    }
+  }, [currentDraft, isLoadingDraft, claimId]);
 
   // Remove duplicate authentication checks - handled by App.tsx router
   // The Router in App.tsx already ensures only authenticated users reach this component

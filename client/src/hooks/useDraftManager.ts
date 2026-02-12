@@ -65,11 +65,8 @@ export function useDraftManager(claimId?: string) {
       });
       return response;
     },
-    onSuccess: (_, variables) => {
-      // Invalidate both list and specific draft queries to ensure fresh data
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/claims/drafts'] });
-      // Also invalidate the specific claim's resume query for next load
-      queryClient.invalidateQueries({ queryKey: ['/api/claims', variables.claimId, 'resume'] });
     },
     onError: (error: Error) => {
       toast({
@@ -83,11 +80,8 @@ export function useDraftManager(claimId?: string) {
   // Smart save function - uses mutation directly for reliability
   const saveDraft = (claimId: string, step: number, data: any, progressPercentage: number) => {
     if (!claimId) {
-      console.log('saveDraft: No claimId, skipping');
       return;
     }
-    
-    console.log('saveDraft: Saving draft for claim', claimId, 'with data:', JSON.stringify(data).substring(0, 200));
     
     // Use mutation directly for reliability - persistence manager can have race conditions
     saveDraftMutation.mutate({

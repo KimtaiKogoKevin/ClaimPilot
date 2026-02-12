@@ -106,21 +106,15 @@ export default function PolicyDetailsStep({
     };
   }, [formData.policyNumber, claimId, isCreatingClaim, createClaimDebounced]);
 
-  // Handler functions (no changes needed)
+  // Handler functions
   const handleInputChange = (section: string, field: string, value: any) => {
-    console.log(`[PolicyDetailsStep] handleInputChange called: section="${section}", field="${field}", value="${value}"`);
-    setFormData((prev: any) => {
-      console.log(`[PolicyDetailsStep] Previous ${section} state:`, prev[section]);
-      const newState = {
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: value,
-        },
-      };
-      console.log(`[PolicyDetailsStep] New ${section} state:`, newState[section]);
-      return newState;
-    });
+    setFormData((prev: any) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value,
+      },
+    }));
   };
 
   const handleDirectFieldChange = (field: string, value: any) => {

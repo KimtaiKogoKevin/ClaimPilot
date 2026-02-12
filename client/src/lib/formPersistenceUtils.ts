@@ -6,6 +6,17 @@
  * enterprise-grade persistence system.
  */
 
+function safeJsonParse(value: any, defaultValue: any = null): any {
+  if (!value) return defaultValue;
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return defaultValue;
+  }
+}
+
 export interface FormStep {
   stepNumber: number;
   stepName: string;
@@ -335,8 +346,8 @@ export function restoreFormDataFromAPI(apiData: any): any {
     repairerPhone: apiData.repairerPhone || "",
     repairerAddress: apiData.repairerAddress || "",
     isVehicleInUse: apiData.isVehicleInUse ?? null,
-    thirdPartyProperties: apiData.thirdPartyProperties ? JSON.parse(apiData.thirdPartyProperties) : [],
-    personsInjured: apiData.personsInjured ? JSON.parse(apiData.personsInjured) : [],
+    thirdPartyProperties: safeJsonParse(apiData.thirdPartyProperties, []),
+    personsInjured: safeJsonParse(apiData.personsInjured, []),
     ownerStatement: apiData.ownerStatement || "",
     declarationName: apiData.declarationName || "",
     declarationTitle: apiData.declarationTitle || "",
