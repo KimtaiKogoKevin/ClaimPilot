@@ -329,7 +329,7 @@ export default function ClaimForm() {
   }, [currentStep, totalSteps]);
 
   // Smart auto-save that only saves meaningful data and never overwrites complete data with empty data
-  const autoSave = useCallback(() => {
+  const autoSave = useCallback((stepOverride?: number) => {
     if (!claimId) {
       return;
     }
@@ -472,8 +472,9 @@ export default function ClaimForm() {
     }
     
     const progressPercentage = calculateProgress();
+    const stepToSave = stepOverride ?? currentStep;
     
-    saveDraft(claimId, currentStep, dataToSave, progressPercentage);
+    saveDraft(claimId, stepToSave, dataToSave, progressPercentage);
   }, [claimId, currentStep, saveDraft, calculateProgress]);
 
   // Manual save button handler
@@ -511,9 +512,8 @@ export default function ClaimForm() {
     if (currentStep < totalSteps) {
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
-      // Auto-save when moving to next step
       if (claimId) {
-        autoSave();
+        autoSave(nextStep);
       }
     }
   };
@@ -522,9 +522,8 @@ export default function ClaimForm() {
     if (currentStep > 1) {
       const prevStep = currentStep - 1;
       setCurrentStep(prevStep);
-      // Auto-save when moving to previous step
       if (claimId) {
-        autoSave();
+        autoSave(prevStep);
       }
     }
   };

@@ -50,9 +50,7 @@ export const corporateDetailsSchema = z.object({
 
 // Section B: Vehicle & Accident Validation
 export const vehicleDetailsSchema = z.object({
-  registrationNumber_primemover: z
-    .string()
-    .min(1, "Vehicle registration is required"),
+  registrationNumber_primemover: z.string().optional(),
   make: z.string().min(1, "Vehicle make is required"),
   model: z.string().min(1, "Vehicle model is required"),
   yearOfManufacture: z.number().min(1980, "Year must be 1980 or later").max(new Date().getFullYear(), "Year cannot be in the future").nullable().optional(),
@@ -76,7 +74,7 @@ export const accidentDetailsSchema = z.object({
   visibility: z.enum(["clear", "poor", "dark"]).optional().or(z.literal("")),
   driverWarningGiven: z.string().optional(),
   vehicleLightsOn: z.string().optional(),
-  policeTookParticulars: z.boolean(),
+  policeTookParticulars: z.boolean().nullable().optional(),
   policeConstableNumber: z.string().optional(),
   policeStation: z.string().optional(),
   accidentSketchPath: z.string().optional(),
@@ -85,7 +83,7 @@ export const accidentDetailsSchema = z.object({
 // Section C: Damage Assessment Validation
 export const damageAssessmentSchema = z.object({
   vehicleDamageDescription: z.string().optional(),
-  goodsDamaged: z.boolean(),
+  goodsDamaged: z.boolean().nullable().optional(),
   goodsDescription: z.string().optional(),
   photos: z.array(z.object({
     angle: z.string(),
@@ -139,7 +137,7 @@ export const completeFormSchema = z.object({
   accidentLocation: z.string().min(1),
   accidentDescription: z.string().min(10),
   vehicleDamageDescription: z.string().optional(),
-  goodsDamaged: z.boolean(),
+  goodsDamaged: z.boolean().nullable().optional(),
   goodsDescription: z.string().optional(),
   
   // Damage assessment
