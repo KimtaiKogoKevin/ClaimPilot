@@ -318,9 +318,26 @@ export class DatabaseStorage implements IStorage {
       accidentTime: data.accidentTime || null,
       accidentLocation: data.accidentLocation || null,
       accidentDescription: data.accidentDescription || null,
+      roadSurface: data.accidentRoadSurface && data.accidentRoadSurface !== '' ? data.accidentRoadSurface : null,
+      visibility: data.accidentVisibility && data.accidentVisibility !== '' ? data.accidentVisibility : null,
+      driverWarningGiven: data.accidentDriverWarningGiven || null,
+      vehicleLightsOn: data.accidentVehicleLightsOn || null,
+      policeTookParticulars: data.accidentPoliceTookParticulars ?? false,
+      policeConstableNumber: data.accidentPoliceConstableNumber || null,
+      policeStation: data.accidentPoliceStation || null,
       vehicleDamageDescription: data.vehicleDamageDescription || null,
       goodsDamaged: data.goodsDamaged || false,
       goodsDescription: data.goodsDescription || null,
+      inspectionLocation: data.inspectionLocation || null,
+      repairerName: data.repairerName || null,
+      repairerAddress: data.repairerAddress || null,
+      repairerPhone: data.repairerPhone || null,
+      isVehicleInUse: data.isVehicleInUse ?? null,
+      goodsOwnerName: data.goodsOwnerName || null,
+      wasTrailerAttached: data.wasTrailerAttached ?? false,
+      loadWeight: data.loadWeight || null,
+      declarationName: data.declarationName || null,
+      declarationTitle: data.declarationTitle || null,
     };
     
     // Update the main claim
@@ -401,12 +418,15 @@ export class DatabaseStorage implements IStorage {
         data.vehicleRegistrationNumber || data.vehicle?.registrationNumber_primemover;
     
     if (hasAnyVehicleData) {
+      const regPrimemover = data.vehicleRegistrationNumber_primemover || data.vehicle?.registrationNumber_primemover || '';
       const vehicleData = {
         claimId,
         make: data.vehicleMake || data.vehicle?.make || '',
         model: data.vehicleModel || data.vehicle?.model || '',
         yearOfManufacture: data.vehicleYearOfManufacture || data.vehicle?.yearOfManufacture || null,
-        registrationNumber: data.vehicleRegistrationNumber || data.vehicle?.registrationNumber_primemover || data.vehicle?.registrationNumber || '',
+        registrationNumber: regPrimemover,
+        registrationNumber_primemover: regPrimemover,
+        registrationNumber_trailer: data.vehicleRegistrationNumber_trailer || data.vehicle?.registrationNumber_trailer || '',
         carryingCapacity: data.vehicleCarryingCapacity || data.vehicle?.carryingCapacity || '',
         loadingCapacity: data.vehicleLoadingCapacity || data.vehicle?.loadingCapacity || '',
         ownerName: data.vehicleOwnerName || data.vehicle?.ownerName || '',

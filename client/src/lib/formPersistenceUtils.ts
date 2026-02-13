@@ -274,8 +274,8 @@ export function restoreFormDataFromAPI(apiData: any): any {
       make: apiData.vehicleMake || apiData.vehicle?.make || "",
       model: apiData.vehicleModel || apiData.vehicle?.model || "",
       yearOfManufacture: apiData.vehicleYearOfManufacture || apiData.vehicle?.yearOfManufacture || null,
-      registrationNumber_primemover: apiData.vehicleRegistrationNumber_primemover || apiData.vehicle?.registrationNumber || "",
-      registrationNumber_trailer: apiData.vehicleRegistrationNumber_trailer || "",
+      registrationNumber_primemover: apiData.vehicleRegistrationNumber_primemover || apiData.vehicle?.registrationNumber_primemover || apiData.vehicle?.registrationNumber || "",
+      registrationNumber_trailer: apiData.vehicleRegistrationNumber_trailer || apiData.vehicle?.registrationNumber_trailer || "",
       carryingCapacity: apiData.vehicleCarryingCapacity || apiData.vehicle?.carryingCapacity || "",
       loadingCapacity: apiData.vehicleLoadingCapacity || apiData.vehicle?.loadingCapacity || "",
       ownerName: apiData.vehicleOwnerName || apiData.vehicle?.ownerName || "",
@@ -283,19 +283,19 @@ export function restoreFormDataFromAPI(apiData: any): any {
       vehicleUse: apiData.vehicleVehicleUse || apiData.vehicle?.vehicleUse || "",
     },
     
-    // Accident details (restored from flattened fields)
+    // Accident details (direct claim columns)
     accident: {
       date: apiData.accidentDate ? new Date(apiData.accidentDate).toISOString().split('T')[0] : "",
       time: apiData.accidentTime || "",
       location: apiData.accidentLocation || "",
       description: apiData.accidentDescription || "",
-      roadSurface: apiData.accidentRoadSurface || "",
-      visibility: apiData.accidentVisibility || "",
-      driverWarningGiven: apiData.accidentDriverWarningGiven || "",
-      vehicleLightsOn: apiData.accidentVehicleLightsOn || "",
-      policeTookParticulars: apiData.accidentPoliceTookParticulars || false,
-      policeConstableNumber: apiData.accidentPoliceConstableNumber || "",
-      policeStation: apiData.accidentPoliceStation || "",
+      roadSurface: apiData.roadSurface || "",
+      visibility: apiData.visibility || "",
+      driverWarningGiven: apiData.driverWarningGiven || "",
+      vehicleLightsOn: apiData.vehicleLightsOn || "",
+      policeTookParticulars: apiData.policeTookParticulars ?? false,
+      policeConstableNumber: apiData.policeConstableNumber || "",
+      policeStation: apiData.policeStation || "",
     },
     
     // Damage details (restored from flattened fields)
@@ -327,7 +327,7 @@ export function restoreFormDataFromAPI(apiData: any): any {
       ownsMotorVehicle: apiData.driverOwnsMotorVehicle ?? apiData.driver?.ownsMotorVehicle ?? false,
       ownVehicleInsurer: apiData.driverOwnVehicleInsurer || apiData.driver?.ownVehicleInsurer || "",
       ownVehiclePolicyNumber: apiData.driverOwnVehiclePolicyNumber || apiData.driver?.ownVehiclePolicyNumber || "",
-      yearsInService: apiData.driverYearsInService || apiData.driver?.yearsInService || "",
+      yearsInService: apiData.yearsInService || apiData.driver?.yearsInService || "",
     },
     
     // Bank details (restored from flattened fields OR nested bankDetails object)

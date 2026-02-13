@@ -478,17 +478,6 @@ export default function ClaimForm() {
   }, [claimId, currentStep, saveDraft, calculateProgress]);
 
   // Manual save button handler
-  const handleManualSave = () => {
-    if (!claimId) {
-      return;
-    }
-    
-    autoSave();
-    toast({
-      title: "Draft Saved",
-      description: "Your progress has been saved successfully.",
-    });
-  };
   const handleSaveDraft = () => {
     autoSave();
   };
@@ -807,14 +796,6 @@ export default function ClaimForm() {
             Previous
           </Button>
           <div className="flex space-x-4">
-            <Button 
-              variant="outline" 
-              onClick={handleManualSave}
-              disabled={isReadOnly}
-              data-testid="button-manual-save"
-            >
-              Save Draft
-            </Button>
             {currentStep < totalSteps ? (
               <Button 
                 onClick={handleNextStep}
