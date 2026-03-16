@@ -276,7 +276,6 @@ export default function VehicleAccidentStep({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-8">
-        {/* VVVVVV THIS IS THE UPDATED AND REORGANIZED SECTION VVVVVV */}
         {/* Vehicle Details */}
         <div>
           <h4 className="text-lg font-semibold text-neutral-800 border-b border-neutral-200 pb-2 mb-6">
@@ -461,7 +460,6 @@ export default function VehicleAccidentStep({
 
           {/* --- New Detailed Accident Fields --- */}
           <div className="space-y-6 mb-6">
-            {/* VVVVVV STYLED ROAD SURFACE SELECTION VVVVVV */}
             <div>
               <Label className="mb-3 block font-medium">
                 Type of road surface?
@@ -515,7 +513,6 @@ export default function VehicleAccidentStep({
               </RadioGroup>
             </div>
 
-            {/* VVVVVV STYLED VISIBILITY SELECTION VVVVVV */}
             <div>
               <Label className="mb-3 block font-medium">Visibility?</Label>
               <RadioGroup

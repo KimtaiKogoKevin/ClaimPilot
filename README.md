@@ -159,39 +159,49 @@ Enums: `user_role`, `claim_status` (10 statuses from draft→closed), `damage_ty
 | PUT | `/api/claims/:id` | Yes | Update claim fields |
 | PUT | `/api/claims/:id/save-draft` | Yes | Auto-save draft progress (step, all form data) |
 | GET | `/api/claims/:id/resume` | Yes | Resume draft (returns full claim with relations) |
-| PUT | `/api/claims/:id/status` | Yes | Update claim status |
-| DELETE | `/api/claims/:id` | Yes | Delete claim |
+| GET | `/api/claims/drafts` | Yes | List user's draft claims |
 | POST | `/api/claims/:id/submit` | Yes | Submit claim for review |
+| GET | `/api/claims/:id/edit-session` | Yes | Get active edit session |
+| GET | `/api/claims/:id/change-history` | Yes | Get field change history |
 
 ### Claim Sub-resources
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| PUT | `/api/claims/:id/individual` | Yes | Upsert individual details |
-| PUT | `/api/claims/:id/corporate` | Yes | Upsert corporate details |
-| PUT | `/api/claims/:id/vehicle` | Yes | Upsert vehicle details |
-| PUT | `/api/claims/:id/driver` | Yes | Upsert driver details |
-| PUT | `/api/claims/:id/bank` | Yes | Upsert bank details |
+| POST | `/api/claims/:id/individual-details` | Yes | Upsert individual details |
+| POST | `/api/claims/:id/corporate-details` | Yes | Upsert corporate details |
+| POST | `/api/claims/:id/vehicle` | Yes | Upsert vehicle details |
+| POST | `/api/claims/:id/driver` | Yes | Upsert driver details |
+| POST | `/api/claims/:id/bank-details` | Yes | Upsert bank details |
 | POST | `/api/claims/:id/other-vehicles` | Yes | Add other vehicle |
-| DELETE | `/api/claims/:id/other-vehicles/:vid` | Yes | Remove other vehicle |
 
 ### Photos & AI Analysis
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | `/api/claims/:id/photos` | Yes | Upload damage photo |
+| POST | `/api/claims/:id/media` | Yes | Upload media file |
 | POST | `/api/claims/:id/analyze` | Yes | Trigger Roboflow AI analysis |
+| POST | `/api/claims/:id/documents` | Yes | Upload documents |
+| GET | `/api/claims/:id/pdf` | Yes | Export claim as PDF |
 
 ### Admin
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/admin/analytics` | Admin | Dashboard analytics data |
+| GET | `/api/admin/stats` | Admin | Dashboard analytics/stats |
 | GET | `/api/admin/users` | Admin | List all users |
+| POST | `/api/admin/users` | Admin | Create user |
+| PUT | `/api/admin/users/:id` | Admin | Update user |
 | DELETE | `/api/admin/users/:id` | Admin | Delete user |
+| PUT | `/api/admin/users/:id/role` | Admin | Change user role |
+| POST | `/api/admin/users/:id/reset-password` | Admin | Reset user password |
 | GET | `/api/admin/signup-requests` | Admin | List admin signup requests |
 | POST | `/api/admin/signup-requests/:id/approve` | Admin | Approve admin request |
 | POST | `/api/admin/signup-requests/:id/reject` | Admin | Reject admin request |
+| POST | `/api/admin/claims/bulk-status` | Admin | Bulk update claim statuses |
+| POST | `/api/admin/claims/bulk-delete` | Admin | Bulk delete claims |
 | GET | `/api/admin/audit-logs` | Admin | View audit trail |
-| GET | `/api/admin/system-settings` | Admin | Get system settings |
-| PUT | `/api/admin/system-settings` | Admin | Update system settings |
+| GET | `/api/admin/settings` | Admin | Get system settings |
+| PUT | `/api/admin/settings` | Admin | Update system settings |
+| DELETE | `/api/admin/settings/:key` | Admin | Delete system setting |
 
 ### WebSocket
 - **Path**: `/ws/collaboration`

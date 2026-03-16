@@ -140,7 +140,6 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     }
 
     if (!token) {
-      console.log('❌ No token provided for', req.path);
       return res.status(401).json({ message: 'Access token required' });
     }
 
@@ -153,16 +152,10 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     // Get fresh user data
     const user = await storage.getUser(decoded.id);
     if (!user) {
-      console.log('❌ User not found in database:', decoded.id, 'for path:', req.path);
       return res.status(401).json({ message: 'User not found' });
     }
 
-    // Debug success
-    if (req.path.includes('/claims/') && req.method === 'GET') {
-      console.log('✅ Authentication successful for:', user.email, 'accessing', req.path);
-    }
-
-    // Attach user to request - ensure consistent structure
+    // Attach user to request
     const authUser = toAuthUser(user);
     (req as any).user = authUser;
     
@@ -179,9 +172,6 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
 // Register endpoint
 export async function register(req: Request, res: Response) {
   try {
-    // Log the incoming request for debugging
-    console.log('Registration request body:', JSON.stringify(req.body, null, 2));
-    
     const validatedData = registerSchema.parse(req.body);
     
     // Check if user already exists
@@ -477,8 +467,6 @@ export async function resetPassword(req: Request, res: Response) {
 // Register insured user - immediate registration with forced 'insured' role
 export async function registerInsured(req: Request, res: Response) {
   try {
-    console.log('Insured registration request body:', JSON.stringify(req.body, null, 2));
-    
     const validatedData = insuredRegisterSchema.parse(req.body);
     
     // Check if user already exists
@@ -518,8 +506,6 @@ export async function registerInsured(req: Request, res: Response) {
 // Register admin request - creates pending request for admin approval
 export async function registerAdminRequest(req: Request, res: Response) {
   try {
-    console.log('Admin signup request body:', JSON.stringify(req.body, null, 2));
-    
     const validatedData = adminSignupRequestSchema.parse(req.body);
     
     // Check if email is already registered as user

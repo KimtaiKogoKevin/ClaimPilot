@@ -192,7 +192,6 @@ export default function EnhancedDamageAssessment({
     },
   });
 
-  // VVVVVV ADD THE NEW HANDLER FUNCTIONS HERE VVVVVV
   const handleChange = (field: string, value: any) =>
     setFormData((prev: any) => ({ ...prev, [field]: value }));
 

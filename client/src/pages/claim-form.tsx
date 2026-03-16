@@ -406,18 +406,18 @@ export default function ClaimForm() {
       driverDateOfBirth: fd.driver?.dateOfBirth || "",
       driverTelephone: fd.driver?.telephone || "",
       driverLicenseNumber: fd.driver?.licenseNumber || "",
-      driverEmployedByInsured: fd.driver?.employedByInsured || false,
-      driverDrivingWithPermission: fd.driver?.drivingWithPermission || false,
-      driverYearsOfDriving: fd.driver?.yearsOfDriving || null,
-      driverBlameToBareForAccident: fd.driver?.blameToBareForAccident || false,
-      driverAdmittedLiability: fd.driver?.admittedLiability || false,
-      driverPreviousAccidents: fd.driver?.previousAccidents || false,
+      driverEmployedByInsured: fd.driver?.employedByInsured ?? null,
+      driverDrivingWithPermission: fd.driver?.drivingWithPermission ?? null,
+      driverYearsOfDriving: fd.driver?.yearsOfDriving ?? null,
+      driverBlameToBareForAccident: fd.driver?.blameToBareForAccident ?? null,
+      driverAdmittedLiability: fd.driver?.admittedLiability ?? null,
+      driverPreviousAccidents: fd.driver?.previousAccidents ?? null,
       driverPreviousAccidentsDetails: fd.driver?.previousAccidentsDetails || "",
-      driverConvictions: fd.driver?.convictions || false,
+      driverConvictions: fd.driver?.convictions ?? null,
       driverConvictionsDetails: fd.driver?.convictionsDetails || "",
       driverLicenseType: fd.driver?.licenseType || "",
       driverDrivingTestPassedDate: fd.driver?.drivingTestPassedDate || "",
-      driverOwnsMotorVehicle: fd.driver?.ownsMotorVehicle || false,
+      driverOwnsMotorVehicle: fd.driver?.ownsMotorVehicle ?? null,
       driverOwnVehicleInsurer: fd.driver?.ownVehicleInsurer || "",
       driverOwnVehiclePolicyNumber: fd.driver?.ownVehiclePolicyNumber || "",
       driverYearsInService: fd.driver?.yearsInService || "",
@@ -567,7 +567,7 @@ export default function ClaimForm() {
       // Transform data to match server validation requirements
       const formDataAny = formData as any;
       const submitData = {
-        // Driver details - READ FROM CORRECT NESTED LOCATION
+        // Driver details
         driver: {
           name: formDataAny.driver?.name || "",
           licenseNumber: formDataAny.driver?.licenseNumber || "",
@@ -585,7 +585,7 @@ export default function ClaimForm() {
           licenseType: formDataAny.driver?.licenseType || "",
           ownsMotorVehicle: formDataAny.driver?.ownsMotorVehicle || false,
         },
-        // Bank details - READ FROM CORRECT NESTED LOCATION
+        // Bank details
         bankDetails: {
           bankName: formDataAny.bank?.bankName || "",
           accountName: formDataAny.bank?.accountName || "",

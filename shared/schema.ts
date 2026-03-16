@@ -189,7 +189,6 @@ export const claims = pgTable("claims", {
 });
 
 
-// VVVVVV CREATE THESE NEW TABLES FOR ONE-TO-MANY DATA VVVVVV
 export const thirdPartyProperties = pgTable("third_party_properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   claimId: varchar("claim_id").notNull().references(() => claims.id),
