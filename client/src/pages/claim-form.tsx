@@ -60,17 +60,25 @@ export default function ClaimForm() {
 
   const onFieldUpdateRef = useRef<(update: FieldUpdate) => void>();
 
+  type FormData = typeof formData;
+  type FormSection = 'individual' | 'corporate' | 'vehicle' | 'accident' | 'damage' | 'driver' | 'bank';
+
   onFieldUpdateRef.current = (update) => {
     const fieldParts = update.field.split('.');
     setFormData(prev => {
-      const newData = { ...prev };
       if (fieldParts.length === 1) {
-        (newData as any)[fieldParts[0]] = update.value;
-      } else if (fieldParts.length === 2) {
-        const [section, field] = fieldParts;
-        (newData as any)[section] = { ...(prev as any)[section], [field]: update.value };
+        const key = fieldParts[0] as keyof FormData;
+        return { ...prev, [key]: update.value };
       }
-      return newData;
+      if (fieldParts.length === 2) {
+        const section = fieldParts[0] as FormSection;
+        const field = fieldParts[1];
+        const sectionData = prev[section];
+        if (typeof sectionData === 'object' && sectionData !== null && !Array.isArray(sectionData)) {
+          return { ...prev, [section]: { ...sectionData, [field]: update.value } };
+        }
+      }
+      return prev;
     });
     
     setHighlightedFields(prev => {
@@ -445,10 +453,10 @@ export default function ClaimForm() {
       repairerPhone: fd.repairerPhone || "",
       repairerAddress: fd.repairerAddress || "",
       isVehicleInUse: fd.isVehicleInUse || false,
-      thirdPartyProperties: JSON.stringify((fd as any).thirdPartyProperties || []),
-      injuredPersons: JSON.stringify((fd as any).injuredPersons || []),
-      passengers: JSON.stringify((fd as any).passengers || []),
-      witnesses: JSON.stringify((fd as any).witnesses || []),
+      thirdPartyProperties: JSON.stringify(fd.thirdPartyProperties || []),
+      injuredPersons: JSON.stringify(fd.injuredPersons || []),
+      passengers: JSON.stringify(fd.passengers || []),
+      witnesses: JSON.stringify(fd.witnesses || []),
       
       // Finance/Loan fields
       financeCompanyName: fd.financeCompanyName ?? "",
@@ -564,35 +572,31 @@ export default function ClaimForm() {
       // Wait for save to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Transform data to match server validation requirements
-      const formDataAny = formData as any;
       const submitData = {
-        // Driver details
         driver: {
-          name: formDataAny.driver?.name || "",
-          licenseNumber: formDataAny.driver?.licenseNumber || "",
-          occupation: formDataAny.driver?.occupation || "",
-          address: formDataAny.driver?.address || "",
-          telephone: formDataAny.driver?.telephone || "",
-          dateOfBirth: formDataAny.driver?.dateOfBirth || "",
-          employedByInsured: formDataAny.driver?.employedByInsured || false,
-          drivingWithPermission: formDataAny.driver?.drivingWithPermission || false,
-          yearsOfDriving: formDataAny.driver?.yearsOfDriving || 0,
-          blameToBareForAccident: formDataAny.driver?.blameToBareForAccident || false,
-          admittedLiability: formDataAny.driver?.admittedLiability || false,
-          previousAccidents: formDataAny.driver?.previousAccidents || false,
-          convictions: formDataAny.driver?.convictions || false,
-          licenseType: formDataAny.driver?.licenseType || "",
-          ownsMotorVehicle: formDataAny.driver?.ownsMotorVehicle || false,
+          name: formData.driver.name || "",
+          licenseNumber: formData.driver.licenseNumber || "",
+          occupation: formData.driver.occupation || "",
+          address: formData.driver.address || "",
+          telephone: formData.driver.telephone || "",
+          dateOfBirth: formData.driver.dateOfBirth || "",
+          employedByInsured: formData.driver.employedByInsured ?? false,
+          drivingWithPermission: formData.driver.drivingWithPermission ?? false,
+          yearsOfDriving: formData.driver.yearsOfDriving ?? 0,
+          blameToBareForAccident: formData.driver.blameToBareForAccident ?? false,
+          admittedLiability: formData.driver.admittedLiability ?? false,
+          previousAccidents: formData.driver.previousAccidents ?? false,
+          convictions: formData.driver.convictions ?? false,
+          licenseType: formData.driver.licenseType || "",
+          ownsMotorVehicle: formData.driver.ownsMotorVehicle ?? false,
         },
-        // Bank details
         bankDetails: {
-          bankName: formDataAny.bank?.bankName || "",
-          accountName: formDataAny.bank?.accountName || "",
-          accountNumber: formDataAny.bank?.accountNumber || "",
-          branch: formDataAny.bank?.branch || "",
-          swiftCode: formDataAny.bank?.swiftCode || "",
-          sortCode: formDataAny.bank?.sortCode || "",
+          bankName: formData.bank.bankName || "",
+          accountName: formData.bank.accountName || "",
+          accountNumber: formData.bank.accountNumber || "",
+          branch: formData.bank.branch || "",
+          swiftCode: formData.bank.swiftCode || "",
+          sortCode: formData.bank.sortCode || "",
         }
       };
 
