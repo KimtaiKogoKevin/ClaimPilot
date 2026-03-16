@@ -1,9 +1,8 @@
 /**
  * Form Persistence Utilities
  * 
- * Senior-level utilities for managing form persistence across all form components.
- * This provides a consistent interface for form steps to interact with the
- * enterprise-grade persistence system.
+ * Transforms form data between the client-side nested structure and the
+ * flat API payload used for draft save/restore.
  */
 
 function safeJsonParse(value: any, defaultValue: any = null): any {

@@ -119,9 +119,7 @@ export default function VehicleAccidentStep({
     },
   });
 
-  // Auto-save is now handled by the parent claim-form component
-  // This prevents form clearing and provides enterprise-grade persistence
-  // with local backup, conflict resolution, and debounced saves
+  // Auto-save is handled by the parent claim-form component
 
   // Save vehicle details when they change (individual API call for immediate feedback)
   useEffect(() => {

@@ -286,6 +286,137 @@ See `.env.example` for the complete list with descriptions. Summary:
 | `PUBLIC_OBJECT_SEARCH_PATHS` | No | Local public upload directory |
 | `MAX_FILE_SIZE` | No | Max upload size in bytes (default: 10MB) |
 
+## NPM Scripts
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `npm run dev` | `NODE_ENV=development tsx server/index.ts` | Start dev server with hot reload (port 5000) |
+| `npm run build` | `vite build && esbuild ...` | Build frontend + bundle server for production |
+| `npm start` | `NODE_ENV=production node dist/index.js` | Run production build |
+| `npm run check` | `tsc` | TypeScript type checking |
+| `npm run db:push` | `drizzle-kit push` | Push schema changes to database |
+
+## Authentication Bootstrap
+
+### First-time setup: Create test accounts
+
+After running `npm run db:push`, register users through the UI:
+
+1. Open `http://localhost:5000/auth/insured` and register an insured user
+2. Open `http://localhost:5000/auth/admin` and submit an admin signup request
+
+To approve the first admin without an existing admin, insert directly:
+
+```sql
+-- Create the first admin user (password: AdminPass123, bcrypt hash)
+INSERT INTO users (id, email, password, first_name, last_name, role)
+VALUES (
+  gen_random_uuid(),
+  'admin@example.com',
+  '$2b$10$YourBcryptHashHere',
+  'Admin',
+  'User',
+  'admin'
+);
+```
+
+Or use the Node REPL:
+
+```bash
+node -e "const bcrypt = require('bcrypt'); bcrypt.hash('YourPassword123', 10).then(h => console.log(h))"
+```
+
+### Test credentials (if seeded)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | testadmin@test.com | TestAdmin123 |
+| Insured | testinsured@test.com | TestInsured123 |
+
+## Local AI Alternative (YOLO)
+
+If you prefer running damage detection locally instead of using the Roboflow cloud API, you can wrap a YOLO model in a minimal Flask endpoint that matches the Roboflow response format:
+
+```python
+# yolo_server.py — minimal local alternative to Roboflow API
+from flask import Flask, request, jsonify
+from ultralytics import YOLO
+
+app = Flask(__name__)
+model = YOLO("yolov8n.pt")  # or your fine-tuned model
+
+@app.route("/detect", methods=["POST"])
+def detect():
+    data = request.json
+    results = model.predict(source=data["image"], conf=0.25)
+    predictions = []
+    for r in results:
+        for box in r.boxes:
+            predictions.append({
+                "class": r.names[int(box.cls)],
+                "confidence": float(box.conf),
+                "x": float(box.xywh[0][0]),
+                "y": float(box.xywh[0][1]),
+                "width": float(box.xywh[0][2]),
+                "height": float(box.xywh[0][3]),
+            })
+    return jsonify({"predictions": predictions})
+
+if __name__ == "__main__":
+    app.run(port=9001)
+```
+
+Then update `server/routes.ts` `analyzeImageWithRoboflow()` to point at `http://localhost:9001/detect` instead of the Roboflow URL.
+
+## Developer Recipes
+
+### Reset database and start fresh
+
+```bash
+npm run db:push          # Pushes schema (creates/alters tables)
+```
+
+To fully reset, drop and recreate the database:
+
+```bash
+psql -U postgres -c "DROP DATABASE IF EXISTS claims_platform"
+psql -U postgres -c "CREATE DATABASE claims_platform"
+npm run db:push
+```
+
+### Seed test users
+
+```bash
+# Register via API
+curl -X POST http://localhost:5000/api/auth/signup/insured \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Test1234","firstName":"Test","lastName":"User"}'
+```
+
+### Test auth roles
+
+```bash
+# Login and get token
+TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Test1234"}' | jq -r .token)
+
+# Use token for authenticated requests
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/auth/user
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/claims
+```
+
+### Troubleshoot Roboflow
+
+```bash
+# Test your Roboflow API key
+curl "https://detect.roboflow.com/your-model-id/1?api_key=YOUR_KEY" \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"image":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Car_crash_2.jpg/1200px-Car_crash_2.jpg"}'
+```
+
+If you get `401`, your API key is invalid. If `404`, check the model ID. The response should contain a `predictions` array.
+
 ## Security
 
 - JWT authentication with configurable expiration

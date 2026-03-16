@@ -32,7 +32,7 @@ export default function ClaimForm() {
   const hasRestoredRef = useRef(false);
   const autoSaveEnabledRef = useRef(false);
   
-  // Draft management with enterprise-grade persistence
+  // Draft management
   const { 
     currentDraft, 
     isLoadingDraft, 
@@ -387,7 +387,7 @@ export default function ClaimForm() {
       vehicleDamageDescription: fd.damage?.vehicleDescription || "",
       goodsDamaged: fd.damage?.goodsDamaged || false,
       goodsDescription: fd.damage?.goodsDescription || "",
-      // COMPLETE Vehicle details - ALL fields
+      // Vehicle details
       vehicleMake: fd.vehicle?.make || "",
       vehicleModel: fd.vehicle?.model || "",
       vehicleYearOfManufacture: fd.vehicle?.yearOfManufacture || null,
@@ -399,7 +399,7 @@ export default function ClaimForm() {
       vehicleOwnerAddress: fd.vehicle?.ownerAddress || "",
       vehicleVehicleUse: fd.vehicle?.vehicleUse || "",
       
-      // COMPLETE Driver details - ALL fields
+      // Driver details
       driverName: fd.driver?.name || "",
       driverOccupation: fd.driver?.occupation || "",
       driverAddress: fd.driver?.address || "",
@@ -422,7 +422,7 @@ export default function ClaimForm() {
       driverOwnVehiclePolicyNumber: fd.driver?.ownVehiclePolicyNumber || "",
       driverYearsInService: fd.driver?.yearsInService || "",
       
-      // COMPLETE Bank details - ALL fields
+      // Bank details
       bankBankName: fd.bank?.bankName || "",
       bankAccountName: fd.bank?.accountName || "",
       bankAccountNumber: fd.bank?.accountNumber || "",
@@ -430,7 +430,7 @@ export default function ClaimForm() {
       bankSwiftCode: fd.bank?.swiftCode || "",
       bankSortCode: fd.bank?.sortCode || "",
       
-      // COMPLETE Accident details - ALL fields  
+      // Accident details
       accidentRoadSurface: fd.accident?.roadSurface || "",
       accidentVisibility: fd.accident?.visibility || "",
       accidentDriverWarningGiven: fd.accident?.driverWarningGiven || "",
@@ -559,7 +559,7 @@ export default function ClaimForm() {
     }
 
     try {
-      // CRITICAL: Force-save all current data before submitting
+      // Save all current data before submitting
       autoSave();
       // Wait for save to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
