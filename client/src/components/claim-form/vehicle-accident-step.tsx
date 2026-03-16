@@ -18,6 +18,17 @@ interface VehicleAccidentStepProps {
   claimId: string | null;
 }
 
+function normalizeObjectUrl(objectPath: string): string {
+  if (!objectPath) return '';
+  if (objectPath.startsWith('https://') || objectPath.startsWith('http://')) {
+    return objectPath.split('?')[0];
+  }
+  if (objectPath.startsWith('/objects/')) {
+    return `/api${objectPath}`;
+  }
+  return objectPath;
+}
+
 export default function VehicleAccidentStep({
   formData,
   setFormData,
@@ -43,7 +54,7 @@ export default function VehicleAccidentStep({
       const restoredDocs: Record<string, { uploaded: boolean; url?: string }> = {};
       for (const doc of existingMedia.documents) {
         if (doc.angle) {
-          restoredDocs[doc.angle] = { uploaded: true, url: doc.objectPath };
+          restoredDocs[doc.angle] = { uploaded: true, url: normalizeObjectUrl(doc.objectPath) };
         }
       }
       setUploadedDocuments(prev => {
@@ -56,7 +67,7 @@ export default function VehicleAccidentStep({
           ...prev,
           accident: {
             ...prev.accident,
-            accidentSketchPath: sketch.objectPath,
+            accidentSketchPath: normalizeObjectUrl(sketch.objectPath),
           },
         }));
       }

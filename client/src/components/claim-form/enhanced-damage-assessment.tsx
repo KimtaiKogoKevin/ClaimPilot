@@ -80,6 +80,17 @@ const VIDEO_CHECKLIST = [
   { id: 'focus_damage', label: 'Focus on damaged areas for 3-5 seconds' },
 ];
 
+function normalizeObjectUrl(objectPath: string): string {
+  if (!objectPath) return '';
+  if (objectPath.startsWith('https://') || objectPath.startsWith('http://')) {
+    return objectPath.split('?')[0];
+  }
+  if (objectPath.startsWith('/objects/')) {
+    return `/api${objectPath}`;
+  }
+  return objectPath;
+}
+
 export default function EnhancedDamageAssessment({
   formData,
   setFormData,
@@ -109,12 +120,24 @@ export default function EnhancedDamageAssessment({
       const restoredAnalysis: any[] = [];
       for (const photo of existingMedia.photos) {
         if (photo.angle) {
+          const url = normalizeObjectUrl(photo.objectPath);
           restoredMedia[photo.angle] = {
-            url: photo.objectPath,
+            url,
             type: photo.angle === 'VIDEO_360' ? 'video' : 'image',
           };
           if (photo.aiAnalysisResults) {
-            restoredAnalysis.push(photo.aiAnalysisResults);
+            const raw = photo.aiAnalysisResults;
+            if (raw.predictions && Array.isArray(raw.predictions)) {
+              for (const pred of raw.predictions) {
+                restoredAnalysis.push({
+                  damageType: pred.damageType || pred.class || 'unknown',
+                  confidence: pred.confidence ?? 0,
+                  severity: pred.severity || 'low',
+                });
+              }
+            } else if (raw.damageType) {
+              restoredAnalysis.push(raw);
+            }
           }
         }
       }

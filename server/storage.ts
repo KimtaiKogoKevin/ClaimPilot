@@ -749,7 +749,7 @@ export class DatabaseStorage implements IStorage {
       const existing = await db.query.damagedPhotos.findFirst({
         where: and(
           eq(damagedPhotos.claimId, photo.claimId),
-          eq(damagedPhotos.angle, photo.angle as any),
+          eq(damagedPhotos.angle, photo.angle),
         ),
       });
       if (existing) {
