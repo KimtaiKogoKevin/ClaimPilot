@@ -239,8 +239,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Claim not found" });
       }
 
-      console.log("Saving draft step:", step, "Progress:", progressPercentage);
-      
       await storage.saveDraftProgress(id, step, data, progressPercentage);
       res.json({ message: "Draft saved successfully" });
     } catch (error) {

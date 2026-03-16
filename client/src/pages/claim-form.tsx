@@ -452,7 +452,7 @@ export default function ClaimForm() {
       repairerName: fd.repairerName || "",
       repairerPhone: fd.repairerPhone || "",
       repairerAddress: fd.repairerAddress || "",
-      isVehicleInUse: fd.isVehicleInUse || false,
+      isVehicleInUse: fd.isVehicleInUse ?? null,
       thirdPartyProperties: JSON.stringify(fd.thirdPartyProperties || []),
       injuredPersons: JSON.stringify(fd.injuredPersons || []),
       passengers: JSON.stringify(fd.passengers || []),

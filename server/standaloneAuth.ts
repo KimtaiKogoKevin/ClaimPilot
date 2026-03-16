@@ -145,7 +145,6 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      console.log('❌ Token verification failed for', req.path);
       return res.status(401).json({ message: 'Invalid or expired token' });
     }
 
