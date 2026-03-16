@@ -25,7 +25,7 @@ export default function VehicleAccidentStep({
 }: VehicleAccidentStepProps) {
   const { toast } = useToast();
   const [uploadedDocuments, setUploadedDocuments] = useState<{
-    [key: string]: boolean;
+    [key: string]: { uploaded: boolean; url?: string };
   }>({});
   const [isUploadingSketch, setIsUploadingSketch] = useState(false);
 
@@ -40,10 +40,10 @@ export default function VehicleAccidentStep({
 
   useEffect(() => {
     if (existingMedia?.documents && existingMedia.documents.length > 0) {
-      const restoredDocs: Record<string, boolean> = {};
+      const restoredDocs: Record<string, { uploaded: boolean; url?: string }> = {};
       for (const doc of existingMedia.documents) {
         if (doc.angle) {
-          restoredDocs[doc.angle] = true;
+          restoredDocs[doc.angle] = { uploaded: true, url: doc.objectPath };
         }
       }
       setUploadedDocuments(prev => {
@@ -135,7 +135,7 @@ export default function VehicleAccidentStep({
     onSuccess: (data, variables) => {
       setUploadedDocuments((prev) => ({
         ...prev,
-        [variables.documentType]: true,
+        [variables.documentType]: { uploaded: true, url: variables.documentUrl },
       }));
       toast({
         title: "Document Uploaded",
@@ -757,131 +757,50 @@ export default function VehicleAccidentStep({
             Upload relevant documents for your vehicle and accident claim
           </p>
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="border border-neutral-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-neutral-600" />
-                  <span className="font-medium">Vehicle Logbook</span>
+            {[
+              { key: "logbook", label: "Vehicle Logbook", desc: "Upload your vehicle logbook" },
+              { key: "policeAbstract", label: "Police Abstract", desc: "Upload your police abstract" },
+              { key: "license", label: "Driver's License", desc: "Upload your driver's license" },
+              { key: "police_report", label: "Police Report (if applicable)", desc: "Upload police report if available" },
+            ].map(({ key, label, desc }) => {
+              const doc = uploadedDocuments[key];
+              const isUploaded = doc?.uploaded;
+              return (
+                <div key={key} className="border border-neutral-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-neutral-600" />
+                      <span className="font-medium">{label}</span>
+                    </div>
+                    {isUploaded && (
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    )}
+                  </div>
+                  <p className="text-sm text-neutral-600 mb-2">{desc}</p>
+                  {isUploaded && doc.url && (
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mb-2"
+                    >
+                      <FileText className="h-3 w-3" />
+                      View uploaded file
+                    </a>
+                  )}
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={5242880}
+                    onGetUploadParameters={handleGetUploadParameters}
+                    onComplete={handleDocumentUploadComplete(key)}
+                    buttonClassName={isUploaded ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isUploaded ? "Replace Document" : "Upload Document"}
+                  </ObjectUploader>
                 </div>
-                {uploadedDocuments.logbook && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-              <p className="text-sm text-neutral-600 mb-3">
-                Upload your vehicle logbook 
-              </p>
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5242880}
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleDocumentUploadComplete("logbook")}
-                buttonClassName={
-                  uploadedDocuments.logbook
-                    ? "bg-green-600 hover:bg-green-700"
-                    : ""
-                }
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadedDocuments.logbook
-                  ? "Replace Document"
-                  : "Upload Document"}
-              </ObjectUploader>
-            </div>
-
-            <div className="border border-neutral-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-neutral-600" />
-                  <span className="font-medium">Police Abstract</span>
-                </div>
-                {uploadedDocuments.policeAbstract && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-              <p className="text-sm text-neutral-600 mb-3">
-                Upload your police abstract
-              </p>
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5242880}
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleDocumentUploadComplete("policeAbstract")}
-                buttonClassName={
-                  uploadedDocuments.policeAbstract
-                    ? "bg-green-600 hover:bg-green-700"
-                    : ""
-                }
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadedDocuments.policeAbstract
-                  ? "Replace Document"
-                  : "Upload Document"}
-              </ObjectUploader>
-            </div>
-
-            <div className="border border-neutral-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-neutral-600" />
-                  <span className="font-medium">Driver's License</span>
-                </div>
-                {uploadedDocuments.license && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-              <p className="text-sm text-neutral-600 mb-3">
-                Upload your driver's license
-              </p>
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5242880}
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleDocumentUploadComplete("license")}
-                buttonClassName={
-                  uploadedDocuments.license
-                    ? "bg-green-600 hover:bg-green-700"
-                    : ""
-                }
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadedDocuments.license
-                  ? "Replace Document"
-                  : "Upload Document"}
-              </ObjectUploader>
-            </div>
-
-            <div className="border border-neutral-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-neutral-600" />
-                  <span className="font-medium">
-                    Police Report (if applicable)
-                  </span>
-                </div>
-                {uploadedDocuments.police_report && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-              <p className="text-sm text-neutral-600 mb-3">
-                Upload police report if available
-              </p>
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5242880}
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleDocumentUploadComplete("police_report")}
-                buttonClassName={
-                  uploadedDocuments.police_report
-                    ? "bg-green-600 hover:bg-green-700"
-                    : ""
-                }
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadedDocuments.police_report
-                  ? "Replace Document"
-                  : "Upload Document"}
-              </ObjectUploader>
-            </div>
+              );
+            })}
           </div>
         </div>
 

@@ -910,20 +910,33 @@ export default function EnhancedDamageAssessment({
                           : "border-2 border-dashed hover:border-primary"
                       )}
                     >
-                      <CardContent className="p-8 text-center">
-                        <div className="text-4xl mb-3">{view.icon}</div>
+                      <CardContent className="p-4 text-center">
                         {uploadedMedia[view.id] ? (
                           <>
-                            <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                            <p className="font-semibold text-green-700">
+                            <div className="relative w-full h-28 mb-2 rounded overflow-hidden bg-neutral-100">
+                              <img
+                                src={uploadedMedia[view.id].url}
+                                alt={view.label}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).parentElement!.querySelector('.fallback')?.classList.remove('hidden');
+                                }}
+                              />
+                              <div className="fallback hidden flex items-center justify-center w-full h-full absolute inset-0">
+                                <CheckCircle2 className="h-10 w-10 text-green-600" />
+                              </div>
+                            </div>
+                            <p className="font-semibold text-green-700 text-sm">
                               {view.label}
                             </p>
-                            <p className="text-sm text-green-600 mt-1">
-                              Uploaded
+                            <p className="text-xs text-green-600 mt-1">
+                              Uploaded - Click to replace
                             </p>
                           </>
                         ) : (
                           <>
+                            <div className="text-4xl mb-3">{view.icon}</div>
                             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                             <p className="font-semibold">{view.label}</p>
                             <p className="text-xs text-muted-foreground mt-2">
