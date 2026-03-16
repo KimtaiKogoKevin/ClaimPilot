@@ -798,9 +798,9 @@ export default function VehicleAccidentStep({
                       <FileText className="h-3 w-3" />
                       {(() => {
                         try {
-                          const urlPath = new URL(uploadedDocuments[docType.key]!.url!, window.location.origin).pathname;
-                          return urlPath.split('/').pop() || docType.label;
-                        } catch { return docType.label; }
+                          const urlPath = new URL(doc.url!, window.location.origin).pathname;
+                          return urlPath.split('/').pop() || label;
+                        } catch { return label; }
                       })()}
                     </a>
                   )}
