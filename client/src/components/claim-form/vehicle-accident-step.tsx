@@ -796,7 +796,12 @@ export default function VehicleAccidentStep({
                       className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mb-2"
                     >
                       <FileText className="h-3 w-3" />
-                      View uploaded file
+                      {(() => {
+                        try {
+                          const urlPath = new URL(uploadedDocuments[docType.key]!.url!, window.location.origin).pathname;
+                          return urlPath.split('/').pop() || docType.label;
+                        } catch { return docType.label; }
+                      })()}
                     </a>
                   )}
                   <ObjectUploader
