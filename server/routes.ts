@@ -110,20 +110,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/signup-requests/:id/approve', authenticateToken, approveAdminSignupRequest);
   app.post('/api/admin/signup-requests/:id/reject', authenticateToken, rejectAdminSignupRequest);
 
-  // Update user role - simplified to only allow admin and insured
   app.put('/api/auth/update-role', authenticateToken, async (req: any, res) => {
     try {
-      const userId = req.user?.id || req.userId;
-      if (!userId) {
+      const requestingUserId = req.user?.id || req.userId;
+      if (!requestingUserId) {
         return res.status(401).json({ message: "User ID not found" });
       }
-      const { role } = req.body;
-      
+
+      const requestingUser = await storage.getUser(requestingUserId);
+      if (!requestingUser || requestingUser.role !== 'admin') {
+        return res.status(403).json({ message: "Only administrators can update user roles" });
+      }
+
+      const { role, targetUserId } = req.body;
+      if (!targetUserId) {
+        return res.status(400).json({ message: "targetUserId is required" });
+      }
+
       if (!['insured', 'admin'].includes(role)) {
         return res.status(400).json({ message: "Invalid role. Only 'insured' and 'admin' are allowed." });
       }
-      
-      const updatedUser = await storage.updateUser(userId, { role });
+
+      const updatedUser = await storage.updateUser(targetUserId, { role });
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user role:", error);
@@ -236,8 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.saveDraftProgress(id, step, data, progressPercentage);
       res.json({ message: "Draft saved successfully" });
     } catch (error) {
-      console.error("Error saving draft:", error);
-      console.error("Draft data that caused error:", JSON.stringify(req.body.data, null, 2));
+      console.error("Error saving draft for claim:", req.params.id, "step:", req.body.step, error);
       res.status(500).json({ message: "Failed to save draft" });
     }
   });
