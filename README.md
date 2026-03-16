@@ -427,6 +427,19 @@ curl "https://detect.roboflow.com/your-model-id/1?api_key=YOUR_KEY" \
 
 If you get `401`, your API key is invalid. If `404`, check the model ID. The response should contain a `predictions` array.
 
+## Verification Checklist
+
+The following flows have been verified end-to-end:
+
+| Flow | Steps Verified |
+|------|---------------|
+| Insured signup & login | Register at /auth/insured, login, redirect to dashboard |
+| 4-step claim form | Create claim, fill all steps, save draft at each step |
+| Draft persistence | Save draft, navigate away, resume, verify all fields restored (including loan/finance zeros, nullable booleans, relation arrays) |
+| Admin dashboard | Login as admin, view claims list, analytics charts, user management |
+| Admin claim access | Admin opens any claim, edits it, saves draft |
+| Role protection | Unauthenticated users blocked from /claim-form, admin routes inaccessible to insured users, privilege escalation blocked on /api/auth/update-role |
+
 ## Security
 
 - JWT authentication with configurable expiration
