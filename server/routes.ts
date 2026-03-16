@@ -624,7 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiAnalysisResults: aiAnalysis,
       };
       
-      const media = await storage.addDamagedPhoto(mediaData);
+      const media = await storage.upsertDamagedPhoto(mediaData);
       
       res.status(201).json({ 
         media,
@@ -634,6 +634,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading media:", error);
       res.status(500).json({ message: "Failed to upload media" });
+    }
+  });
+
+  app.get("/api/claims/:id/media", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      const allMedia = await storage.getDamagedPhotos(id);
+      
+      const photoAngles = ['FRONT_VIEW', 'REAR_VIEW', 'LEFT_SIDE', 'RIGHT_SIDE', 'DAMAGE_CLOSEUP', 'VIDEO_360'];
+      const documentAngles = ['logbook', 'policeAbstract', 'license', 'police_report', 'accident_sketch', 'insurance_certificate', 'other_document'];
+      
+      const photos = allMedia.filter(m => photoAngles.includes(m.angle || ''));
+      const documents = allMedia.filter(m => documentAngles.includes(m.angle || ''));
+      
+      res.json({ photos, documents });
+    } catch (error) {
+      console.error("Error fetching media:", error);
+      res.status(500).json({ message: "Failed to fetch media" });
     }
   });
 
@@ -747,7 +776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiAnalysisResults: null,
       };
       
-      const document = await storage.addDamagedPhoto(documentData);
+      const document = await storage.upsertDamagedPhoto(documentData);
       res.status(201).json({ document, success: true });
     } catch (error) {
       console.error("Error adding document:", error);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,39 @@ export default function VehicleAccidentStep({
   }>({});
   const [isUploadingSketch, setIsUploadingSketch] = useState(false);
 
+  const { data: existingMedia } = useQuery<{ photos: any[]; documents: any[] }>({
+    queryKey: ['/api/claims', claimId, 'media'],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/claims/${claimId}/media`);
+      return res.json();
+    },
+    enabled: !!claimId,
+  });
+
+  useEffect(() => {
+    if (existingMedia?.documents && existingMedia.documents.length > 0) {
+      const restoredDocs: Record<string, boolean> = {};
+      for (const doc of existingMedia.documents) {
+        if (doc.angle) {
+          restoredDocs[doc.angle] = true;
+        }
+      }
+      setUploadedDocuments(prev => {
+        if (Object.keys(prev).length === 0) return restoredDocs;
+        return prev;
+      });
+      const sketch = existingMedia.documents.find((d: any) => d.angle === 'accident_sketch');
+      if (sketch && !formData.accident?.accidentSketchPath) {
+        setFormData((prev: any) => ({
+          ...prev,
+          accident: {
+            ...prev.accident,
+            accidentSketchPath: sketch.objectPath,
+          },
+        }));
+      }
+    }
+  }, [existingMedia]);
 
   // Auto-save vehicle details
   const saveVehicleMutation = useMutation({

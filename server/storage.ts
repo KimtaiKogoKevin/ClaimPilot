@@ -744,6 +744,31 @@ export class DatabaseStorage implements IStorage {
     return newPhoto;
   }
 
+  async upsertDamagedPhoto(photo: InsertDamagedPhoto): Promise<DamagedPhoto> {
+    if (photo.claimId && photo.angle) {
+      const existing = await db.query.damagedPhotos.findFirst({
+        where: and(
+          eq(damagedPhotos.claimId, photo.claimId),
+          eq(damagedPhotos.angle, photo.angle as any),
+        ),
+      });
+      if (existing) {
+        const [updated] = await db
+          .update(damagedPhotos)
+          .set({
+            objectPath: photo.objectPath,
+            isGoodsPhoto: photo.isGoodsPhoto,
+            aiAnalysisResults: photo.aiAnalysisResults,
+            uploadedAt: new Date(),
+          })
+          .where(eq(damagedPhotos.id, existing.id))
+          .returning();
+        return updated;
+      }
+    }
+    return this.addDamagedPhoto(photo);
+  }
+
   async updatePhotoAnalysis(photoId: string, analysis: any): Promise<void> {
     await db
       .update(damagedPhotos)

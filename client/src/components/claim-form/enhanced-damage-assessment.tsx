@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,13 +45,13 @@ interface EnhancedDamageAssessmentProps {
 // Simple configuration for essential views only
 const ESSENTIAL_VIEWS = [
   { 
-    id: 'FRONT', 
+    id: 'FRONT_VIEW', 
     label: 'Front View', 
     description: 'Capture front bumper, hood, and windshield',
     icon: '🚗'
   },
   { 
-    id: 'REAR', 
+    id: 'REAR_VIEW', 
     label: 'Rear View', 
     description: 'Capture rear bumper, trunk, and rear window',
     icon: '🚙'
@@ -93,6 +93,40 @@ export default function EnhancedDamageAssessment({
   const [videoChecklist, setVideoChecklist] = useState<Record<string, boolean>>(
     {}
   );
+
+  const { data: existingMedia } = useQuery<{ photos: any[]; documents: any[] }>({
+    queryKey: ['/api/claims', claimId, 'media'],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/claims/${claimId}/media`);
+      return res.json();
+    },
+    enabled: !!claimId,
+  });
+
+  useEffect(() => {
+    if (existingMedia?.photos && existingMedia.photos.length > 0) {
+      const restoredMedia: Record<string, any> = {};
+      const restoredAnalysis: any[] = [];
+      for (const photo of existingMedia.photos) {
+        if (photo.angle) {
+          restoredMedia[photo.angle] = {
+            url: photo.objectPath,
+            type: photo.angle === 'VIDEO_360' ? 'video' : 'image',
+          };
+          if (photo.aiAnalysisResults) {
+            restoredAnalysis.push(photo.aiAnalysisResults);
+          }
+        }
+      }
+      setUploadedMedia(prev => {
+        if (Object.keys(prev).length === 0) return restoredMedia;
+        return prev;
+      });
+      if (restoredAnalysis.length > 0) {
+        setAiAnalysisResults(prev => prev.length === 0 ? restoredAnalysis : prev);
+      }
+    }
+  }, [existingMedia]);
 
   // Calculate upload progress
   const uploadProgress = useMemo(() => {
