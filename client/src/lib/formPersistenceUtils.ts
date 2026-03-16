@@ -214,6 +214,33 @@ export function transformFormDataForAPI(formData: any): any {
     bankBranch: formData.bank?.branch || "",
     bankSwiftCode: formData.bank?.swiftCode || "",
     bankSortCode: formData.bank?.sortCode || "",
+    
+    // Finance/Loan fields
+    financeCompanyName: formData.financeCompanyName ?? "",
+    hasOtherInsurance: formData.hasOtherInsurance ?? false,
+    otherInsuranceDetails: formData.otherInsuranceDetails ?? "",
+    hasLoanRepaymentCover: formData.hasLoanRepaymentCover ?? false,
+    loanPrincipalAmount: formData.loanPrincipalAmount ?? "",
+    loanInterestAmount: formData.loanInterestAmount ?? "",
+    monthlyInstalment: formData.monthlyInstalment ?? "",
+    loanCoveragePercentage: formData.loanCoveragePercentage ?? "",
+    
+    // Trailer/Goods fields
+    wasTrailerAttached: formData.wasTrailerAttached ?? false,
+    goodsOwnerName: formData.goodsOwnerName || "",
+    loadWeight: formData.loadWeight || "",
+    
+    // Declaration
+    declarationAccepted: formData.declarationAccepted ?? false,
+    ownerStatement: formData.ownerStatement || "",
+    declarationName: formData.declarationName || "",
+    declarationTitle: formData.declarationTitle || "",
+    
+    // Dynamic arrays
+    thirdPartyProperties: JSON.stringify(formData.thirdPartyProperties || []),
+    injuredPersons: JSON.stringify(formData.injuredPersons || []),
+    passengers: JSON.stringify(formData.passengers || []),
+    witnesses: JSON.stringify(formData.witnesses || []),
   };
 }
 
@@ -347,11 +374,28 @@ export function restoreFormDataFromAPI(apiData: any): any {
     repairerAddress: apiData.repairerAddress || "",
     isVehicleInUse: apiData.isVehicleInUse ?? null,
     thirdPartyProperties: safeJsonParse(apiData.thirdPartyProperties, []),
-    personsInjured: safeJsonParse(apiData.personsInjured, []),
+    injuredPersons: safeJsonParse(apiData.injuredPersons, []),
+    passengers: safeJsonParse(apiData.passengers, []),
+    witnesses: safeJsonParse(apiData.witnesses, []),
     ownerStatement: apiData.ownerStatement || "",
     declarationName: apiData.declarationName || "",
     declarationTitle: apiData.declarationTitle || "",
     declarationAccepted: apiData.declarationAccepted ?? false,
+    
+    // Finance/Loan fields
+    financeCompanyName: apiData.financeCompanyName ?? "",
+    hasOtherInsurance: apiData.hasOtherInsurance ?? false,
+    otherInsuranceDetails: apiData.otherInsuranceDetails ?? "",
+    hasLoanRepaymentCover: apiData.hasLoanRepaymentCover ?? false,
+    loanPrincipalAmount: apiData.loanPrincipalAmount ?? "",
+    loanInterestAmount: apiData.loanInterestAmount ?? "",
+    monthlyInstalment: apiData.monthlyInstalment ?? "",
+    loanCoveragePercentage: apiData.loanCoveragePercentage ?? "",
+    
+    // Trailer/Goods fields
+    wasTrailerAttached: apiData.wasTrailerAttached ?? false,
+    goodsOwnerName: apiData.goodsOwnerName || "",
+    loadWeight: apiData.loadWeight || "",
     
     // Other vehicles
     otherVehicles: apiData.otherVehicles || [],

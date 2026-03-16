@@ -385,10 +385,10 @@ export default function DriverDeclarationStep({
                 value={
                   formData.driver.ownsMotorVehicle === null
                     ? ""
-                    : String(formData.driver.ownsMotorVehicle)
+                    : formData.driver.ownsMotorVehicle ? "yes" : "no"
                 }
                 onValueChange={(v) =>
-                  handleDriverChange("ownsMotorVehicle", v === "true")
+                  handleDriverChange("ownsMotorVehicle", v === "yes")
                 }
                 className="flex space-x-4 mt-2"
               >

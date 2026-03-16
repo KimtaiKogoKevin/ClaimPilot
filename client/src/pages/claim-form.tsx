@@ -446,7 +446,24 @@ export default function ClaimForm() {
       repairerAddress: fd.repairerAddress || "",
       isVehicleInUse: fd.isVehicleInUse || false,
       thirdPartyProperties: JSON.stringify((fd as any).thirdPartyProperties || []),
-      personsInjured: JSON.stringify((fd as any).personsInjured || []),
+      injuredPersons: JSON.stringify((fd as any).injuredPersons || []),
+      passengers: JSON.stringify((fd as any).passengers || []),
+      witnesses: JSON.stringify((fd as any).witnesses || []),
+      
+      // Finance/Loan fields
+      financeCompanyName: fd.financeCompanyName ?? "",
+      hasOtherInsurance: fd.hasOtherInsurance ?? false,
+      otherInsuranceDetails: fd.otherInsuranceDetails ?? "",
+      hasLoanRepaymentCover: fd.hasLoanRepaymentCover ?? false,
+      loanPrincipalAmount: fd.loanPrincipalAmount ?? "",
+      loanInterestAmount: fd.loanInterestAmount ?? "",
+      monthlyInstalment: fd.monthlyInstalment ?? "",
+      loanCoveragePercentage: fd.loanCoveragePercentage ?? "",
+      
+      // Trailer/Goods fields
+      wasTrailerAttached: fd.wasTrailerAttached || false,
+      goodsOwnerName: fd.goodsOwnerName || "",
+      loadWeight: fd.loadWeight || "",
       
       // STEP 4: Final Declaration Fields
       ownerStatement: fd.ownerStatement || "",

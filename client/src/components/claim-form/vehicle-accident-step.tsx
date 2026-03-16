@@ -404,29 +404,13 @@ export default function VehicleAccidentStep({
               />
             </div>
             <div>
-              <Label htmlFor="ownerName">Owner's Address</Label>
+              <Label htmlFor="ownerAddress">Owner's Address</Label>
               <Input
-                id="ownerAddres"
+                id="ownerAddress"
                 value={formData.vehicle.ownerAddress}
                 onChange={(e) =>
                   handleVehicleChange("ownerAddress", e.target.value)
                 }
-              />
-            </div>
-
-            {/* --- Row 4 (Spanning) --- */}
-            <div className="md:col-span-3">
-              <Label htmlFor="ownerAddress">
-                State the Exact Purpose of the vehicle
-              </Label>
-              <Textarea
-                id="ownerAddress"
-                value={formData.vehicle.vehicleUse}
-                onChange={(e) =>
-                  handleVehicleChange("vehicleUse", e.target.value)
-                }
-                placeholder="e.g was caryring bags of cement"
-                rows={3}
               />
             </div>
           </div>

@@ -184,6 +184,8 @@ export const claims = pgTable("claims", {
   ownsMotorVehicle: boolean("owns_motor_vehicle"),
   ownVehicleInsurer: varchar("own_vehicle_insurer"),
   ownVehiclePolicyNumber: varchar("own_vehicle_policy_number"),
+  declarationAccepted: boolean("declaration_accepted").default(false),
+  ownerStatement: text("owner_statement"),
 });
 
 
@@ -231,7 +233,7 @@ export const individualDetails = pgTable("individual_details", {
   physicalAddress: text("physical_address"),
   email: varchar("email"),
   tradeBusiness: varchar("trade_business"),
-  ageBand: ageBandEnum("age_band").notNull(),
+  ageBand: ageBandEnum("age_band"),
 });
 
 // Corporate insured details
@@ -605,6 +607,11 @@ export type InsertDamagedPhoto = z.infer<typeof insertDamagedPhotoSchema>;
 export type DamagedPhoto = typeof damagedPhotos.$inferSelect;
 export type DetectedDamage = typeof detectedDamages.$inferSelect;
 
+export type ThirdPartyProperty = typeof thirdPartyProperties.$inferSelect;
+export type InjuredPerson = typeof injuredPersons.$inferSelect;
+export type Passenger = typeof passengers.$inferSelect;
+export type Witness = typeof witnesses.$inferSelect;
+
 // Full claim type with relations
 export type ClaimWithDetails = Claim & {
   insured: User;
@@ -617,6 +624,10 @@ export type ClaimWithDetails = Claim & {
   damagedPhotos: (DamagedPhoto & {
     detectedDamages: DetectedDamage[];
   })[];
+  thirdPartyProperties?: ThirdPartyProperty[];
+  injuredPersons?: InjuredPerson[];
+  passengers?: Passenger[];
+  witnesses?: Witness[];
 };
 
 // Authentication schemas  

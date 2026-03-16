@@ -9,6 +9,10 @@ import {
   otherVehicles,
   damagedPhotos,
   detectedDamages,
+  thirdPartyProperties,
+  injuredPersons,
+  passengers,
+  witnesses,
   auditLogs,
   systemSettings,
   claimEditSessions,
@@ -245,6 +249,10 @@ export class DatabaseStorage implements IStorage {
         bankDetails: true,
         otherVehicles: true,
         damagedPhotos: true,
+        thirdPartyProperties: true,
+        injuredPersons: true,
+        passengers: true,
+        witnesses: true,
       },
     });
     return result as ClaimWithDetails | undefined;
@@ -263,6 +271,10 @@ export class DatabaseStorage implements IStorage {
         bankDetails: true,
         otherVehicles: true,
         damagedPhotos: true,
+        thirdPartyProperties: true,
+        injuredPersons: true,
+        passengers: true,
+        witnesses: true,
       },
     });
     return result as ClaimWithDetails[];
@@ -280,6 +292,10 @@ export class DatabaseStorage implements IStorage {
         bankDetails: true,
         otherVehicles: true,
         damagedPhotos: true,
+        thirdPartyProperties: true,
+        injuredPersons: true,
+        passengers: true,
+        witnesses: true,
       },
     });
     return result as ClaimWithDetails[];
@@ -338,6 +354,16 @@ export class DatabaseStorage implements IStorage {
       loadWeight: data.loadWeight || null,
       declarationName: data.declarationName || null,
       declarationTitle: data.declarationTitle || null,
+      declarationAccepted: data.declarationAccepted ?? false,
+      ownerStatement: data.ownerStatement || null,
+      financeCompanyName: data.financeCompanyName || null,
+      hasOtherInsurance: data.hasOtherInsurance ?? false,
+      otherInsuranceDetails: data.otherInsuranceDetails || null,
+      hasLoanRepaymentCover: data.hasLoanRepaymentCover ?? false,
+      loanPrincipalAmount: data.loanPrincipalAmount != null && data.loanPrincipalAmount !== '' ? String(data.loanPrincipalAmount) : null,
+      loanInterestAmount: data.loanInterestAmount != null && data.loanInterestAmount !== '' ? String(data.loanInterestAmount) : null,
+      monthlyInstalment: data.monthlyInstalment != null && data.monthlyInstalment !== '' ? String(data.monthlyInstalment) : null,
+      loanCoveragePercentage: data.loanCoveragePercentage != null && data.loanCoveragePercentage !== '' ? String(data.loanCoveragePercentage) : null,
     };
     
     // Update the main claim
@@ -491,6 +517,78 @@ export class DatabaseStorage implements IStorage {
       
       await this.upsertBankDetails(bankData);
     }
+    
+    // Save third party properties (always delete first, then insert new)
+    const thirdPartyArr = typeof data.thirdPartyProperties === 'string' 
+      ? JSON.parse(data.thirdPartyProperties || '[]') 
+      : (data.thirdPartyProperties || []);
+    if (Array.isArray(thirdPartyArr)) {
+      await db.delete(thirdPartyProperties).where(eq(thirdPartyProperties.claimId, claimId));
+      for (const tp of thirdPartyArr) {
+        if (tp.ownerName || tp.ownerAddress || tp.propertyDescription) {
+          await db.insert(thirdPartyProperties).values({
+            claimId,
+            ownerName: tp.ownerName || null,
+            ownerAddress: tp.ownerAddress || null,
+            propertyDescription: tp.propertyDescription || null,
+          });
+        }
+      }
+    }
+    
+    // Save injured persons (always delete first, then insert new)
+    const injuredArr = typeof data.injuredPersons === 'string'
+      ? JSON.parse(data.injuredPersons || '[]')
+      : (data.injuredPersons || []);
+    if (Array.isArray(injuredArr)) {
+      await db.delete(injuredPersons).where(eq(injuredPersons.claimId, claimId));
+      for (const ip of injuredArr) {
+        if (ip.personName || ip.personAddress || ip.apparentInjuries) {
+          await db.insert(injuredPersons).values({
+            claimId,
+            personName: ip.personName || null,
+            personAddress: ip.personAddress || null,
+            relationshipToInsured: ip.relationshipToInsured || null,
+            vehicleRegNo: ip.vehicleRegNo || null,
+            apparentInjuries: ip.apparentInjuries || null,
+          });
+        }
+      }
+    }
+    
+    // Save passengers (always delete first, then insert new)
+    const passengersArr = typeof data.passengers === 'string'
+      ? JSON.parse(data.passengers || '[]')
+      : (data.passengers || []);
+    if (Array.isArray(passengersArr)) {
+      await db.delete(passengers).where(eq(passengers.claimId, claimId));
+      for (const p of passengersArr) {
+        if (p.passengerName || p.passengerAddress) {
+          await db.insert(passengers).values({
+            claimId,
+            passengerName: p.passengerName || null,
+            passengerAddress: p.passengerAddress || null,
+          });
+        }
+      }
+    }
+    
+    // Save witnesses (always delete first, then insert new)
+    const witnessesArr = typeof data.witnesses === 'string'
+      ? JSON.parse(data.witnesses || '[]')
+      : (data.witnesses || []);
+    if (Array.isArray(witnessesArr)) {
+      await db.delete(witnesses).where(eq(witnesses.claimId, claimId));
+      for (const w of witnessesArr) {
+        if (w.witnessName || w.witnessAddress) {
+          await db.insert(witnesses).values({
+            claimId,
+            witnessName: w.witnessName || null,
+            witnessAddress: w.witnessAddress || null,
+          });
+        }
+      }
+    }
   }
 
   async getDraftClaims(userId: string): Promise<ClaimWithDetails[]> {
@@ -509,6 +607,10 @@ export class DatabaseStorage implements IStorage {
         bankDetails: true,
         otherVehicles: true,
         damagedPhotos: true,
+        thirdPartyProperties: true,
+        injuredPersons: true,
+        passengers: true,
+        witnesses: true,
       },
     });
     return result as ClaimWithDetails[];
