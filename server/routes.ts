@@ -533,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiAnalysisResults: detectedDamages,
       };
       
-      const photo = await storage.addDamagedPhoto(photoData);
+      const photo = await storage.upsertDamagedPhoto(photoData);
       res.status(201).json({ photo, success: true });
     } catch (error) {
       console.error("Error adding damage photo:", error);
