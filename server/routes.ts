@@ -231,9 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Claim not found" });
       }
 
-      // Debug logging to identify timestamp issues
-      console.log("Save draft data received:", JSON.stringify(data, null, 2));
-      console.log("Saving step:", step, "Progress:", progressPercentage);
+      console.log("Saving draft step:", step, "Progress:", progressPercentage);
       
       await storage.saveDraftProgress(id, step, data, progressPercentage);
       res.json({ message: "Draft saved successfully" });
