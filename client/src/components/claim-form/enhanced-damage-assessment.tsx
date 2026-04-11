@@ -86,7 +86,7 @@ function normalizeObjectUrl(objectPath: string): string {
     return objectPath.split('?')[0];
   }
   if (objectPath.startsWith('/objects/')) {
-    return `/api${objectPath}`;
+    return objectPath;
   }
   return objectPath;
 }
@@ -100,6 +100,7 @@ export default function EnhancedDamageAssessment({
   const [captureMode, setCaptureMode] = useState<"photo" | "video">("photo");
   const [uploadedMedia, setUploadedMedia] = useState<Record<string, any>>({});
   const [aiAnalysisResults, setAiAnalysisResults] = useState<any[]>([]);
+  const [aiUnavailable, setAiUnavailable] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [videoChecklist, setVideoChecklist] = useState<Record<string, boolean>>(
     {}
@@ -118,6 +119,7 @@ export default function EnhancedDamageAssessment({
     if (existingMedia?.photos && existingMedia.photos.length > 0) {
       const restoredMedia: Record<string, any> = {};
       const restoredAnalysis: any[] = [];
+      let hasUnavailable = false;
       for (const photo of existingMedia.photos) {
         if (photo.angle) {
           const url = normalizeObjectUrl(photo.objectPath);
@@ -127,7 +129,9 @@ export default function EnhancedDamageAssessment({
           };
           if (photo.aiAnalysisResults) {
             const raw = photo.aiAnalysisResults;
-            if (raw.predictions && Array.isArray(raw.predictions)) {
+            if (raw.unavailable) {
+              hasUnavailable = true;
+            } else if (raw.predictions && Array.isArray(raw.predictions)) {
               for (const pred of raw.predictions) {
                 restoredAnalysis.push({
                   damageType: pred.damageType || pred.class || 'unknown',
@@ -145,6 +149,9 @@ export default function EnhancedDamageAssessment({
         if (Object.keys(prev).length === 0) return restoredMedia;
         return prev;
       });
+      if (hasUnavailable && restoredAnalysis.length === 0) {
+        setAiUnavailable(true);
+      }
       if (restoredAnalysis.length > 0) {
         setAiAnalysisResults(prev => prev.length === 0 ? restoredAnalysis : prev);
       }
@@ -193,7 +200,16 @@ export default function EnhancedDamageAssessment({
     },
     onSuccess: (data) => {
       if (data.aiAnalysis) {
-        setAiAnalysisResults((prev) => [...prev, data.aiAnalysis]);
+        if (data.aiAnalysis.unavailable) {
+          setAiUnavailable(true);
+        } else if (data.aiAnalysis.predictions && data.aiAnalysis.predictions.length > 0) {
+          const preds = data.aiAnalysis.predictions.map((p: any) => ({
+            damageType: p.damageType,
+            confidence: p.confidence,
+            severity: p.severity,
+          }));
+          setAiAnalysisResults((prev) => [...prev, ...preds]);
+        }
       }
       toast({
         title: "✓ Upload Successful",
@@ -228,24 +244,24 @@ export default function EnhancedDamageAssessment({
     },
     onSuccess: (data) => {
       setIsAnalyzing(false);
-      setAiAnalysisResults(data.results || []);
-      toast({
-        title: "✓ Analysis Complete",
-        description: `Damage assessment completed`,
-      });
+      if (data.unavailable) {
+        setAiUnavailable(true);
+      } else {
+        setAiAnalysisResults(data.results || []);
+        toast({
+          title: "✓ Analysis Complete",
+          description: `Damage assessment completed`,
+        });
+      }
     },
     onError: (error) => {
       setIsAnalyzing(false);
       console.error("Analysis error:", error);
-      // Use placeholder results if API fails
-      setAiAnalysisResults([
-        {
-          damageType: "Front Bumper Scratch",
-          confidence: 0.85,
-          severity: "medium",
-        },
-        { damageType: "Door Dent", confidence: 0.92, severity: "low" },
-      ]);
+      toast({
+        title: "Analysis Failed",
+        description: "Could not complete AI damage analysis. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -1184,6 +1200,16 @@ export default function EnhancedDamageAssessment({
                   Analyzing damage with computer vision...
                 </p>
               </div>
+            ) : aiUnavailable ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>AI Analysis Unavailable</AlertTitle>
+                <AlertDescription>
+                  AI damage detection requires a Roboflow API key. Please add your{" "}
+                  <strong>ROBOFLOW_API_KEY</strong> environment variable to enable
+                  automated damage analysis.
+                </AlertDescription>
+              </Alert>
             ) : aiAnalysisResults.length > 0 ? (
               <div className="space-y-4">
                 {/* Summary */}

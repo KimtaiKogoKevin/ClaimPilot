@@ -112,7 +112,9 @@ export default function ClaimantDashboard() {
     totalClaims: claims.length,
     pendingClaims: claims.filter((c: ClaimWithDetails) => c.status === 'under_review').length,
     approvedClaims: claims.filter((c: ClaimWithDetails) => c.status === 'approved').length,
-    totalPayout: 0, // Would calculate from actual claim amounts
+    totalPayout: claims
+      .filter((c: ClaimWithDetails) => c.status === 'paid' || c.status === 'approved')
+      .reduce((sum: number, c: ClaimWithDetails) => sum + Number(c.finalSettlementAmount || 0), 0),
   };
 
   const getStatusColor = (status: string) => {
@@ -190,7 +192,9 @@ export default function ClaimantDashboard() {
                     <DollarSign className="text-green-600 h-6 w-6" />
                   </div>
                   <div className="ml-4">
-                    <div className="text-2xl font-bold text-neutral-800">$0</div>
+                    <div className="text-2xl font-bold text-neutral-800">
+                      {stats.totalPayout.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
+                    </div>
                     <div className="text-sm text-neutral-600">Total Payout</div>
                   </div>
                 </div>

@@ -593,24 +593,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Continue without AI analysis
           }
         } else {
-          console.log("ROBOFLOW_API_KEY not set - using placeholder analysis");
-          // Placeholder AI analysis for demonstration
+          console.log("ROBOFLOW_API_KEY not set - AI analysis unavailable");
           aiAnalysis = {
-            predictions: [
-              {
-                damageType: 'dent',
-                confidence: 0.85,
-                severity: 'medium',
-                boundingBox: { x: 100, y: 150, width: 50, height: 30 }
-              },
-              {
-                damageType: 'scratch',
-                confidence: 0.72,
-                severity: 'low',
-                boundingBox: { x: 200, y: 180, width: 80, height: 10 }
-              }
-            ],
-            totalDamages: 2,
+            predictions: [],
+            totalDamages: 0,
+            unavailable: true,
           };
         }
       }
@@ -688,49 +675,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Media IDs array is required" });
       }
       
+      const apiKey = process.env.ROBOFLOW_API_KEY;
+      
+      // If no Roboflow key is configured, report unavailable rather than fake results
+      if (!apiKey) {
+        return res.json({
+          results: [],
+          totalDamages: 0,
+          unavailable: true,
+        });
+      }
+      
       // Get all media files for this claim
       const claimMedia = await storage.getDamagedPhotos(id);
       
       let totalDamages = 0;
       const results = [];
       
-      // Placeholder comprehensive analysis
-      // In production, this would batch process all media through the AI model
       for (const media of claimMedia) {
-        if (!media.aiAnalysisResults) {
-          // Simulate AI analysis for media that hasn't been analyzed
-          const analysis = {
-            mediaId: media.id,
-            damageType: ['dent', 'scratch', 'crack'][Math.floor(Math.random() * 3)],
-            severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-            confidence: Math.random() * 0.5 + 0.5,
-            estimatedCost: Math.floor(Math.random() * 2000) + 500,
-          };
-          results.push(analysis);
-          totalDamages++;
-        } else {
-          // Use existing analysis
+        if (media.aiAnalysisResults) {
           const existing = media.aiAnalysisResults as any;
-          if (existing.predictions) {
+          if (existing.predictions && Array.isArray(existing.predictions)) {
             totalDamages += existing.predictions.length;
             results.push(...existing.predictions);
           }
         }
       }
       
-      // Generate comprehensive assessment
       const assessment = {
         totalDamages,
         analyzedMedia: claimMedia.length,
         results,
         overallSeverity: totalDamages > 5 ? 'high' : totalDamages > 2 ? 'medium' : 'low',
         estimatedTotalCost: results.reduce((sum: number, r: any) => sum + (r.estimatedCost || 0), 0),
-        repairability: totalDamages > 10 ? 'total_loss' : 'repairable',
-        recommendations: [
-          'Professional body shop assessment recommended',
-          'Multiple damage points detected requiring specialized repair',
-          'Insurance adjuster review suggested for accurate valuation'
-        ]
       };
       
       // Update claim with AI analysis summary

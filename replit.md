@@ -83,3 +83,84 @@ The PostgreSQL database schema supports a comprehensive claims management ecosys
 - **TanStack Query**: Server state management
 - **React Hook Form**: Form management
 - **Zod**: Schema validation
+
+## Self-Hosting & Migration
+
+### Database Migration
+
+After cloning the repository and configuring environment variables, run the following command to apply the database schema:
+
+```bash
+npm run db:push
+```
+
+This command uses Drizzle Kit to push the schema to the configured PostgreSQL database.
+
+### Required Environment Variables
+
+| Variable | Description | Required |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (e.g. `postgres://user:pass@host/db`) | Yes |
+| `JWT_SECRET` | Secret key for signing JWT tokens (standalone mode) | Yes (standalone) |
+| `SESSION_SECRET` | Secret key for session cookie signing | Yes |
+| `NODE_ENV` | Set to `production` for production deployments | Recommended |
+| `PORT` | HTTP port to listen on (defaults to `5000`) | No |
+
+### Authentication Mode
+
+The platform supports two authentication modes:
+
+- **Replit mode** (default on Replit): Uses Replit's OpenID Connect (OIDC) via Passport.js. No extra configuration is needed when hosted on Replit.
+- **Standalone/JWT mode**: Uses JWT-based authentication with bcrypt password hashing. Requires `JWT_SECRET` and `SESSION_SECRET`.
+
+### Email Configuration
+
+Email is used for password reset flows. Configure these variables for outbound email:
+
+| Variable | Description |
+|---|---|
+| `EMAIL_HOST` | SMTP server hostname (e.g. `smtp.sendgrid.net`) |
+| `EMAIL_PORT` | SMTP port (typically `587` for TLS) |
+| `EMAIL_USER` | SMTP username or API key |
+| `EMAIL_PASS` | SMTP password or API secret |
+| `EMAIL_FROM` | Sender address (e.g. `no-reply@yourdomain.com`) |
+
+### Object Storage Configuration
+
+| Variable | Description |
+|---|---|
+| `PRIVATE_OBJECT_DIR` | Directory path for private uploaded files (set by Replit Object Storage) |
+| `PUBLIC_OBJECT_SEARCH_PATHS` | Search paths for public assets (set by Replit Object Storage) |
+
+When running outside Replit, configure these to point to accessible local or cloud storage paths.
+
+### Roboflow AI Integration
+
+The platform uses Roboflow computer vision models for automated vehicle damage detection.
+
+**Step 1 — Get an API key:**
+1. Sign up at [https://roboflow.com](https://roboflow.com)
+2. Go to your workspace settings → API Keys
+3. Copy your Private API key
+
+**Step 2 — Find or train model IDs:**
+- Browse pre-trained vehicle damage models at [https://universe.roboflow.com](https://universe.roboflow.com)
+- Search for "vehicle damage" or "car damage" to find suitable models
+- Copy the model ID from the model's API page
+
+**Step 3 — Set environment variables:**
+
+| Variable | Description |
+|---|---|
+| `ROBOFLOW_API_KEY` | Your Roboflow private API key |
+| `ROBOFLOW_VEHICLE_MODEL_ID` | Model ID for vehicle damage detection |
+| `ROBOFLOW_GOODS_MODEL_ID` | Model ID for goods/cargo damage detection |
+
+Without `ROBOFLOW_API_KEY`, the AI analysis step will display an "AI Analysis Unavailable" alert instead of returning fake placeholder results. Claims can still be submitted and reviewed manually.
+
+### Standalone Files
+
+- `server/standalone.ts` — Entry point for running the backend outside the Replit/Vite environment
+- `server/localAuth.ts` — JWT-based authentication middleware for standalone deployments
+
+These files are not used in the standard Replit deployment but are preserved for self-hosting scenarios.

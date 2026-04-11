@@ -24,7 +24,7 @@ function normalizeObjectUrl(objectPath: string): string {
     return objectPath.split('?')[0];
   }
   if (objectPath.startsWith('/objects/')) {
-    return `/api${objectPath}`;
+    return objectPath;
   }
   return objectPath;
 }

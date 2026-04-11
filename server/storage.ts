@@ -819,40 +819,91 @@ export class DatabaseStorage implements IStorage {
   // Analytics dashboard method - admin only
   async getAnalyticsDashboard(): Promise<any> {
     try {
-      // Return analytics data for all claims (admin view)
+      // Real DB aggregations for claims overview
+      const allClaims = await db.select({
+        status: claims.status,
+        finalSettlementAmount: claims.finalSettlementAmount,
+        createdAt: claims.createdAt,
+      }).from(claims);
+
+      const total = allClaims.length;
+      const pending = allClaims.filter(c => c.status === 'under_review' || c.status === 'submitted').length;
+      const approved = allClaims.filter(c => c.status === 'approved').length;
+      const rejected = allClaims.filter(c => c.status === 'rejected').length;
+      const paid = allClaims.filter(c => c.status === 'paid').length;
+      const draft = allClaims.filter(c => c.status === 'draft').length;
+
+      // Real payout totals: sum of finalSettlementAmount for paid or approved claims
+      const settledClaims = allClaims.filter(c => c.status === 'paid' || c.status === 'approved');
+      const totalPayouts = settledClaims.reduce((sum, c) => sum + Number(c.finalSettlementAmount || 0), 0);
+      const avgClaimAmount = settledClaims.length > 0 ? totalPayouts / settledClaims.length : 0;
+      const largestClaim = settledClaims.reduce((max, c) => Math.max(max, Number(c.finalSettlementAmount || 0)), 0);
+
+      // Monthly trends: last 6 months
+      const now = new Date();
+      const monthlyTrends = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthName = d.toLocaleString('en-US', { month: 'short' });
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const monthClaims = allClaims.filter(c => {
+          if (!c.createdAt) return false;
+          const cd = new Date(c.createdAt);
+          return cd.getFullYear() === year && cd.getMonth() === month;
+        });
+        const monthSettled = monthClaims.filter(c => c.status === 'paid' || c.status === 'approved');
+        const monthTotal = monthSettled.reduce((sum, c) => sum + Number(c.finalSettlementAmount || 0), 0);
+        const monthAvg = monthSettled.length > 0 ? Math.round(monthTotal / monthSettled.length) : 0;
+        monthlyTrends.push({
+          month: monthName,
+          claims: monthClaims.length,
+          settlements: monthSettled.length,
+          avgAmount: monthAvg,
+        });
+      }
+
+      // Status distribution for chart
+      const statusCounts: Record<string, number> = {};
+      for (const c of allClaims) {
+        statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
+      }
+      const severityBreakdown = Object.entries(statusCounts).map(([status, value]) => {
+        const colorMap: Record<string, string> = {
+          draft: '#94a3b8',
+          submitted: '#60a5fa',
+          under_review: '#f59e0b',
+          approved: '#10b981',
+          rejected: '#ef4444',
+          paid: '#6366f1',
+        };
+        return { name: status.replace('_', ' '), value, color: colorMap[status] || '#94a3b8' };
+      });
+
+      const settlementRate = total > 0 ? Math.round(((approved + paid) / total) * 100) : 0;
+
       return {
         claimsOverview: {
-          total: 156,
-          pending: 42,
-          approved: 78,
-          rejected: 12,
-          processing: 24,
+          total,
+          pending,
+          approved,
+          rejected,
+          processing: paid,
+          draft,
         },
-        severityBreakdown: [
-          { name: 'Minor', value: 62, color: '#10b981' },
-          { name: 'Moderate', value: 55, color: '#f59e0b' },
-          { name: 'Major', value: 31, color: '#ef4444' },
-          { name: 'Total Loss', value: 8, color: '#7c2d12' },
-        ],
-        monthlyTrends: [
-          { month: 'Jan', claims: 28, settlements: 22, avgAmount: 7200 },
-          { month: 'Feb', claims: 34, settlements: 28, avgAmount: 6800 },
-          { month: 'Mar', claims: 41, settlements: 35, avgAmount: 7500 },
-          { month: 'Apr', claims: 29, settlements: 24, avgAmount: 8100 },
-          { month: 'May', claims: 37, settlements: 31, avgAmount: 7300 },
-          { month: 'Jun', claims: 43, settlements: 38, avgAmount: 7900 },
-        ],
+        severityBreakdown,
+        monthlyTrends,
         costAnalysis: {
-          totalPayouts: 1170000,
-          avgClaimAmount: 7500,
-          largestClaim: 25000,
-          reserves: 336000,
+          totalPayouts: Math.round(totalPayouts),
+          avgClaimAmount: Math.round(avgClaimAmount),
+          largestClaim: Math.round(largestClaim),
+          reserves: 0,
         },
         performanceMetrics: {
-          avgProcessingTime: 12,
-          settlementRate: 82,
-          customerSatisfaction: 87,
-          reopenRate: 3,
+          avgProcessingTime: 0,
+          settlementRate,
+          customerSatisfaction: 0,
+          reopenRate: 0,
         },
       };
     } catch (error) {
