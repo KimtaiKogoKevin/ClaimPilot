@@ -1347,6 +1347,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get insured users list (for admin dropdown)
+  app.get("/api/admin/insured-users", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const insuredUsers = await storage.getAllUsers({ role: 'insured' });
+      const result = insuredUsers.map((u) => ({
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+      }));
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching insured users:", error);
+      res.status(500).json({ message: "Failed to fetch insured users" });
+    }
+  });
+
+  // Create a draft claim on behalf of an insured user (admin only)
+  app.post("/api/admin/claims/new-for-user", authenticateToken, async (req: any, res) => {
+    try {
+      const adminId = req.user?.id || req.userId;
+      if (!adminId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const admin = await storage.getUser(adminId);
+      if (!admin || admin.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Target user not found" });
+      }
+
+      if (targetUser.role !== 'insured') {
+        return res.status(400).json({ message: "Claims can only be created for insured users" });
+      }
+
+      const claimData = insertClaimSchema.parse({
+        insuredId: userId,
+        status: "draft",
+        policyNumber: "",
+        insuredType: "individual",
+        typeOfCover: "",
+      });
+
+      const claim = await storage.createClaim(claimData);
+
+      try {
+        await storage.createAuditLog({
+          adminId,
+          action: 'create_on_behalf',
+          entityType: 'claim',
+          entityId: claim.id,
+          changes: { targetUserId: userId },
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+        });
+      } catch (auditError) {
+        console.warn("Audit log failed (non-critical):", auditError);
+      }
+
+      res.status(201).json(claim);
+    } catch (error) {
+      console.error("Error creating claim on behalf of user:", error);
+      res.status(400).json({ message: "Failed to create claim" });
+    }
+  });
+
   // Claim Management Routes
   app.post("/api/admin/claims/bulk-status", authenticateToken, async (req: any, res) => {
     try {

@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocation } from "wouter";
 import {
   Select,
   SelectContent,
@@ -130,6 +131,7 @@ export default function AdminDashboard() {
   const { user } = useStandaloneAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("analytics");
 
   const [userSearchTerm, setUserSearchTerm] = useState("");
@@ -137,6 +139,10 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showDeleteUserDialog, setShowDeleteUserDialog] = useState(false);
+
+  const [showNewClaimForClientDialog, setShowNewClaimForClientDialog] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [clientSearchTerm, setClientSearchTerm] = useState("");
 
   const [settingKey, setSettingKey] = useState("");
   const [settingValue, setSettingValue] = useState("");
@@ -181,6 +187,11 @@ export default function AdminDashboard() {
   const { data: signupRequests = [], isLoading: signupRequestsLoading } = useQuery<AdminSignupRequest[]>({
     queryKey: ['/api/admin/signup-requests'],
     enabled: !!user && user.role === 'admin',
+  });
+
+  const { data: insuredUsers = [] } = useQuery<Array<{ id: string; firstName: string; lastName: string; email: string }>>({
+    queryKey: ['/api/admin/insured-users'],
+    enabled: !!user && user.role === 'admin' && showNewClaimForClientDialog,
   });
 
   const createUserMutation = useMutation({
@@ -329,6 +340,35 @@ export default function AdminDashboard() {
       toast({ title: "Error", description: error.message || "Failed to reject request.", variant: "destructive" });
     },
   });
+
+  const createClaimForClientMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest('POST', '/api/admin/claims/new-for-user', { userId });
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/staff/claims'] });
+      toast({ title: "Claim Created", description: "A new draft claim has been created. Redirecting to the claim form..." });
+      setShowNewClaimForClientDialog(false);
+      setSelectedClientId("");
+      setClientSearchTerm("");
+      setTimeout(() => {
+        setLocation(`/claim-form/${data.id}`);
+      }, 500);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to create claim.", variant: "destructive" });
+    },
+  });
+
+  const handleStartClaimForClient = () => {
+    if (!selectedClientId) {
+      toast({ title: "Error", description: "Please select a client.", variant: "destructive" });
+      return;
+    }
+    createClaimForClientMutation.mutate(selectedClientId);
+  };
 
   const handleSaveUser = () => {
     if (!selectedUser) return;
@@ -962,6 +1002,17 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <CardTitle>Claims Management</CardTitle>
+                    <Button
+                      onClick={() => {
+                        setSelectedClientId("");
+                        setClientSearchTerm("");
+                        setShowNewClaimForClientDialog(true);
+                      }}
+                      data-testid="button-new-claim-for-client"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Claim for Client
+                    </Button>
                   </div>
                   {selectedClaims.length > 0 && (
                     <>
@@ -1715,6 +1766,85 @@ export default function AdminDashboard() {
               data-testid="button-save-setting"
             >
               {upsertSettingMutation.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNewClaimForClientDialog} onOpenChange={(open) => {
+        setShowNewClaimForClientDialog(open);
+        if (!open) {
+          setSelectedClientId("");
+          setClientSearchTerm("");
+        }
+      }}>
+        <DialogContent className="max-w-full sm:max-w-md" data-testid="dialog-new-claim-for-client">
+          <DialogHeader>
+            <DialogTitle>New Claim for Client</DialogTitle>
+            <DialogDescription>
+              Select an existing insured client to file a claim on their behalf.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="client-search">Search Client</Label>
+              <Input
+                id="client-search"
+                value={clientSearchTerm}
+                onChange={(e) => setClientSearchTerm(e.target.value)}
+                placeholder="Search by name or email..."
+                data-testid="input-client-search"
+              />
+            </div>
+            <div>
+              <Label htmlFor="client-select">Select Client</Label>
+              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                <SelectTrigger id="client-select" data-testid="select-client">
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {insuredUsers
+                    .filter((u) => {
+                      if (!clientSearchTerm) return true;
+                      const searchLower = clientSearchTerm.toLowerCase();
+                      const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+                      const email = (u.email || '').toLowerCase();
+                      return fullName.includes(searchLower) || email.includes(searchLower);
+                    })
+                    .map((u) => (
+                      <SelectItem key={u.id} value={u.id} data-testid={`option-client-${u.id}`}>
+                        {u.firstName} {u.lastName} — {u.email}
+                      </SelectItem>
+                    ))}
+                  {insuredUsers.filter((u) => {
+                    if (!clientSearchTerm) return true;
+                    const searchLower = clientSearchTerm.toLowerCase();
+                    const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+                    const email = (u.email || '').toLowerCase();
+                    return fullName.includes(searchLower) || email.includes(searchLower);
+                  }).length === 0 && (
+                    <SelectItem value="__none__" disabled>No clients found</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowNewClaimForClientDialog(false)}
+              className="w-full sm:w-auto"
+              data-testid="button-cancel-new-claim-for-client"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStartClaimForClient}
+              disabled={!selectedClientId || createClaimForClientMutation.isPending}
+              className="w-full sm:w-auto"
+              data-testid="button-start-claim-for-client"
+            >
+              {createClaimForClientMutation.isPending ? 'Creating...' : 'Start Claim'}
             </Button>
           </DialogFooter>
         </DialogContent>

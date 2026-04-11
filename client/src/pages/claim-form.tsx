@@ -54,6 +54,22 @@ export default function ClaimForm() {
     queryKey: ['/api/auth/user'],
   });
 
+  // Fetch claim to get insured user info for admin "filing on behalf of" banner
+  const { data: claimData } = useQuery<{ insuredId: string }>({
+    queryKey: ['/api/claims', claimId],
+    enabled: !!claimId && user?.role === 'admin',
+  });
+
+  // Fetch insured users list so admin can see who they are filing for
+  const { data: allInsuredUsers = [] } = useQuery<Array<{ id: string; firstName: string; lastName: string; email: string }>>({
+    queryKey: ['/api/admin/insured-users'],
+    enabled: !!claimId && user?.role === 'admin' && !!claimData?.insuredId && claimData.insuredId !== user?.id,
+  });
+
+  const insuredUserForClaim = claimData?.insuredId && claimData.insuredId !== user?.id
+    ? allInsuredUsers.find((u) => u.id === claimData.insuredId) || null
+    : null;
+
   // Track highlighted fields for remote updates
   const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
   const [showHistory, setShowHistory] = useState(false);
@@ -736,6 +752,13 @@ export default function ClaimForm() {
               </div>
             </div>
           </div>
+
+          {/* Admin "Filing on behalf of" banner */}
+          {claimId && user?.role === 'admin' && insuredUserForClaim && (
+            <div className="mb-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm font-medium" data-testid="banner-filing-on-behalf">
+              Filing on behalf of {insuredUserForClaim.firstName} {insuredUserForClaim.lastName}
+            </div>
+          )}
 
           {/* Collaboration Status */}
           {claimId && (
