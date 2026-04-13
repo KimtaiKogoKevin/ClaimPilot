@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -48,6 +48,9 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={ClaimantDashboard} />
+        <Route path="/auth">{() => <Redirect to="/" />}</Route>
+        <Route path="/auth/insured">{() => <Redirect to="/" />}</Route>
+        <Route path="/auth/admin">{() => <Redirect to="/" />}</Route>
         <Route path="/claim-form/:id" component={ClaimForm} />
         <Route path="/claim-form" component={ClaimForm} />
         <Route path="/claim-details/:id" component={ClaimDetails} />
@@ -67,6 +70,9 @@ function Router() {
         <Route path="/admin/claims" component={AdminDashboard} />
         <Route path="/admin/settings" component={AdminDashboard} />
         <Route path="/admin/audit" component={AdminDashboard} />
+        <Route path="/auth">{() => <Redirect to="/admin-dashboard" />}</Route>
+        <Route path="/auth/insured">{() => <Redirect to="/admin-dashboard" />}</Route>
+        <Route path="/auth/admin">{() => <Redirect to="/admin-dashboard" />}</Route>
         <Route path="/claim-form/:id" component={ClaimForm} />
         <Route path="/claim-form" component={ClaimForm} />
         <Route path="/claim-details/:id" component={ClaimDetails} />

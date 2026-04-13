@@ -523,8 +523,10 @@ export default function ClaimForm() {
     autoSave();
   };
 
+  const getDashboardRoute = () => user?.role === 'admin' ? '/admin-dashboard' : '/';
+
   const handleBackToLanding = () => {
-    setLocation("/");
+    setLocation(getDashboardRoute());
   };
 
   const handleNextStep = () => {
@@ -648,18 +650,18 @@ export default function ClaimForm() {
       
       // Redirect to dashboard after successful submission
       setTimeout(() => {
-        setLocation("/");
+        setLocation(getDashboardRoute());
       }, 1500);
       
     } catch (error) {
       if (isUnauthorizedError(error as Error)) {
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          title: "Session expired",
+          description: "Please sign in again.",
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/auth";
         }, 500);
         return;
       }

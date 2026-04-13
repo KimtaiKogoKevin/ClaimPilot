@@ -8,10 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ArrowLeft, Download, FileText, AlertCircle, Car, User, CheckCircle, Clock, XCircle, Camera, CreditCard, Truck, Info, MapPin, Calendar, Eye } from "lucide-react";
 import type { ClaimWithDetails } from "@shared/schema";
 
+function getDashboardRoute(role?: string) {
+  return role === 'admin' ? '/admin-dashboard' : '/';
+}
+
 export default function ClaimDetails() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading } = useStandaloneAuth();
+  const { isAuthenticated, isLoading, user } = useStandaloneAuth();
   const { toast } = useToast();
   const [claim, setClaim] = useState<ClaimWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +82,7 @@ export default function ClaimDetails() {
           description: "Failed to load claim details. Please try again.",
           variant: "destructive",
         });
-        setLocation("/dashboard");
+        setLocation(getDashboardRoute(user?.role));
       } finally {
         setLoading(false);
       }
@@ -152,7 +156,7 @@ export default function ClaimDetails() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Claim not found</p>
-          <Button onClick={() => setLocation("/dashboard")} className="mt-4">
+          <Button onClick={() => setLocation(getDashboardRoute(user?.role))} className="mt-4">
             Back to Dashboard
           </Button>
         </div>
@@ -178,7 +182,7 @@ export default function ClaimDetails() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => setLocation("/dashboard")}
+            onClick={() => setLocation(getDashboardRoute(user?.role))}
             className="mb-4 text-gray-600 hover:text-gray-800"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />

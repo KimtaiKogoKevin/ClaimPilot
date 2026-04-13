@@ -55,6 +55,7 @@ import {
   Activity,
   Trash2,
   Edit,
+  Eye,
   Plus,
   BarChart3,
   Shield,
@@ -1179,12 +1180,20 @@ export default function AdminDashboard() {
                               {new Date(claim.createdAt).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
-                              <Link href={`/claim-form/${claim.id}`}>
-                                <Button variant="outline" size="sm" data-testid={`button-edit-claim-${claim.id}`}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit
-                                </Button>
-                              </Link>
+                              <div className="flex gap-2">
+                                <Link href={`/claim-details/${claim.id}`}>
+                                  <Button variant="ghost" size="sm" data-testid={`button-view-claim-${claim.id}`}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </Button>
+                                </Link>
+                                <Link href={`/claim-form/${claim.id}`}>
+                                  <Button variant="outline" size="sm" data-testid={`button-edit-claim-${claim.id}`}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </Button>
+                                </Link>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))
