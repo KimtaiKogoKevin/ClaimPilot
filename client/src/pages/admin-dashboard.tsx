@@ -85,6 +85,32 @@ import {
   RadialBar,
 } from "recharts";
 
+// Status badge helper (unified with claimant dashboard)
+function ClaimStatusBadge({ status, ...props }: { status: string; [key: string]: any }) {
+  const map: Record<string, { label: string; cls: string; dot: string }> = {
+    draft:        { label: "Draft",        cls: "badge-draft",     dot: "bg-slate-400" },
+    submitted:    { label: "Submitted",    cls: "badge-submitted", dot: "bg-blue-500" },
+    under_review: { label: "Under Review", cls: "badge-review",    dot: "bg-amber-500" },
+    approved:     { label: "Approved",     cls: "badge-approved",  dot: "bg-emerald-500" },
+    rejected:     { label: "Rejected",     cls: "badge-rejected",  dot: "bg-red-500" },
+    paid:         { label: "Paid",         cls: "badge-paid",      dot: "bg-purple-500" },
+    completed:    { label: "Completed",    cls: "badge-approved",  dot: "bg-emerald-500" },
+  };
+  const s = map[status] || { label: status.replace(/_/g, ' '), cls: "badge-draft", dot: "bg-slate-400" };
+  return (
+    <span className={s.cls} {...props}>
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+      {s.label}
+    </span>
+  );
+}
+
+function RequestStatusBadge({ status, ...props }: { status: string; [key: string]: any }) {
+  if (status === 'approved') return <span className="badge-approved" {...props}><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Approved</span>;
+  if (status === 'rejected') return <span className="badge-rejected" {...props}><span className="w-1.5 h-1.5 rounded-full bg-red-500" />Rejected</span>;
+  return <span className="badge-submitted" {...props}><span className="w-1.5 h-1.5 rounded-full bg-blue-500" />Pending</span>;
+}
+
 // Professional color palette for charts
 const CHART_COLORS = {
   primary: '#3b82f6',
@@ -420,14 +446,13 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[hsl(210,20%,98%)]">
       <AppHeader />
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Shield className="h-8 w-8 text-primary" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-fade-in">
           <div>
-            <h1 className="text-3xl font-bold" data-testid="heading-admin-dashboard">Admin Dashboard</h1>
-            <p className="text-muted-foreground">System administration and management</p>
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight" data-testid="heading-admin-dashboard">Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">System administration and claims management</p>
           </div>
         </div>
 
@@ -463,42 +488,44 @@ export default function AdminDashboard() {
 
           <TabsContent value="analytics" className="space-y-4">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-              <Card data-testid="card-total-users">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold" data-testid="stat-total-users">
-                    {statsLoading ? "..." : stats?.totalUsers || 0}
+              <div className="stat-card" data-testid="card-total-users">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+                    <Users className="h-5 w-5 text-white" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="text-2xl font-extrabold text-foreground tracking-tight" data-testid="stat-total-users">
+                  {statsLoading ? <div className="skeleton h-8 w-16" /> : stats?.totalUsers || 0}
+                </div>
+                <div className="text-sm font-medium text-foreground mt-0.5">Total users</div>
+                <div className="text-xs text-muted-foreground mt-0.5">All registered accounts</div>
+              </div>
 
-              <Card data-testid="card-total-claims">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Claims</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold" data-testid="stat-total-claims">
-                    {statsLoading ? "..." : stats?.totalClaims || 0}
+              <div className="stat-card" data-testid="card-total-claims">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
+                    <FileText className="h-5 w-5 text-white" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="text-2xl font-extrabold text-foreground tracking-tight" data-testid="stat-total-claims">
+                  {statsLoading ? <div className="skeleton h-8 w-16" /> : stats?.totalClaims || 0}
+                </div>
+                <div className="text-sm font-medium text-foreground mt-0.5">Total claims</div>
+                <div className="text-xs text-muted-foreground mt-0.5">All time submissions</div>
+              </div>
 
               <Card data-testid="card-users-by-role">
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Users by Role</CardTitle>
+                  <CardTitle className="text-sm font-medium">Users by role</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {statsLoading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : (
                     stats?.usersByRole.map(({ role, count }) => (
-                      <div key={role} className="flex justify-between text-sm" data-testid={`role-count-${role}`}>
-                        <span className="capitalize">{role}</span>
-                        <span className="font-medium">{count}</span>
+                      <div key={role} className="flex justify-between text-sm items-center" data-testid={`role-count-${role}`}>
+                        <span className="capitalize text-muted-foreground">{role}</span>
+                        <span className="font-semibold text-foreground">{count}</span>
                       </div>
                     ))
                   )}
@@ -507,7 +534,7 @@ export default function AdminDashboard() {
 
               <Card data-testid="card-claims-by-status">
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Claims by Status</CardTitle>
+                  <CardTitle className="text-sm font-medium">Claims by status</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {statsLoading ? (
@@ -517,10 +544,10 @@ export default function AdminDashboard() {
                       <div key={status} className="flex justify-between text-sm items-center" data-testid={`status-count-${status}`}>
                         <div className="flex items-center gap-2">
                           <div 
-                            className="w-3 h-3 rounded-full" 
+                            className="w-2.5 h-2.5 rounded-full" 
                             style={{ backgroundColor: STATUS_COLORS[status] || CHART_COLORS.muted }}
                           />
-                          <span className="capitalize">{status.replace(/_/g, ' ')}</span>
+                          <span className="capitalize text-muted-foreground">{status.replace(/_/g, ' ')}</span>
                         </div>
                         <span className="font-medium">{count}</span>
                       </div>
@@ -1072,9 +1099,7 @@ export default function AdminDashboard() {
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-muted-foreground">Status</p>
-                                  <Badge variant="outline" data-testid={`badge-status-${claim.id}`}>
-                                    {claim.status}
-                                  </Badge>
+                                  <ClaimStatusBadge status={claim.status} data-testid={`badge-status-${claim.id}`} />
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-muted-foreground">Policy Number</p>
@@ -1148,9 +1173,7 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>{claim.policyNumber}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" data-testid={`badge-status-${claim.id}`}>
-                                {claim.status}
-                              </Badge>
+                              <ClaimStatusBadge status={claim.status} data-testid={`badge-status-${claim.id}`} />
                             </TableCell>
                             <TableCell>
                               {new Date(claim.createdAt).toLocaleDateString()}
@@ -1379,12 +1402,7 @@ export default function AdminDashboard() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-muted-foreground">Status</p>
-                              <Badge
-                                variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}
-                                data-testid={`badge-status-${request.id}`}
-                              >
-                                {request.status}
-                              </Badge>
+                              <RequestStatusBadge status={request.status} data-testid={`badge-status-${request.id}`} />
                             </div>
                             <div>
                               <p className="text-sm font-medium text-muted-foreground">Submitted</p>
@@ -1451,13 +1469,7 @@ export default function AdminDashboard() {
                             <TableCell>{request.firstName} {request.lastName}</TableCell>
                             <TableCell>{request.email}</TableCell>
                             <TableCell>
-                              <Badge
-                                variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}
-                                className={request.status === 'approved' ? 'bg-green-500' : ''}
-                                data-testid={`badge-status-${request.id}`}
-                              >
-                                {request.status}
-                              </Badge>
+                              <RequestStatusBadge status={request.status} data-testid={`badge-status-${request.id}`} />
                             </TableCell>
                             <TableCell>
                               {request.createdAt ? format(new Date(request.createdAt), 'MMM d, yyyy') : 'N/A'}

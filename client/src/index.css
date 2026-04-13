@@ -1,63 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 35%);
+  --background: hsl(210, 20%, 98%);
+  --foreground: hsl(222, 47%, 11%);
+  --muted: hsl(210, 16%, 93%);
+  --muted-foreground: hsl(215, 13%, 45%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --popover-foreground: hsl(222, 47%, 11%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(143, 85%, 33%);
-  --secondary-foreground: hsl(60, 9.1%, 97.8%);
-  --accent: hsl(60, 4.8%, 95.9%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
-  --radius: 0.5rem;
-  --ai-purple: hsl(251, 91%, 68%);
-  --neutral-50: hsl(216, 33%, 97%);
-  --neutral-100: hsl(214, 32%, 95%);
-  --neutral-200: hsl(213, 27%, 84%);
-  --neutral-600: hsl(215, 13%, 35%);
-  --neutral-800: hsl(217, 19%, 16%);
+  --card-foreground: hsl(222, 47%, 11%);
+  --border: hsl(214, 20%, 90%);
+  --input: hsl(214, 20%, 90%);
+  --primary: hsl(213, 94%, 48%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(152, 69%, 31%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(243, 100%, 60%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(213, 94%, 48%);
+  --radius: 0.75rem;
+  --ai-purple: hsl(251, 91%, 65%);
+  --neutral-50: hsl(210, 20%, 98%);
+  --neutral-100: hsl(210, 16%, 93%);
+  --neutral-200: hsl(214, 20%, 85%);
+  --neutral-600: hsl(215, 13%, 45%);
+  --neutral-800: hsl(222, 47%, 11%);
+
+  /* Elevated shadow system */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+  --shadow-glow-blue: 0 0 0 3px hsl(213, 94%, 48% / 0.15);
+  --shadow-glow-green: 0 0 0 3px hsl(152, 69%, 31% / 0.15);
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(143, 85%, 33%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
-  --radius: 0.5rem;
-  --ai-purple: hsl(251, 91%, 68%);
-  --neutral-50: hsl(240, 4.9%, 15.9%);
-  --neutral-100: hsl(240, 3.7%, 15.9%);
-  --neutral-200: hsl(240, 3.7%, 25.9%);
-  --neutral-600: hsl(240, 5%, 64.9%);
-  --neutral-800: hsl(0, 0%, 98%);
+  --background: hsl(222, 47%, 8%);
+  --foreground: hsl(210, 20%, 95%);
+  --muted: hsl(222, 35%, 14%);
+  --muted-foreground: hsl(215, 13%, 60%);
+  --popover: hsl(222, 47%, 10%);
+  --popover-foreground: hsl(210, 20%, 95%);
+  --card: hsl(222, 47%, 11%);
+  --card-foreground: hsl(210, 20%, 95%);
+  --border: hsl(222, 35%, 18%);
+  --input: hsl(222, 35%, 18%);
+  --primary: hsl(213, 94%, 55%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(152, 69%, 38%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(243, 100%, 65%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 72%, 51%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(213, 94%, 55%);
+  --radius: 0.75rem;
+  --ai-purple: hsl(251, 91%, 72%);
+  --neutral-50: hsl(222, 47%, 11%);
+  --neutral-100: hsl(222, 35%, 14%);
+  --neutral-200: hsl(222, 35%, 20%);
+  --neutral-600: hsl(215, 13%, 60%);
+  --neutral-800: hsl(210, 20%, 95%);
 }
 
 @layer base {
@@ -65,236 +76,215 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply antialiased bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(214, 20%, 80%);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(214, 20%, 65%);
+  }
+}
+
+@layer components {
+  /* Glass card */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/60;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  /* Premium card hover */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply bg-white rounded-xl border border-border p-6 shadow-sm transition-all duration-200 hover:shadow-md;
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer;
+  }
+
+  .nav-item-active {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .nav-item-inactive {
+    @apply text-muted-foreground hover:bg-muted hover:text-foreground;
+  }
+
+  /* Status badges */
+  .badge-draft {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600;
+  }
+  .badge-submitted {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700;
+  }
+  .badge-review {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700;
+  }
+  .badge-approved {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700;
+  }
+  .badge-rejected {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700;
+  }
+  .badge-paid {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700;
   }
 }
 
 @layer utilities {
-  .text-ai-purple {
-    color: var(--ai-purple);
-  }
-  
-  .bg-ai-purple {
-    background-color: var(--ai-purple);
-  }
-  
-  .border-ai-purple {
-    border-color: var(--ai-purple);
-  }
-  
-  .text-neutral-50 {
-    color: var(--neutral-50);
-  }
-  
-  .bg-neutral-50 {
-    background-color: var(--neutral-50);
-  }
-  
-  .text-neutral-100 {
-    color: var(--neutral-100);
-  }
-  
-  .bg-neutral-100 {
-    background-color: var(--neutral-100);
-  }
-  
-  .text-neutral-200 {
-    color: var(--neutral-200);
-  }
-  
-  .bg-neutral-200 {
-    background-color: var(--neutral-200);
-  }
-  
-  .border-neutral-200 {
-    border-color: var(--neutral-200);
-  }
-  
-  .text-neutral-600 {
-    color: var(--neutral-600);
-  }
-  
-  .text-neutral-800 {
-    color: var(--neutral-800);
-  }
-  
-  .bg-neutral-800 {
-    background-color: var(--neutral-800);
-  }
+  /* Brand colors */
+  .text-ai-purple { color: var(--ai-purple); }
+  .bg-ai-purple { background-color: var(--ai-purple); }
+  .border-ai-purple { border-color: var(--ai-purple); }
+
+  /* Neutral scale */
+  .text-neutral-50 { color: var(--neutral-50); }
+  .bg-neutral-50 { background-color: var(--neutral-50); }
+  .text-neutral-100 { color: var(--neutral-100); }
+  .bg-neutral-100 { background-color: var(--neutral-100); }
+  .text-neutral-200 { color: var(--neutral-200); }
+  .bg-neutral-200 { background-color: var(--neutral-200); }
+  .border-neutral-200 { border-color: var(--neutral-200); }
+  .text-neutral-600 { color: var(--neutral-600); }
+  .text-neutral-800 { color: var(--neutral-800); }
+  .bg-neutral-800 { background-color: var(--neutral-800); }
 }
 
-/* Custom styles for the insurance platform */
+/* ── Step wizard ── */
 .step-indicator {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: hsl(213, 27%, 84%);
-  color: hsl(215, 13%, 35%);
+  background-color: hsl(214, 20%, 85%);
+  color: hsl(215, 13%, 45%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .step-indicator.active {
-  background-color: hsl(207, 90%, 54%);
+  background-color: hsl(213, 94%, 48%);
   color: white;
+  box-shadow: 0 0 0 4px hsl(213, 94%, 48% / 0.15);
 }
-
 .step-indicator.completed {
-  background-color: hsl(143, 85%, 33%);
+  background-color: hsl(152, 69%, 31%);
   color: white;
 }
-
 .step-line {
   flex: 1;
   height: 2px;
-  background-color: hsl(213, 27%, 84%);
+  background-color: hsl(214, 20%, 85%);
   margin: 0 12px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .step-line.active {
-  background-color: hsl(207, 90%, 54%);
+  background-color: hsl(213, 94%, 48%);
 }
 
-.form-step {
-  display: none;
-}
-
-.form-step.active {
-  display: block;
-}
-
-.upload-placeholder:hover {
-  transform: translateY(-2px);
-  transition: transform 0.2s ease;
-}
-
-/* AI analysis visualization styles */
+/* ── AI overlay ── */
 .damage-overlay {
   position: absolute;
-  border: 2px solid hsl(251, 91%, 68%);
-  background-color: hsla(251, 91%, 68%, 0.1);
+  border: 2px solid var(--ai-purple);
+  background-color: hsl(251, 91%, 65% / 0.1);
   border-radius: 4px;
   pointer-events: none;
 }
-
 .confidence-badge {
   position: absolute;
   top: -8px;
   right: -8px;
-  background-color: hsl(251, 91%, 68%);
+  background-color: var(--ai-purple);
   color: white;
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 10px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-/* Loading animations */
+/* ── Animations ── */
 @keyframes pulse-ai {
-  0%, 100% {
-    opacity: 1;
-    background-color: hsla(251, 91%, 68%, 0.1);
-  }
-  50% {
-    opacity: 0.7;
-    background-color: hsla(251, 91%, 68%, 0.2);
-  }
+  0%, 100% { opacity: 1; background-color: hsl(251, 91%, 65% / 0.08); }
+  50% { opacity: 0.7; background-color: hsl(251, 91%, 65% / 0.18); }
 }
+.ai-processing { animation: pulse-ai 2s ease-in-out infinite; }
 
-.ai-processing {
-  animation: pulse-ai 2s ease-in-out infinite;
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+.animate-fade-in { animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
 
-/* Progress indicators */
-.progress-ring {
-  transform: rotate(-90deg);
+@keyframes fade-in-fast {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+.animate-fade-in-fast { animation: fade-in-fast 0.2s ease both; }
 
-.progress-ring-circle {
-  transition: stroke-dashoffset 0.35s;
-  transform-origin: 50% 50%;
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+.animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both; }
 
-/* Custom scrollbar for tables */
-.custom-scrollbar::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
+.skeleton { animation: skeleton-pulse 1.5s ease-in-out infinite; @apply bg-muted rounded; }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: hsl(60, 4.8%, 95.9%);
-  border-radius: 3px;
-}
+/* ── Progress ring ── */
+.progress-ring { transform: rotate(-90deg); }
+.progress-ring-circle { transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: 50% 50%; }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(25, 5.3%, 44.7%);
-  border-radius: 3px;
-}
+/* ── Upload card ── */
+.upload-placeholder:hover { transform: translateY(-2px); transition: transform 0.2s ease; }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(20, 14.3%, 4.1%);
-}
+/* ── Accessibility ── */
+.focus-ring:focus { outline: 2px solid hsl(213, 94%, 48%); outline-offset: 2px; }
 
-/* Focus styles for accessibility */
-.focus-ring:focus {
-  outline: 2px solid hsl(207, 90%, 54%);
-  outline-offset: 2px;
-}
-
-/* Toast notification styling */
-.toast-success {
-  background-color: hsl(143, 85%, 33%);
-  border-color: hsl(143, 85%, 33%);
-}
-
-.toast-error {
-  background-color: hsl(0, 84.2%, 60.2%);
-  border-color: hsl(0, 84.2%, 60.2%);
-}
-
-/* Mobile responsiveness improvements */
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .mobile-stack {
-    flex-direction: column;
-  }
-  
-  .mobile-full {
-    width: 100%;
-  }
-  
-  .mobile-text-center {
-    text-align: center;
-  }
+  .mobile-stack { flex-direction: column; }
+  .mobile-full { width: 100%; }
+  .mobile-text-center { text-align: center; }
 }
-
-/* High contrast mode support */
 @media (prefers-contrast: high) {
-  :root {
-    --border: hsl(0, 0%, 0%);
-    --ring: hsl(0, 0%, 0%);
-  }
-  
-  .dark {
-    --border: hsl(0, 0%, 100%);
-    --ring: hsl(0, 0%, 100%);
-  }
+  :root { --border: hsl(0,0%,0%); --ring: hsl(0,0%,0%); }
+  .dark { --border: hsl(0,0%,100%); --ring: hsl(0,0%,100%); }
 }
-
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  .step-indicator,
-  .step-line,
-  .upload-placeholder {
-    transition: none;
-  }
-  
-  .ai-processing {
-    animation: none;
-  }
+  .step-indicator, .step-line, .upload-placeholder { transition: none; }
+  .ai-processing, .animate-fade-in, .animate-slide-up { animation: none; }
 }

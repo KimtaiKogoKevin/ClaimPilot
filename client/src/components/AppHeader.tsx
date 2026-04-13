@@ -1,14 +1,47 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Shield, BarChart3, Users, FileText, Settings, LogOut } from "lucide-react";
+import { Shield, LogOut, LayoutDashboard, ChevronDown, User, Settings } from "lucide-react";
 import { useLocation } from "wouter";
 import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function getInitials(firstName?: string, lastName?: string): string {
+  const f = (firstName || '').charAt(0).toUpperCase();
+  const l = (lastName || '').charAt(0).toUpperCase();
+  return f + l || '?';
+}
+
+function getAvatarColor(role?: string): string {
+  switch (role) {
+    case 'admin': return 'from-violet-600 to-indigo-600';
+    case 'insured': return 'from-blue-500 to-cyan-500';
+    default: return 'from-slate-500 to-slate-600';
+  }
+}
+
+function getRoleLabel(role?: string): string {
+  switch (role) {
+    case 'admin': return 'Administrator';
+    case 'insured': return 'Policy Holder';
+    default: return role || 'User';
+  }
+}
+
+function getDashboardRoute(role?: string): string {
+  if (role === 'admin') return '/admin-dashboard';
+  return '/';
+}
 
 export default function AppHeader() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, isAuthenticated } = useStandaloneAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -21,157 +54,96 @@ export default function AppHeader() {
     onSuccess: () => {
       queryClient.clear();
       setLocation("/");
-      toast({
-        title: "Logged out successfully",
-        description: "You have been securely logged out.",
-      });
+      toast({ title: "Signed out", description: "You have been securely signed out." });
     },
-    onError: (error) => {
-      console.error("Logout error:", error);
-      // Clear local storage anyway
+    onError: () => {
       localStorage.removeItem("auth_token");
       queryClient.clear();
       setLocation("/");
     },
   });
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
-  };
-
-  const getDashboardRoute = () => {
-    if (!user?.role) return "/";
-    
-    switch (user.role) {
-      case 'insurer':
-      case 'broker':
-        return "/analytics";
-      case 'insured':
-        return "/";
-      case 'service_provider':
-        return "/assigned-claims";
-      default:
-        return "/";
-    }
-  };
-
-  const getDashboardLabel = () => {
-    if (!user?.role) return "Dashboard";
-    
-    switch (user.role) {
-      case 'insurer':
-        return "Analytics Dashboard";
-      case 'broker':
-        return "Broker Dashboard";
-      case 'insured':
-        return "My Claims";
-      case 'service_provider':
-        return "Service Dashboard";
-      default:
-        return "Dashboard";
-    }
-  };
-
-  const getDashboardIcon = () => {
-    if (!user?.role) return BarChart3;
-    
-    switch (user.role) {
-      case 'insurer':
-      case 'broker':
-        return BarChart3;
-      case 'insured':
-        return FileText;
-      case 'service_provider':
-        return Settings;
-      default:
-        return BarChart3;
-    }
-  };
-
-  const formatUserRole = (role: string) => {
-    switch (role) {
-      case 'insured':
-        return 'Client';
-      case 'insurer':
-        return 'Underwriter';
-      case 'broker':
-        return 'Agent';
-      case 'service_provider':
-        return 'Service Provider';
-      default:
-        return role;
-    }
-  };
-
-  const DashboardIcon = getDashboardIcon();
+  const isLanding = location === '/';
 
   return (
-    <nav className="bg-white border-b border-neutral-200 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <header className={`sticky top-0 z-50 w-full border-b border-border/60 transition-all duration-200 ${isLanding ? 'bg-white/80 backdrop-blur-md' : 'bg-white/95 backdrop-blur-sm shadow-sm'}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <div 
-          className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={() => setLocation("/")}
+        <button
+          onClick={() => setLocation(isAuthenticated ? getDashboardRoute(user?.role) : "/")}
+          className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
         >
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
             <Shield className="text-white h-4 w-4" />
           </div>
-          <span className="text-xl font-bold text-neutral-800">ClaimFlow AI</span>
-        </div>
+          <span className="text-lg font-bold tracking-tight text-foreground">
+            ClaimFlow <span className="text-primary">AI</span>
+          </span>
+        </button>
 
-        {/* Navigation Items */}
-        <div className="flex items-center space-x-4">
-          {/* Help Link - Always visible */}
-          <Button variant="ghost" className="text-neutral-600 hover:text-primary">
-            Help
-          </Button>
-
-          {/* Authenticated User Navigation */}
+        {/* Right side */}
+        <div className="flex items-center gap-2">
           {isAuthenticated && user ? (
-            <div className="flex items-center space-x-4">
-              {/* Role-based Dashboard Button */}
-              <Button
-                variant="outline"
-                onClick={() => setLocation(getDashboardRoute())}
-                className="flex items-center space-x-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-              >
-                <DashboardIcon className="h-4 w-4" />
-                <span>{getDashboardLabel()}</span>
-              </Button>
-
-              {/* User Info */}
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <div className="text-sm font-medium text-neutral-800">
-                    {user.firstName} {user.lastName}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  {/* Avatar */}
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getAvatarColor(user.role)} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+                    {getInitials(user.firstName, user.lastName)}
                   </div>
-                  <Badge variant="secondary" className="text-xs">
-                    {formatUserRole(user.role)}
-                  </Badge>
-                </div>
-
-                {/* Logout Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-neutral-600 hover:text-red-600"
+                  {/* Name + role */}
+                  <div className="text-left hidden sm:block">
+                    <div className="text-sm font-semibold text-foreground leading-none mb-0.5">
+                      {user.firstName} {user.lastName}
+                    </div>
+                    <div className="text-xs text-muted-foreground leading-none">
+                      {getRoleLabel(user.role)}
+                    </div>
+                  </div>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 mt-1">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-foreground">{user.firstName} {user.lastName}</span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setLocation(getDashboardRoute(user.role))} className="gap-2 cursor-pointer">
+                  <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                  <span>Dashboard</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => logoutMutation.mutate()}
                   disabled={logoutMutation.isPending}
+                  className="gap-2 cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            /* Non-authenticated Navigation */
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" className="text-neutral-600 hover:text-primary">
-                Contact Us
-              </Button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setLocation('/auth')}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
+              >
+                Sign in
+              </button>
+              <button
+                onClick={() => setLocation('/auth/insured')}
+                className="text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-4 py-1.5 rounded-lg shadow-sm"
+              >
+                Get started
+              </button>
             </div>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

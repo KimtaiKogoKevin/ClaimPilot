@@ -4,10 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Shield, Mail, Lock, User, FileText, Clock, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Shield, Mail, Lock, User, FileText, Clock, CheckCircle, ArrowRight } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -18,12 +17,19 @@ const insuredSignupSchema = z.object({
   confirmPassword: z.string().min(8, "Please confirm your password"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-}).refine((data) => data.password === data.confirmPassword, {
+}).refine(d => d.password === d.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
 type InsuredSignupForm = z.infer<typeof insuredSignupSchema>;
+
+const PERKS = [
+  { icon: FileText,    color: "bg-blue-100 text-blue-600",    text: "Guided multi-step claim forms" },
+  { icon: Clock,       color: "bg-emerald-100 text-emerald-600", text: "AI damage assessment in minutes" },
+  { icon: Shield,      color: "bg-violet-100 text-violet-600",  text: "Secure, encrypted document storage" },
+  { icon: CheckCircle, color: "bg-amber-100 text-amber-600",   text: "Real-time claim status tracking" },
+];
 
 export default function InsuredSignupPage() {
   const { toast } = useToast();
@@ -32,262 +38,164 @@ export default function InsuredSignupPage() {
 
   const form = useForm<InsuredSignupForm>({
     resolver: zodResolver(insuredSignupSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      firstName: "",
-      lastName: "",
-    }
+    defaultValues: { email: "", password: "", confirmPassword: "", firstName: "", lastName: "" }
   });
 
   const signupMutation = useMutation({
     mutationFn: async (data: InsuredSignupForm) => {
-      const response = await apiRequest("POST", "/api/auth/signup/insured", data);
-      return response.json();
+      const res = await apiRequest("POST", "/api/auth/signup/insured", data);
+      return res.json();
     },
     onSuccess: (data) => {
       localStorage.setItem("auth_token", data.token);
-      toast({
-        title: "Registration Successful",
-        description: "Welcome to Motor Claims Platform!",
-      });
+      toast({ title: "Account created", description: "Welcome to ClaimFlow AI!" });
       window.location.href = "/";
     },
     onError: (error: any) => {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Failed to create account",
-        variant: "destructive",
-      });
+      toast({ title: "Registration failed", description: error.message || "Failed to create account", variant: "destructive" });
     }
   });
 
-  const handleSubmit = (data: InsuredSignupForm) => {
-    signupMutation.mutate(data);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
-        <div className="space-y-6 text-center lg:text-left">
-          <div className="space-y-2">
-            <h1 className="text-4xl lg:text-5xl font-bold text-gray-900">
-              File Your Claims
-            </h1>
-            <h2 className="text-3xl lg:text-4xl font-bold text-blue-600">
-              With Confidence
-            </h2>
+    <div className="min-h-screen flex">
+      {/* Left brand panel */}
+      <div className="hidden lg:flex lg:w-2/5 flex-col justify-between bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-12 relative overflow-hidden">
+        <div className="absolute -top-24 -right-12 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 relative z-10">
+          <div className="w-9 h-9 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Shield className="text-white h-5 w-5" />
           </div>
-          
-          <p className="text-lg text-gray-600 max-w-md mx-auto lg:mx-0">
-            Create your insured account to submit motor accident claims, track their progress, 
-            and receive fast settlements with our AI-powered platform.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto lg:mx-0">
-            <div className="flex items-center space-x-3 p-3 bg-white rounded-lg shadow-sm">
-              <FileText className="h-8 w-8 text-blue-500" />
-              <div>
-                <div className="font-semibold text-sm">Easy Claims</div>
-                <div className="text-xs text-gray-500">Simple submission process</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3 p-3 bg-white rounded-lg shadow-sm">
-              <Clock className="h-8 w-8 text-green-500" />
-              <div>
-                <div className="font-semibold text-sm">Fast Processing</div>
-                <div className="text-xs text-gray-500">AI-powered assessment</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3 p-3 bg-white rounded-lg shadow-sm">
-              <Shield className="h-8 w-8 text-purple-500" />
-              <div>
-                <div className="font-semibold text-sm">Secure Platform</div>
-                <div className="text-xs text-gray-500">Your data is protected</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3 p-3 bg-white rounded-lg shadow-sm">
-              <CheckCircle className="h-8 w-8 text-indigo-500" />
-              <div>
-                <div className="font-semibold text-sm">Track Progress</div>
-                <div className="text-xs text-gray-500">Real-time updates</div>
-              </div>
-            </div>
-          </div>
+          <span className="text-xl font-bold">ClaimFlow <span className="text-blue-400">AI</span></span>
         </div>
 
-        <Card className="w-full max-w-md mx-auto shadow-xl">
-          <CardHeader className="space-y-2">
-            <CardTitle className="text-2xl font-bold text-center">
-              Create Insured Account
-            </CardTitle>
-            <CardDescription className="text-center">
-              Sign up to start filing your motor accident claims
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center space-x-2">
-                          <User className="h-4 w-4" />
-                          <span>First Name</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            data-testid="input-first-name"
-                            placeholder="John" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            data-testid="input-last-name"
-                            placeholder="Doe" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+        <div className="relative z-10 space-y-8">
+          <div>
+            <h2 className="text-3xl font-extrabold leading-tight tracking-tight mb-3">
+              File claims with{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                confidence
+              </span>
+            </h2>
+            <p className="text-slate-300 text-base leading-relaxed">
+              Create your account to submit motor accident claims and track them in real time.
+            </p>
+          </div>
+          <ul className="space-y-3">
+            {PERKS.map(({ icon: Icon, color, text }) => (
+              <li key={text} className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Icon className="h-4 w-4 text-blue-300" />
                 </div>
+                <span className="text-slate-200 text-sm">{text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="text-slate-500 text-xs relative z-10">&copy; {new Date().getFullYear()} ClaimFlow AI</p>
+      </div>
 
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center space-x-2">
-                        <Mail className="h-4 w-4" />
-                        <span>Email</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input 
-                          data-testid="input-email"
-                          placeholder="john.doe@example.com" 
-                          type="email"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+      {/* Right form panel */}
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 bg-background overflow-y-auto">
+        <div className="w-full max-w-sm mx-auto">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 mb-8 lg:hidden">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-700 rounded-lg flex items-center justify-center">
+              <Shield className="text-white h-4 w-4" />
+            </div>
+            <span className="text-lg font-bold">ClaimFlow <span className="text-primary">AI</span></span>
+          </div>
 
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center space-x-2">
-                        <Lock className="h-4 w-4" />
-                        <span>Password</span>
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            data-testid="input-password"
-                            placeholder="Choose a strong password" 
-                            type={showPassword ? "text" : "password"}
-                            {...field} 
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowPassword(!showPassword)}
-                            data-testid="button-toggle-password"
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <h2 className="text-2xl font-bold text-foreground mb-1">Create your account</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Already have an account?{" "}
+            <Link href="/auth" className="text-primary font-medium hover:underline" data-testid="link-signin">
+              Sign in
+            </Link>
+          </p>
 
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            data-testid="input-confirm-password"
-                            placeholder="Confirm your password" 
-                            type={showConfirmPassword ? "text" : "password"}
-                            {...field} 
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            data-testid="button-toggle-confirm-password"
-                          >
-                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(d => signupMutation.mutate(d))} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <FormField control={form.control} name="firstName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First name</FormLabel>
+                    <FormControl>
+                      <Input data-testid="input-first-name" placeholder="John" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="lastName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last name</FormLabel>
+                    <FormControl>
+                      <Input data-testid="input-last-name" placeholder="Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={signupMutation.isPending}
-                  data-testid="button-submit-signup"
-                >
-                  {signupMutation.isPending ? "Creating Account..." : "Create Account"}
-                </Button>
+              <FormField control={form.control} name="email" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email address</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input data-testid="input-email" className="pl-10" placeholder="you@example.com" type="email" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-                <div className="text-center space-y-2 pt-4 border-t">
-                  <p className="text-sm text-gray-600">
-                    Already have an account?{" "}
-                    <Link href="/auth" className="text-blue-600 hover:text-blue-800 font-medium" data-testid="link-signin">
-                      Sign In
-                    </Link>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Are you an insurance company or broker?{" "}
-                    <Link href="/auth/admin" className="text-blue-600 hover:text-blue-800 font-medium" data-testid="link-admin-signup">
-                      Apply for Admin Access
-                    </Link>
-                  </p>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+              <FormField control={form.control} name="password" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input data-testid="input-password" className="pl-10 pr-10" placeholder="At least 8 characters" type={showPassword ? "text" : "password"} {...field} />
+                      <button type="button" data-testid="button-toggle-password" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="confirmPassword" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm password</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input data-testid="input-confirm-password" className="pr-10" placeholder="Repeat password" type={showConfirmPassword ? "text" : "password"} {...field} />
+                      <button type="button" data-testid="button-toggle-confirm-password" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <Button type="submit" className="w-full gap-2 mt-2" disabled={signupMutation.isPending} data-testid="button-submit-signup">
+                {signupMutation.isPending ? "Creating account…" : "Create account"}
+                {!signupMutation.isPending && <ArrowRight className="h-4 w-4" />}
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground pt-2">
+                An insurance company or broker?{" "}
+                <Link href="/auth/admin" className="text-primary hover:underline" data-testid="link-admin-signup">
+                  Apply for admin access
+                </Link>
+              </p>
+            </form>
+          </Form>
+        </div>
       </div>
     </div>
   );
