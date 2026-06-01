@@ -174,6 +174,13 @@ You have requested a password reset for your Motor Claims Platform account.
 To reset your password, click this link or copy it into your browser:
 ${resetUrl}
 
+# Disable email entirely
+NODE_ENV=development
+DISABLE_EMAIL=true
+# Database Configuration
+DATABASE_URL=postgresql://kevinkogo:KevinKogo1998@localhost:5432/claims_platform
+PGHOST=localhost
+
 SECURITY NOTICE:
 - This link will expire in 1 hour for security reasons
 - If you didn't request this password reset, please ignore this email
