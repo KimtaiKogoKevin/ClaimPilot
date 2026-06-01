@@ -7,7 +7,7 @@ vite.config.ts.*
 .replit
 .env
 .env.example
-LOCAL_DEVELEPMENT.md
+LOCAL_DEVELOPMENT.md
 LOCAL_SETUP_COMPLETED.md
 LOCAL_SETUP.md
 replit.md
