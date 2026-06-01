@@ -45,17 +45,15 @@ export const corporateDetailsSchema = z.object({
   physicalAddress: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   tradeBusiness: z.string().optional(),
-  yearsInOperation: z.number().optional(),
+  yearsInOperation: z.union([z.number(), z.string()]).nullable().optional(),
 });
 
 // Section B: Vehicle & Accident Validation
 export const vehicleDetailsSchema = z.object({
-  registrationNumber_primemover: z
-    .string()
-    .min(1, "Vehicle registration is required"),
+  registrationNumber_primemover: z.string().optional(),
   make: z.string().min(1, "Vehicle make is required"),
   model: z.string().min(1, "Vehicle model is required"),
-  yearOfManufacture: z.number().min(1980, "Year must be 1980 or later").max(new Date().getFullYear(), "Year cannot be in the future").optional(),
+  yearOfManufacture: z.number().min(1980, "Year must be 1980 or later").max(new Date().getFullYear(), "Year cannot be in the future").nullable().optional(),
   engineNumber: z.string().optional(),
   chassisNumber: z.string().optional(),
   color: z.string().optional(),
@@ -76,7 +74,7 @@ export const accidentDetailsSchema = z.object({
   visibility: z.enum(["clear", "poor", "dark"]).optional().or(z.literal("")),
   driverWarningGiven: z.string().optional(),
   vehicleLightsOn: z.string().optional(),
-  policeTookParticulars: z.boolean(),
+  policeTookParticulars: z.boolean().nullable().optional(),
   policeConstableNumber: z.string().optional(),
   policeStation: z.string().optional(),
   accidentSketchPath: z.string().optional(),
@@ -85,7 +83,7 @@ export const accidentDetailsSchema = z.object({
 // Section C: Damage Assessment Validation
 export const damageAssessmentSchema = z.object({
   vehicleDamageDescription: z.string().optional(),
-  goodsDamaged: z.boolean(),
+  goodsDamaged: z.boolean().nullable().optional(),
   goodsDescription: z.string().optional(),
   photos: z.array(z.object({
     angle: z.string(),
@@ -99,11 +97,11 @@ export const driverDetailsSchema = z.object({
   name: z.string().min(1, "Driver name is required"),
   licenseNumber: z.string().min(1, "License number is required"),
   licenseExpiryDate: z.string().optional(),
-  yearsOfDriving: z.number().min(0, "Years of driving must be 0 or greater").optional(),
+  yearsOfDriving: z.number().min(0, "Years of driving must be 0 or greater").nullable().optional(),
   relationship: z.string().optional(),
-  hadAccidentBefore: z.boolean().optional(),
+  hadAccidentBefore: z.boolean().nullable().optional(),
   accidentDetails: z.string().optional(),
-  wasConvicted: z.boolean().optional(),
+  wasConvicted: z.boolean().nullable().optional(),
   convictionDetails: z.string().optional(),
   physicalDefects: z.string().optional(),
 });
@@ -139,7 +137,7 @@ export const completeFormSchema = z.object({
   accidentLocation: z.string().min(1),
   accidentDescription: z.string().min(10),
   vehicleDamageDescription: z.string().optional(),
-  goodsDamaged: z.boolean(),
+  goodsDamaged: z.boolean().nullable().optional(),
   goodsDescription: z.string().optional(),
   
   // Damage assessment
@@ -185,7 +183,7 @@ export function validateStep(step: number, formData: any): { isValid: boolean; e
         
       case 3: // Damage Assessment
         // Photo upload is optional, just validate descriptions
-        if (formData.goodsDamaged && !formData.goodsDescription) {
+        if (formData.damage?.goodsDamaged && !formData.damage?.goodsDescription) {
           errors.push("Please describe the goods damaged");
         }
         break;

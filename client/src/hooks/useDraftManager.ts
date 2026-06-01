@@ -37,24 +37,22 @@ export function useDraftManager(claimId?: string) {
     enabled: !claimId, // Only fetch when not working on a specific claim
   });
 
-  // Get specific draft for resuming with intelligent loading
+  // Get specific draft for resuming - always fetch fresh data from server
   const { data: currentDraft, isLoading: isLoadingDraft } = useQuery({
     queryKey: ['/api/claims', claimId, 'resume'],
     queryFn: async () => {
       if (!claimId) return null;
       
-      // Use the persistence manager for intelligent loading
-      if (persistenceManagerRef.current) {
-        return await persistenceManagerRef.current.loadDraft();
-      }
-      
-      // Fallback to direct API call
+      // Always fetch fresh data from server for accuracy
+      // The server is the source of truth, especially for multi-user scenarios
       const response = await apiRequest('GET', `/api/claims/${claimId}/resume`);
       return response.json();
     },
     enabled: !!claimId,
-    staleTime: 5000, // Consider data fresh for 5 seconds only
+    staleTime: 0, // Always consider data stale to ensure fresh fetch
+    gcTime: 0, // Don't cache (was cacheTime in v4)
     refetchOnWindowFocus: false, // Prevent excessive refetching
+    refetchOnMount: 'always', // Always refetch when component mounts
   });
 
   // Save draft mutation
@@ -68,17 +66,7 @@ export function useDraftManager(claimId?: string) {
       return response;
     },
     onSuccess: () => {
-      // Don't show toast for auto-saves, it's too disruptive
-      // toast({
-      //   title: "Draft Saved",
-      //   description: "Your progress has been saved automatically.",
-      //   variant: "default",
-      // });
-      // Don't invalidate the current draft query to prevent re-loading
-      // Only invalidate the list queries
       queryClient.invalidateQueries({ queryKey: ['/api/claims/drafts'] });
-      // Don't invalidate the current draft to prevent restoration loop
-      // queryClient.invalidateQueries({ queryKey: ['/api/claims'] });
     },
     onError: (error: Error) => {
       toast({
@@ -89,12 +77,19 @@ export function useDraftManager(claimId?: string) {
     },
   });
 
-  // Smart save function that uses persistence manager
+  // Smart save function - uses mutation directly for reliability
   const saveDraft = (claimId: string, step: number, data: any, progressPercentage: number) => {
-    if (!claimId || !persistenceManagerRef.current) return;
+    if (!claimId) {
+      return;
+    }
     
-    // Use persistence manager for intelligent saving
-    persistenceManagerRef.current.saveDraft(data, step);
+    // Use mutation directly for reliability - persistence manager can have race conditions
+    saveDraftMutation.mutate({
+      claimId,
+      step,
+      data,
+      progressPercentage,
+    });
   };
 
   // Manual save with immediate feedback

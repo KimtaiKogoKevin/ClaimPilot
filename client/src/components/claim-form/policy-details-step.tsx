@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea"; // FIX: Corrected import path
+import { Textarea } from "@/components/ui/textarea";
 
 interface PolicyDetailsStepProps {
   formData: any;
@@ -22,6 +22,9 @@ interface PolicyDetailsStepProps {
   claimId: string | null;
   setClaimId: (id: string) => void;
 }
+
+const MIN_POLICY_NUMBER_LENGTH = 5;
+const CLAIM_CREATION_DEBOUNCE_MS = 800;
 
 export default function PolicyDetailsStep({
   formData,
@@ -31,8 +34,10 @@ export default function PolicyDetailsStep({
 }: PolicyDetailsStepProps) {
   const { toast } = useToast();
   const [isCreatingClaim, setIsCreatingClaim] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingFormDataRef = useRef<any>(null);
 
-  // Create claim mutation (no changes needed)
+  // Create claim mutation
   const createClaimMutation = useMutation({
     mutationFn: async (claimData: any) => {
       const response = await apiRequest("POST", "/api/claims", claimData);
@@ -47,6 +52,7 @@ export default function PolicyDetailsStep({
     },
     onError: (error) => {
       console.error("Error creating claim:", error);
+      setIsCreatingClaim(false);
       toast({
         title: "Error",
         description: "Failed to create claim. Please try again.",
@@ -55,23 +61,52 @@ export default function PolicyDetailsStep({
     },
   });
 
-  // Create claim when we have sufficient data
+  // Store latest form data for debounced creation
   useEffect(() => {
-    if (!claimId && formData.policyNumber && !isCreatingClaim) {
-      setIsCreatingClaim(true);
-      createClaimMutation.mutate({
-        policyNumber: formData.policyNumber,
-        branchName: formData.branchName,
-        agentName: formData.agentName,
-        lastPaymentDate: formData.lastPaymentDate || null,
-        typeOfCover: formData.typeOfCover, // FIX: Use consistent camelCase
-        insuredType: formData.insuredType,
-        status: "draft",
-      });
-    }
-  }, [formData.policyNumber, claimId, isCreatingClaim]);
+    pendingFormDataRef.current = formData;
+  }, [formData]);
 
-  // Handler functions (no changes needed)
+  // Debounced claim creation - wait for user to finish typing
+  const createClaimDebounced = useCallback(() => {
+    const data = pendingFormDataRef.current;
+    if (!data) return;
+    
+    createClaimMutation.mutate({
+      policyNumber: data.policyNumber,
+      branchName: data.branchName,
+      agentName: data.agentName,
+      lastPaymentDate: data.lastPaymentDate || null,
+      typeOfCover: data.typeOfCover,
+      insuredType: data.insuredType,
+      status: "draft",
+    });
+  }, [createClaimMutation]);
+
+  // Create claim when policy number is sufficient length (debounced)
+  useEffect(() => {
+    const policyNumber = formData.policyNumber?.trim() || "";
+    
+    if (!claimId && policyNumber.length >= MIN_POLICY_NUMBER_LENGTH && !isCreatingClaim) {
+      // Clear any existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      
+      // Set up debounced creation
+      debounceTimerRef.current = setTimeout(() => {
+        setIsCreatingClaim(true);
+        createClaimDebounced();
+      }, CLAIM_CREATION_DEBOUNCE_MS);
+    }
+    
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [formData.policyNumber, claimId, isCreatingClaim, createClaimDebounced]);
+
+  // Handler functions
   const handleInputChange = (section: string, field: string, value: any) => {
     setFormData((prev: any) => ({
       ...prev,

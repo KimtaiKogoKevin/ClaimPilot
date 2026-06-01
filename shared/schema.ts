@@ -26,8 +26,8 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User roles enum - Claims Management System
-export const userRoleEnum = pgEnum('user_role', ['insured', 'insurer', 'broker', 'service_provider', 'admin']);
+// User roles enum - Simplified to admin and insured
+export const userRoleEnum = pgEnum('user_role', ['insured', 'admin']);
 
 // User storage table (supports both Replit Auth and standalone auth)
 export const users = pgTable("users", {
@@ -50,7 +50,7 @@ export const users = pgTable("users", {
 export const insuredTypeEnum = pgEnum('insured_type', ['individual', 'corporate']);
 export const claimStatusEnum = pgEnum('claim_status', ['draft', 'submitted', 'under_review', 'investigating', 'assessment_pending', 'approved', 'rejected', 'settlement_pending', 'paid', 'closed']);
 export const damageTypeEnum = pgEnum('damage_type', ['dent', 'scratch', 'crack', 'broken', 'missing', 'paint_damage', 'glass_damage', 'structural_damage']);
-export const photoAngleEnum = pgEnum('photo_angle', ['FRONT_VIEW', 'REAR_VIEW', 'LEFT_SIDE', 'RIGHT_SIDE', 'DAMAGE_CLOSEUP']);
+export const photoAngleEnum = pgEnum('photo_angle', ['FRONT_VIEW', 'REAR_VIEW', 'LEFT_SIDE', 'RIGHT_SIDE', 'DAMAGE_CLOSEUP', 'VIDEO_360', 'accident_sketch', 'logbook', 'policeAbstract', 'license', 'police_report', 'insurance_certificate', 'other_document']);
 export const assessmentStatusEnum = pgEnum('assessment_status', ['pending', 'in_progress', 'completed', 'requires_review']);
 export const severityLevelEnum = pgEnum('severity_level', ['minor', 'moderate', 'major', 'total_loss']);
 export const ageBandEnum = pgEnum("age_band", [
@@ -184,10 +184,11 @@ export const claims = pgTable("claims", {
   ownsMotorVehicle: boolean("owns_motor_vehicle"),
   ownVehicleInsurer: varchar("own_vehicle_insurer"),
   ownVehiclePolicyNumber: varchar("own_vehicle_policy_number"),
+  declarationAccepted: boolean("declaration_accepted").default(false),
+  ownerStatement: text("owner_statement"),
 });
 
 
-// VVVVVV CREATE THESE NEW TABLES FOR ONE-TO-MANY DATA VVVVVV
 export const thirdPartyProperties = pgTable("third_party_properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   claimId: varchar("claim_id").notNull().references(() => claims.id),
@@ -231,7 +232,7 @@ export const individualDetails = pgTable("individual_details", {
   physicalAddress: text("physical_address"),
   email: varchar("email"),
   tradeBusiness: varchar("trade_business"),
-  ageBand: ageBandEnum("age_band").notNull(),
+  ageBand: ageBandEnum("age_band"),
 });
 
 // Corporate insured details
@@ -605,6 +606,11 @@ export type InsertDamagedPhoto = z.infer<typeof insertDamagedPhotoSchema>;
 export type DamagedPhoto = typeof damagedPhotos.$inferSelect;
 export type DetectedDamage = typeof detectedDamages.$inferSelect;
 
+export type ThirdPartyProperty = typeof thirdPartyProperties.$inferSelect;
+export type InjuredPerson = typeof injuredPersons.$inferSelect;
+export type Passenger = typeof passengers.$inferSelect;
+export type Witness = typeof witnesses.$inferSelect;
+
 // Full claim type with relations
 export type ClaimWithDetails = Claim & {
   insured: User;
@@ -617,6 +623,10 @@ export type ClaimWithDetails = Claim & {
   damagedPhotos: (DamagedPhoto & {
     detectedDamages: DetectedDamage[];
   })[];
+  thirdPartyProperties?: ThirdPartyProperty[];
+  injuredPersons?: InjuredPerson[];
+  passengers?: Passenger[];
+  witnesses?: Witness[];
 };
 
 // Authentication schemas  
@@ -625,7 +635,7 @@ export const registerSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  role: z.enum(['claimant', 'broker', 'adjudicator']).default('claimant'),
+  role: z.enum(['insured', 'admin']).default('insured'),
 });
 
 export const loginSchema = z.object({
@@ -694,6 +704,30 @@ export const claimChangeHistory = pgTable("claim_change_history", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Admin signup request status enum
+export const adminSignupStatusEnum = pgEnum('admin_signup_status', ['pending', 'approved', 'rejected']);
+
+// Admin signup requests table - stores pending admin registration requests
+export const adminSignupRequests = pgTable("admin_signup_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").notNull().unique(),
+  password: varchar("password").notNull(), // Hashed password
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  companyName: varchar("company_name").notNull(),
+  companyType: varchar("company_type").notNull(), // 'insurance_company', 'broker', 'other'
+  businessRegistrationNumber: varchar("business_registration_number"),
+  phoneNumber: varchar("phone_number"),
+  address: text("address"),
+  reason: text("reason"), // Why they want admin access
+  status: adminSignupStatusEnum("status").default('pending').notNull(),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas for new tables
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
@@ -716,6 +750,16 @@ export const insertClaimChangeHistorySchema = createInsertSchema(claimChangeHist
   createdAt: true,
 });
 
+export const insertAdminSignupRequestSchema = createInsertSchema(adminSignupRequests).omit({
+  id: true,
+  status: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  rejectionReason: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types for new tables
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
@@ -725,6 +769,8 @@ export type InsertClaimEditSession = z.infer<typeof insertClaimEditSessionSchema
 export type ClaimEditSession = typeof claimEditSessions.$inferSelect;
 export type InsertClaimChangeHistory = z.infer<typeof insertClaimChangeHistorySchema>;
 export type ClaimChangeHistory = typeof claimChangeHistory.$inferSelect;
+export type InsertAdminSignupRequest = z.infer<typeof insertAdminSignupRequestSchema>;
+export type AdminSignupRequest = typeof adminSignupRequests.$inferSelect;
 
 // Admin operation schemas
 export const adminCreateUserSchema = z.object({
@@ -732,18 +778,18 @@ export const adminCreateUserSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   password: z.string().min(8),
-  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']),
+  role: z.enum(['insured', 'admin']),
 });
 
 export const adminUpdateUserSchema = z.object({
   email: z.string().email().optional(),
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
-  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']).optional(),
+  role: z.enum(['insured', 'admin']).optional(),
 });
 
 export const adminUpdateRoleSchema = z.object({
-  role: z.enum(['insured', 'insurer', 'broker', 'service_provider', 'admin']),
+  role: z.enum(['insured', 'admin']),
 });
 
 export const adminBulkStatusSchema = z.object({
@@ -753,14 +799,6 @@ export const adminBulkStatusSchema = z.object({
 
 export const adminBulkDeleteSchema = z.object({
   claimIds: z.array(z.string()),
-});
-
-export const adminAssignBrokerSchema = z.object({
-  brokerId: z.string(),
-});
-
-export const adminAssignProviderSchema = z.object({
-  providerId: z.string(),
 });
 
 export const adminSystemSettingSchema = z.object({

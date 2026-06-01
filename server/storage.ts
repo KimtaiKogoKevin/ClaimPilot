@@ -9,10 +9,15 @@ import {
   otherVehicles,
   damagedPhotos,
   detectedDamages,
+  thirdPartyProperties,
+  injuredPersons,
+  passengers,
+  witnesses,
   auditLogs,
   systemSettings,
   claimEditSessions,
   claimChangeHistory,
+  adminSignupRequests,
   type User,
   type UpsertUser,
   type InsertClaim,
@@ -35,6 +40,8 @@ import {
   type InsertClaimEditSession,
   type ClaimChangeHistory,
   type InsertClaimChangeHistory,
+  type AdminSignupRequest,
+  type InsertAdminSignupRequest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, or, like, ilike, inArray, count } from "drizzle-orm";
@@ -91,8 +98,6 @@ export interface IStorage {
   // Admin claim operations
   bulkUpdateClaimStatus(claimIds: string[], status: string): Promise<void>;
   bulkDeleteClaims(claimIds: string[]): Promise<void>;
-  assignClaimToBroker(claimId: string, brokerId: string): Promise<void>;
-  assignClaimToServiceProvider(claimId: string, providerId: string): Promise<void>;
   
   // Claim details operations
   upsertIndividualDetails(details: InsertIndividualDetails): Promise<void>;
@@ -111,7 +116,7 @@ export interface IStorage {
   addDetectedDamage(damage: Omit<DetectedDamage, 'id'>): Promise<void>;
 
   // Analytics methods
-  getAnalyticsDashboard(brokerId?: string): Promise<any>;
+  getAnalyticsDashboard(): Promise<any>;
   getSystemStats(): Promise<any>;
   getAdminAnalytics(): Promise<any>;
   
@@ -139,6 +144,14 @@ export interface IStorage {
   // Change history methods
   addClaimChange(change: InsertClaimChangeHistory): Promise<ClaimChangeHistory>;
   getClaimChangeHistory(claimId: string, limit?: number): Promise<ClaimChangeHistory[]>;
+  
+  // Admin signup request methods
+  createAdminSignupRequest(request: InsertAdminSignupRequest): Promise<AdminSignupRequest>;
+  getAdminSignupRequests(status?: string): Promise<AdminSignupRequest[]>;
+  getAdminSignupRequestById(id: string): Promise<AdminSignupRequest | undefined>;
+  getAdminSignupRequestByEmail(email: string): Promise<AdminSignupRequest | undefined>;
+  approveAdminSignupRequest(id: string, reviewerId: string): Promise<AdminSignupRequest>;
+  rejectAdminSignupRequest(id: string, reviewerId: string, reason: string): Promise<AdminSignupRequest>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -236,6 +249,10 @@ export class DatabaseStorage implements IStorage {
         bankDetails: true,
         otherVehicles: true,
         damagedPhotos: true,
+        thirdPartyProperties: true,
+        injuredPersons: true,
+        passengers: true,
+        witnesses: true,
       },
     });
     return result as ClaimWithDetails | undefined;
@@ -254,6 +271,10 @@ export class DatabaseStorage implements IStorage {
         bankDetails: true,
         otherVehicles: true,
         damagedPhotos: true,
+        thirdPartyProperties: true,
+        injuredPersons: true,
+        passengers: true,
+        witnesses: true,
       },
     });
     return result as ClaimWithDetails[];
@@ -271,6 +292,10 @@ export class DatabaseStorage implements IStorage {
         bankDetails: true,
         otherVehicles: true,
         damagedPhotos: true,
+        thirdPartyProperties: true,
+        injuredPersons: true,
+        passengers: true,
+        witnesses: true,
       },
     });
     return result as ClaimWithDetails[];
@@ -309,9 +334,36 @@ export class DatabaseStorage implements IStorage {
       accidentTime: data.accidentTime || null,
       accidentLocation: data.accidentLocation || null,
       accidentDescription: data.accidentDescription || null,
+      roadSurface: data.accidentRoadSurface && data.accidentRoadSurface !== '' ? data.accidentRoadSurface : null,
+      visibility: data.accidentVisibility && data.accidentVisibility !== '' ? data.accidentVisibility : null,
+      driverWarningGiven: data.accidentDriverWarningGiven || null,
+      vehicleLightsOn: data.accidentVehicleLightsOn || null,
+      policeTookParticulars: data.accidentPoliceTookParticulars ?? false,
+      policeConstableNumber: data.accidentPoliceConstableNumber || null,
+      policeStation: data.accidentPoliceStation || null,
       vehicleDamageDescription: data.vehicleDamageDescription || null,
       goodsDamaged: data.goodsDamaged || false,
       goodsDescription: data.goodsDescription || null,
+      inspectionLocation: data.inspectionLocation || null,
+      repairerName: data.repairerName || null,
+      repairerAddress: data.repairerAddress || null,
+      repairerPhone: data.repairerPhone || null,
+      isVehicleInUse: data.isVehicleInUse ?? null,
+      goodsOwnerName: data.goodsOwnerName || null,
+      wasTrailerAttached: data.wasTrailerAttached ?? false,
+      loadWeight: data.loadWeight || null,
+      declarationName: data.declarationName || null,
+      declarationTitle: data.declarationTitle || null,
+      declarationAccepted: data.declarationAccepted ?? false,
+      ownerStatement: data.ownerStatement || null,
+      financeCompanyName: data.financeCompanyName || null,
+      hasOtherInsurance: data.hasOtherInsurance ?? false,
+      otherInsuranceDetails: data.otherInsuranceDetails || null,
+      hasLoanRepaymentCover: data.hasLoanRepaymentCover ?? false,
+      loanPrincipalAmount: data.loanPrincipalAmount != null && data.loanPrincipalAmount !== '' ? String(data.loanPrincipalAmount) : null,
+      loanInterestAmount: data.loanInterestAmount != null && data.loanInterestAmount !== '' ? String(data.loanInterestAmount) : null,
+      monthlyInstalment: data.monthlyInstalment != null && data.monthlyInstalment !== '' ? String(data.monthlyInstalment) : null,
+      loanCoveragePercentage: data.loanCoveragePercentage != null && data.loanCoveragePercentage !== '' ? String(data.loanCoveragePercentage) : null,
     };
     
     // Update the main claim
@@ -320,17 +372,24 @@ export class DatabaseStorage implements IStorage {
       .set(claimData)
       .where(eq(claims.id, claimId));
     
-    // Only save individual details if the required fields are filled
-    if (data.insuredType === 'individual' && 
-        data.individualFirstName && 
-        data.individualSurname && 
-        data.individualIdNumber) {
+    // Save individual details if ANY of the individual fields are filled
+    // This allows partial saves during form filling
+    const hasAnyIndividualData = data.insuredType === 'individual' && (
+        data.individualFirstName || 
+        data.individualSurname || 
+        data.individualIdNumber ||
+        data.individualMobile ||
+        data.individualEmail ||
+        data.individualNationality
+    );
+    
+    if (hasAnyIndividualData) {
       const individualData = {
         claimId,
-        firstName: data.individualFirstName,
+        firstName: data.individualFirstName || '',
         middleName: data.individualMiddleName || null,
-        surname: data.individualSurname,
-        idNumber: data.individualIdNumber,
+        surname: data.individualSurname || '',
+        idNumber: data.individualIdNumber || '',
         nationality: data.individualNationality || null,
         dateOfBirth: convertToDate(data.individualDateOfBirth),
         pinNumber: data.individualPinNumber || null,
@@ -349,14 +408,19 @@ export class DatabaseStorage implements IStorage {
       await this.upsertIndividualDetails(individualData);
     }
     
-    // Only save corporate details if the required fields are filled
-    if (data.insuredType === 'corporate' && 
-        data.corporateRegisteredName && 
-        data.corporateRegistrationNumber) {
+    // Save corporate details if ANY of the corporate fields are filled
+    const hasAnyCorporateData = data.insuredType === 'corporate' && (
+        data.corporateRegisteredName || 
+        data.corporateRegistrationNumber ||
+        data.corporateEmail ||
+        data.corporateMobileContact
+    );
+    
+    if (hasAnyCorporateData) {
       const corporateData = {
         claimId,
-        registeredName: data.corporateRegisteredName,
-        registrationNumber: data.corporateRegistrationNumber,
+        registeredName: data.corporateRegisteredName || '',
+        registrationNumber: data.corporateRegistrationNumber || '',
         countryOfRegistration: data.corporateCountryOfRegistration || null,
         pinNumber: data.corporatePinNumber || null,
         vatRegNumber: data.corporateVatRegNumber || null,
@@ -373,15 +437,22 @@ export class DatabaseStorage implements IStorage {
       await this.upsertCorporateDetails(corporateData);
     }
     
-    // Save vehicle details when available with required fields
-    if ((data.vehicleMake || data.vehicle?.make) && 
-        (data.vehicleModel || data.vehicle?.model)) {
+    // Save vehicle details when ANY vehicle field is filled
+    const hasAnyVehicleData = 
+        data.vehicleMake || data.vehicle?.make ||
+        data.vehicleModel || data.vehicle?.model ||
+        data.vehicleRegistrationNumber || data.vehicle?.registrationNumber_primemover;
+    
+    if (hasAnyVehicleData) {
+      const regPrimemover = data.vehicleRegistrationNumber_primemover || data.vehicle?.registrationNumber_primemover || '';
       const vehicleData = {
         claimId,
         make: data.vehicleMake || data.vehicle?.make || '',
         model: data.vehicleModel || data.vehicle?.model || '',
         yearOfManufacture: data.vehicleYearOfManufacture || data.vehicle?.yearOfManufacture || null,
-        registrationNumber: data.vehicleRegistrationNumber || data.vehicle?.registrationNumber_primemover || data.vehicle?.registrationNumber || '',
+        registrationNumber: regPrimemover,
+        registrationNumber_primemover: regPrimemover,
+        registrationNumber_trailer: data.vehicleRegistrationNumber_trailer || data.vehicle?.registrationNumber_trailer || '',
         carryingCapacity: data.vehicleCarryingCapacity || data.vehicle?.carryingCapacity || '',
         loadingCapacity: data.vehicleLoadingCapacity || data.vehicle?.loadingCapacity || '',
         ownerName: data.vehicleOwnerName || data.vehicle?.ownerName || '',
@@ -392,9 +463,13 @@ export class DatabaseStorage implements IStorage {
       await this.upsertVehicle(vehicleData);
     }
     
-    // Save driver details when available with required fields
-    if ((data.driverName || data.driver?.name) && 
-        (data.driverLicenseNumber || data.driver?.licenseNumber)) {
+    // Save driver details when ANY driver field is filled
+    const hasAnyDriverData = 
+        data.driverName || data.driver?.name ||
+        data.driverLicenseNumber || data.driver?.licenseNumber ||
+        data.driverTelephone || data.driver?.telephone;
+    
+    if (hasAnyDriverData) {
       const driverData = {
         claimId,
         name: data.driverName || data.driver?.name || '',
@@ -423,9 +498,13 @@ export class DatabaseStorage implements IStorage {
       await this.upsertDriver(driverData);
     }
     
-    // Save bank details when available with required fields
-    if ((data.bankBankName || data.bank?.bankName) && 
-        (data.bankAccountNumber || data.bank?.accountNumber)) {
+    // Save bank details when ANY bank field is filled
+    const hasAnyBankData = 
+        data.bankBankName || data.bank?.bankName ||
+        data.bankAccountNumber || data.bank?.accountNumber ||
+        data.bankAccountName || data.bank?.accountName;
+    
+    if (hasAnyBankData) {
       const bankData = {
         claimId,
         bankName: data.bankBankName || data.bank?.bankName || '',
@@ -437,6 +516,78 @@ export class DatabaseStorage implements IStorage {
       };
       
       await this.upsertBankDetails(bankData);
+    }
+    
+    // Save third party properties (always delete first, then insert new)
+    const thirdPartyArr = typeof data.thirdPartyProperties === 'string' 
+      ? JSON.parse(data.thirdPartyProperties || '[]') 
+      : (data.thirdPartyProperties || []);
+    if (Array.isArray(thirdPartyArr)) {
+      await db.delete(thirdPartyProperties).where(eq(thirdPartyProperties.claimId, claimId));
+      for (const tp of thirdPartyArr) {
+        if (tp.ownerName || tp.ownerAddress || tp.propertyDescription) {
+          await db.insert(thirdPartyProperties).values({
+            claimId,
+            ownerName: tp.ownerName || null,
+            ownerAddress: tp.ownerAddress || null,
+            propertyDescription: tp.propertyDescription || null,
+          });
+        }
+      }
+    }
+    
+    // Save injured persons (always delete first, then insert new)
+    const injuredArr = typeof data.injuredPersons === 'string'
+      ? JSON.parse(data.injuredPersons || '[]')
+      : (data.injuredPersons || []);
+    if (Array.isArray(injuredArr)) {
+      await db.delete(injuredPersons).where(eq(injuredPersons.claimId, claimId));
+      for (const ip of injuredArr) {
+        if (ip.personName || ip.personAddress || ip.apparentInjuries) {
+          await db.insert(injuredPersons).values({
+            claimId,
+            personName: ip.personName || null,
+            personAddress: ip.personAddress || null,
+            relationshipToInsured: ip.relationshipToInsured || null,
+            vehicleRegNo: ip.vehicleRegNo || null,
+            apparentInjuries: ip.apparentInjuries || null,
+          });
+        }
+      }
+    }
+    
+    // Save passengers (always delete first, then insert new)
+    const passengersArr = typeof data.passengers === 'string'
+      ? JSON.parse(data.passengers || '[]')
+      : (data.passengers || []);
+    if (Array.isArray(passengersArr)) {
+      await db.delete(passengers).where(eq(passengers.claimId, claimId));
+      for (const p of passengersArr) {
+        if (p.passengerName || p.passengerAddress) {
+          await db.insert(passengers).values({
+            claimId,
+            passengerName: p.passengerName || null,
+            passengerAddress: p.passengerAddress || null,
+          });
+        }
+      }
+    }
+    
+    // Save witnesses (always delete first, then insert new)
+    const witnessesArr = typeof data.witnesses === 'string'
+      ? JSON.parse(data.witnesses || '[]')
+      : (data.witnesses || []);
+    if (Array.isArray(witnessesArr)) {
+      await db.delete(witnesses).where(eq(witnesses.claimId, claimId));
+      for (const w of witnessesArr) {
+        if (w.witnessName || w.witnessAddress) {
+          await db.insert(witnesses).values({
+            claimId,
+            witnessName: w.witnessName || null,
+            witnessAddress: w.witnessAddress || null,
+          });
+        }
+      }
     }
   }
 
@@ -456,6 +607,10 @@ export class DatabaseStorage implements IStorage {
         bankDetails: true,
         otherVehicles: true,
         damagedPhotos: true,
+        thirdPartyProperties: true,
+        injuredPersons: true,
+        passengers: true,
+        witnesses: true,
       },
     });
     return result as ClaimWithDetails[];
@@ -589,6 +744,31 @@ export class DatabaseStorage implements IStorage {
     return newPhoto;
   }
 
+  async upsertDamagedPhoto(photo: InsertDamagedPhoto): Promise<DamagedPhoto> {
+    if (photo.claimId && photo.angle) {
+      const existing = await db.query.damagedPhotos.findFirst({
+        where: and(
+          eq(damagedPhotos.claimId, photo.claimId),
+          eq(damagedPhotos.angle, photo.angle),
+        ),
+      });
+      if (existing) {
+        const [updated] = await db
+          .update(damagedPhotos)
+          .set({
+            objectPath: photo.objectPath,
+            isGoodsPhoto: photo.isGoodsPhoto,
+            aiAnalysisResults: photo.aiAnalysisResults,
+            uploadedAt: new Date(),
+          })
+          .where(eq(damagedPhotos.id, existing.id))
+          .returning();
+        return updated;
+      }
+    }
+    return this.addDamagedPhoto(photo);
+  }
+
   async updatePhotoAnalysis(photoId: string, analysis: any): Promise<void> {
     await db
       .update(damagedPhotos)
@@ -636,43 +816,94 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
   }
 
-  // Analytics dashboard method
-  async getAnalyticsDashboard(brokerId?: string): Promise<any> {
+  // Analytics dashboard method - admin only
+  async getAnalyticsDashboard(): Promise<any> {
     try {
-      // For now, return sample analytics data to resolve the error
+      // Real DB aggregations for claims overview
+      const allClaims = await db.select({
+        status: claims.status,
+        finalSettlementAmount: claims.finalSettlementAmount,
+        createdAt: claims.createdAt,
+      }).from(claims);
+
+      const total = allClaims.length;
+      const pending = allClaims.filter(c => c.status === 'under_review' || c.status === 'submitted').length;
+      const approved = allClaims.filter(c => c.status === 'approved').length;
+      const rejected = allClaims.filter(c => c.status === 'rejected').length;
+      const paid = allClaims.filter(c => c.status === 'paid').length;
+      const draft = allClaims.filter(c => c.status === 'draft').length;
+
+      // Real payout totals: sum of finalSettlementAmount for paid or approved claims
+      const settledClaims = allClaims.filter(c => c.status === 'paid' || c.status === 'approved');
+      const totalPayouts = settledClaims.reduce((sum, c) => sum + Number(c.finalSettlementAmount || 0), 0);
+      const avgClaimAmount = settledClaims.length > 0 ? totalPayouts / settledClaims.length : 0;
+      const largestClaim = settledClaims.reduce((max, c) => Math.max(max, Number(c.finalSettlementAmount || 0)), 0);
+
+      // Monthly trends: last 6 months
+      const now = new Date();
+      const monthlyTrends = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthName = d.toLocaleString('en-US', { month: 'short' });
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const monthClaims = allClaims.filter(c => {
+          if (!c.createdAt) return false;
+          const cd = new Date(c.createdAt);
+          return cd.getFullYear() === year && cd.getMonth() === month;
+        });
+        const monthSettled = monthClaims.filter(c => c.status === 'paid' || c.status === 'approved');
+        const monthTotal = monthSettled.reduce((sum, c) => sum + Number(c.finalSettlementAmount || 0), 0);
+        const monthAvg = monthSettled.length > 0 ? Math.round(monthTotal / monthSettled.length) : 0;
+        monthlyTrends.push({
+          month: monthName,
+          claims: monthClaims.length,
+          settlements: monthSettled.length,
+          avgAmount: monthAvg,
+        });
+      }
+
+      // Status distribution for chart
+      const statusCounts: Record<string, number> = {};
+      for (const c of allClaims) {
+        statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
+      }
+      const severityBreakdown = Object.entries(statusCounts).map(([status, value]) => {
+        const colorMap: Record<string, string> = {
+          draft: '#94a3b8',
+          submitted: '#60a5fa',
+          under_review: '#f59e0b',
+          approved: '#10b981',
+          rejected: '#ef4444',
+          paid: '#6366f1',
+        };
+        return { name: status.replace('_', ' '), value, color: colorMap[status] || '#94a3b8' };
+      });
+
+      const settlementRate = total > 0 ? Math.round(((approved + paid) / total) * 100) : 0;
+
       return {
         claimsOverview: {
-          total: 156,
-          pending: 42,
-          approved: 78,
-          rejected: 12,
-          processing: 24,
+          total,
+          pending,
+          approved,
+          rejected,
+          processing: paid,
+          draft,
         },
-        severityBreakdown: [
-          { name: 'Minor', value: 62, color: '#10b981' },
-          { name: 'Moderate', value: 55, color: '#f59e0b' },
-          { name: 'Major', value: 31, color: '#ef4444' },
-          { name: 'Total Loss', value: 8, color: '#7c2d12' },
-        ],
-        monthlyTrends: [
-          { month: 'Jan', claims: 28, settlements: 22, avgAmount: 7200 },
-          { month: 'Feb', claims: 34, settlements: 28, avgAmount: 6800 },
-          { month: 'Mar', claims: 41, settlements: 35, avgAmount: 7500 },
-          { month: 'Apr', claims: 29, settlements: 24, avgAmount: 8100 },
-          { month: 'May', claims: 37, settlements: 31, avgAmount: 7300 },
-          { month: 'Jun', claims: 43, settlements: 38, avgAmount: 7900 },
-        ],
+        severityBreakdown,
+        monthlyTrends,
         costAnalysis: {
-          totalPayouts: 1170000,
-          avgClaimAmount: 7500,
-          largestClaim: 25000,
-          reserves: 336000,
+          totalPayouts: Math.round(totalPayouts),
+          avgClaimAmount: Math.round(avgClaimAmount),
+          largestClaim: Math.round(largestClaim),
+          reserves: 0,
         },
         performanceMetrics: {
-          avgProcessingTime: 12,
-          settlementRate: 82,
-          customerSatisfaction: 87,
-          reopenRate: 3,
+          avgProcessingTime: 0,
+          settlementRate,
+          customerSatisfaction: 0,
+          reopenRate: 0,
         },
       };
     } catch (error) {
@@ -727,19 +958,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async assignClaimToBroker(claimId: string, brokerId: string): Promise<void> {
-    await db
-      .update(claims)
-      .set({ brokerId, updatedAt: new Date() })
-      .where(eq(claims.id, claimId));
-  }
-
-  async assignClaimToServiceProvider(claimId: string, providerId: string): Promise<void> {
-    await db
-      .update(claims)
-      .set({ assignedServiceProviderId: providerId, updatedAt: new Date() })
-      .where(eq(claims.id, claimId));
-  }
 
   // System statistics
   async getSystemStats(): Promise<any> {
@@ -1083,6 +1301,74 @@ export class DatabaseStorage implements IStorage {
       .where(eq(claimChangeHistory.claimId, claimId))
       .orderBy(desc(claimChangeHistory.createdAt))
       .limit(limit);
+  }
+
+  // Admin signup request operations
+  async createAdminSignupRequest(request: InsertAdminSignupRequest): Promise<AdminSignupRequest> {
+    const [result] = await db
+      .insert(adminSignupRequests)
+      .values(request)
+      .returning();
+    return result;
+  }
+
+  async getAdminSignupRequests(status?: string): Promise<AdminSignupRequest[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(adminSignupRequests)
+        .where(eq(adminSignupRequests.status, status as any))
+        .orderBy(desc(adminSignupRequests.createdAt));
+    }
+    return await db
+      .select()
+      .from(adminSignupRequests)
+      .orderBy(desc(adminSignupRequests.createdAt));
+  }
+
+  async getAdminSignupRequestById(id: string): Promise<AdminSignupRequest | undefined> {
+    const [result] = await db
+      .select()
+      .from(adminSignupRequests)
+      .where(eq(adminSignupRequests.id, id));
+    return result;
+  }
+
+  async getAdminSignupRequestByEmail(email: string): Promise<AdminSignupRequest | undefined> {
+    const [result] = await db
+      .select()
+      .from(adminSignupRequests)
+      .where(eq(adminSignupRequests.email, email));
+    return result;
+  }
+
+  async approveAdminSignupRequest(id: string, reviewerId: string): Promise<AdminSignupRequest> {
+    const [result] = await db
+      .update(adminSignupRequests)
+      .set({
+        status: 'approved',
+        reviewedBy: reviewerId,
+        reviewedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(adminSignupRequests.id, id))
+      .returning();
+    return result;
+  }
+
+  async rejectAdminSignupRequest(id: string, reviewerId: string, reason: string): Promise<AdminSignupRequest> {
+    const [result] = await db
+      .update(adminSignupRequests)
+      .set({
+        status: 'rejected',
+        reviewedBy: reviewerId,
+        reviewedAt: new Date(),
+        rejectionReason: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(adminSignupRequests.id, id))
+      .returning();
+    return result;
   }
 }
 

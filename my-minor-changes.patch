@@ -1,0 +1,46 @@
+commit 0bf6e8dd6848584f6a34d03c633a706f9e18fdfb
+Author: KimtaiKogoKevin <kk24acz@herts.ac.uk>
+Date:   Sun May 3 14:29:50 2026 +0100
+
+    minor changes
+
+diff --git a/client/src/pages/claimant-dashboard.tsx b/client/src/pages/claimant-dashboard.tsx
+index d6cc106..2038cfe 100644
+--- a/client/src/pages/claimant-dashboard.tsx
++++ b/client/src/pages/claimant-dashboard.tsx
+@@ -280,7 +280,7 @@ export default function ClaimantDashboard() {
+                             onClick={() => setLocation(`/claim-form/${claim.id}`)}
+                             className="bg-primary hover:bg-blue-600 mr-3"
+                           >
+-                            Continue
++                            Continue  
+                           </Button>
+                         ) : (
+                           <Button 
+diff --git a/server/standaloneAuth.ts b/server/standaloneAuth.ts
+index 8ed2174..45fd4e2 100644
+--- a/server/standaloneAuth.ts
++++ b/server/standaloneAuth.ts
+@@ -28,7 +28,7 @@ const registerSchema = z.object({
+   confirmPassword: z.string().min(8).optional(), // Make optional for server processing
+   firstName: z.string().min(1),
+   lastName: z.string().min(1),
+-  role: z.enum(['insured', 'broker', 'insurer', 'service_provider']).optional().default('insured')
++  role: z.enum(['insured', 'admin']).optional().default('insured')
+ });
+ 
+ const loginSchema = z.object({
+diff --git a/shared/schema.ts b/shared/schema.ts
+index a44babe..8d040d6 100644
+--- a/shared/schema.ts
++++ b/shared/schema.ts
+@@ -375,6 +375,9 @@ export const claimWorkflows = pgTable("claim_workflows", {
+ });
+ 
+ // Communication logs between different roles
++
++
++
+ export const claimCommunications = pgTable("claim_communications", {
+   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+   claimId: varchar("claim_id").notNull().references(() => claims.id),

@@ -51,6 +51,7 @@ export class DraftPersistenceManager {
   async saveDraft(data: DraftData, step: number): Promise<void> {
     const enhancedData = {
       ...data,
+      claimId: this.config.claimId, // Include claimId for conflict resolution
       formStep: step,
       lastModified: Date.now(),
       version: this.lastSyncedVersion + 1
@@ -102,7 +103,16 @@ export class DraftPersistenceManager {
    * Intelligent conflict resolution between server and local data
    */
   private resolveConflict(serverData: DraftData, localData: DraftData): DraftData {
-    const serverTime = serverData.lastModified || 0;
+    // Server returns lastSavedAt as ISO string, convert to timestamp
+    // Also check for lastModified field for backward compatibility
+    let serverTime = serverData.lastModified || 0;
+    if (!serverTime && serverData.lastSavedAt) {
+      serverTime = new Date(serverData.lastSavedAt as string).getTime();
+    }
+    if (!serverTime && serverData.updatedAt) {
+      serverTime = new Date(serverData.updatedAt as string).getTime();
+    }
+    
     const localTime = localData.lastModified || 0;
 
     switch (this.config.conflictResolution) {
@@ -114,14 +124,16 @@ export class DraftPersistenceManager {
       
       case 'merge':
       default:
-        // Merge strategy: use most recent fields, prefer local for form data
+        // Merge strategy: Server data wins by default (single source of truth)
+        // Only use local data if it's definitively newer AND has the same claim
         const merged = { ...serverData };
         
-        // If local is newer, merge its form data
-        if (localTime > serverTime) {
-          // Merge form fields from local data
+        // Only prefer local data if it's newer AND we're sure it's the same session
+        // Be conservative: server is the source of truth for multi-user scenarios
+        if (localTime > serverTime && localData.claimId === serverData.id) {
+          // Merge form fields from local data, but only non-empty values
           Object.keys(localData).forEach(key => {
-            if (key !== 'lastModified' && key !== 'version') {
+            if (key !== 'lastModified' && key !== 'version' && key !== 'lastSavedAt' && key !== 'updatedAt') {
               if (localData[key] !== null && localData[key] !== undefined && localData[key] !== '') {
                 merged[key] = localData[key];
               }
@@ -129,7 +141,7 @@ export class DraftPersistenceManager {
           });
           
           merged.lastModified = localTime;
-          merged.formStep = Math.max(serverData.formStep || 0, localData.formStep || 0);
+          merged.formStep = Math.max(serverData.formStep || serverData.currentFormStep || 0, localData.formStep || 0);
         }
         
         return merged;

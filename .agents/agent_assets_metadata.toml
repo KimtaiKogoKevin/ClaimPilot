@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "SUn6gIF8SY21ErJZhH5cS"
+uri = "file://LOCAL_SETUP.md"
+type = "text"
+title = "Local Setup Guide"

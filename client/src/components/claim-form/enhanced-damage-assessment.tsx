@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,13 +45,13 @@ interface EnhancedDamageAssessmentProps {
 // Simple configuration for essential views only
 const ESSENTIAL_VIEWS = [
   { 
-    id: 'FRONT', 
+    id: 'FRONT_VIEW', 
     label: 'Front View', 
     description: 'Capture front bumper, hood, and windshield',
     icon: '🚗'
   },
   { 
-    id: 'REAR', 
+    id: 'REAR_VIEW', 
     label: 'Rear View', 
     description: 'Capture rear bumper, trunk, and rear window',
     icon: '🚙'
@@ -80,6 +80,17 @@ const VIDEO_CHECKLIST = [
   { id: 'focus_damage', label: 'Focus on damaged areas for 3-5 seconds' },
 ];
 
+function normalizeObjectUrl(objectPath: string): string {
+  if (!objectPath) return '';
+  if (objectPath.startsWith('https://') || objectPath.startsWith('http://')) {
+    return objectPath.split('?')[0];
+  }
+  if (objectPath.startsWith('/objects/')) {
+    return objectPath;
+  }
+  return objectPath;
+}
+
 export default function EnhancedDamageAssessment({
   formData,
   setFormData,
@@ -89,10 +100,63 @@ export default function EnhancedDamageAssessment({
   const [captureMode, setCaptureMode] = useState<"photo" | "video">("photo");
   const [uploadedMedia, setUploadedMedia] = useState<Record<string, any>>({});
   const [aiAnalysisResults, setAiAnalysisResults] = useState<any[]>([]);
+  const [aiUnavailable, setAiUnavailable] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [videoChecklist, setVideoChecklist] = useState<Record<string, boolean>>(
     {}
   );
+
+  const { data: existingMedia } = useQuery<{ photos: any[]; documents: any[] }>({
+    queryKey: ['/api/claims', claimId, 'media'],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/claims/${claimId}/media`);
+      return res.json();
+    },
+    enabled: !!claimId,
+  });
+
+  useEffect(() => {
+    if (existingMedia?.photos && existingMedia.photos.length > 0) {
+      const restoredMedia: Record<string, any> = {};
+      const restoredAnalysis: any[] = [];
+      let hasUnavailable = false;
+      for (const photo of existingMedia.photos) {
+        if (photo.angle) {
+          const url = normalizeObjectUrl(photo.objectPath);
+          restoredMedia[photo.angle] = {
+            url,
+            type: photo.angle === 'VIDEO_360' ? 'video' : 'image',
+          };
+          if (photo.aiAnalysisResults) {
+            const raw = photo.aiAnalysisResults;
+            if (raw.unavailable) {
+              hasUnavailable = true;
+            } else if (raw.predictions && Array.isArray(raw.predictions)) {
+              for (const pred of raw.predictions) {
+                restoredAnalysis.push({
+                  damageType: pred.damageType || pred.class || 'unknown',
+                  confidence: pred.confidence ?? 0,
+                  severity: pred.severity || 'low',
+                });
+              }
+            } else if (raw.damageType) {
+              restoredAnalysis.push(raw);
+            }
+          }
+        }
+      }
+      setUploadedMedia(prev => {
+        if (Object.keys(prev).length === 0) return restoredMedia;
+        return prev;
+      });
+      if (hasUnavailable && restoredAnalysis.length === 0) {
+        setAiUnavailable(true);
+      }
+      if (restoredAnalysis.length > 0) {
+        setAiAnalysisResults(prev => prev.length === 0 ? restoredAnalysis : prev);
+      }
+    }
+  }, [existingMedia]);
 
   // Calculate upload progress
   const uploadProgress = useMemo(() => {
@@ -136,7 +200,16 @@ export default function EnhancedDamageAssessment({
     },
     onSuccess: (data) => {
       if (data.aiAnalysis) {
-        setAiAnalysisResults((prev) => [...prev, data.aiAnalysis]);
+        if (data.aiAnalysis.unavailable) {
+          setAiUnavailable(true);
+        } else if (data.aiAnalysis.predictions && data.aiAnalysis.predictions.length > 0) {
+          const preds = data.aiAnalysis.predictions.map((p: any) => ({
+            damageType: p.damageType,
+            confidence: p.confidence,
+            severity: p.severity,
+          }));
+          setAiAnalysisResults((prev) => [...prev, ...preds]);
+        }
       }
       toast({
         title: "✓ Upload Successful",
@@ -171,28 +244,27 @@ export default function EnhancedDamageAssessment({
     },
     onSuccess: (data) => {
       setIsAnalyzing(false);
-      setAiAnalysisResults(data.results || []);
-      toast({
-        title: "✓ Analysis Complete",
-        description: `Damage assessment completed`,
-      });
+      if (data.unavailable) {
+        setAiUnavailable(true);
+      } else {
+        setAiAnalysisResults(data.results || []);
+        toast({
+          title: "✓ Analysis Complete",
+          description: `Damage assessment completed`,
+        });
+      }
     },
     onError: (error) => {
       setIsAnalyzing(false);
       console.error("Analysis error:", error);
-      // Use placeholder results if API fails
-      setAiAnalysisResults([
-        {
-          damageType: "Front Bumper Scratch",
-          confidence: 0.85,
-          severity: "medium",
-        },
-        { damageType: "Door Dent", confidence: 0.92, severity: "low" },
-      ]);
+      toast({
+        title: "Analysis Failed",
+        description: "Could not complete AI damage analysis. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
-  // VVVVVV ADD THE NEW HANDLER FUNCTIONS HERE VVVVVV
   const handleChange = (field: string, value: any) =>
     setFormData((prev: any) => ({ ...prev, [field]: value }));
 
@@ -877,20 +949,33 @@ export default function EnhancedDamageAssessment({
                           : "border-2 border-dashed hover:border-primary"
                       )}
                     >
-                      <CardContent className="p-8 text-center">
-                        <div className="text-4xl mb-3">{view.icon}</div>
+                      <CardContent className="p-4 text-center">
                         {uploadedMedia[view.id] ? (
                           <>
-                            <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                            <p className="font-semibold text-green-700">
+                            <div className="relative w-full h-28 mb-2 rounded overflow-hidden bg-neutral-100">
+                              <img
+                                src={uploadedMedia[view.id].url}
+                                alt={view.label}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).parentElement!.querySelector('.fallback')?.classList.remove('hidden');
+                                }}
+                              />
+                              <div className="fallback hidden flex items-center justify-center w-full h-full absolute inset-0">
+                                <CheckCircle2 className="h-10 w-10 text-green-600" />
+                              </div>
+                            </div>
+                            <p className="font-semibold text-green-700 text-sm">
                               {view.label}
                             </p>
-                            <p className="text-sm text-green-600 mt-1">
-                              Uploaded
+                            <p className="text-xs text-green-600 mt-1">
+                              Uploaded - Click to replace
                             </p>
                           </>
                         ) : (
                           <>
+                            <div className="text-4xl mb-3">{view.icon}</div>
                             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                             <p className="font-semibold">{view.label}</p>
                             <p className="text-xs text-muted-foreground mt-2">
@@ -1115,6 +1200,16 @@ export default function EnhancedDamageAssessment({
                   Analyzing damage with computer vision...
                 </p>
               </div>
+            ) : aiUnavailable ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>AI Analysis Unavailable</AlertTitle>
+                <AlertDescription>
+                  AI damage detection requires a Roboflow API key. Please add your{" "}
+                  <strong>ROBOFLOW_API_KEY</strong> environment variable to enable
+                  automated damage analysis.
+                </AlertDescription>
+              </Alert>
             ) : aiAnalysisResults.length > 0 ? (
               <div className="space-y-4">
                 {/* Summary */}

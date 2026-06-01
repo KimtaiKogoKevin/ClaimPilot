@@ -4,13 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useStandaloneAuth } from "@/hooks/useStandaloneAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftManager } from "@/hooks/useDraftManager";
-import { useClaimCollaboration } from "@/hooks/useClaimCollaboration";
+import { useClaimCollaboration, type FieldUpdate } from "@/hooks/useClaimCollaboration";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Clock, Type, History, ChevronDown, ChevronUp } from "lucide-react";
 import ProgressBar from "@/components/claim-form/progress-bar";
-import { DraftPersistenceManager } from "@/lib/draftPersistence";
 import { calculateFormProgress, transformFormDataForAPI, restoreFormDataFromAPI } from "@/lib/formPersistenceUtils";
 import { validateStep } from "@/lib/formValidation";
 import PolicyDetailsStep from "@/components/claim-form/policy-details-step";
@@ -30,10 +29,10 @@ export default function ClaimForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [claimId, setClaimId] = useState<string | null>(id || null);
   const [hasShownRestoreNotification, setHasShownRestoreNotification] = useState(false);
-  const [hasRestoredFromDraft, setHasRestoredFromDraft] = useState(false);
-  const persistenceManagerRef = useRef<DraftPersistenceManager | null>(null);
+  const hasRestoredRef = useRef(false);
+  const autoSaveEnabledRef = useRef(false);
   
-  // Draft management with enterprise-grade persistence
+  // Draft management
   const { 
     currentDraft, 
     isLoadingDraft, 
@@ -55,9 +54,65 @@ export default function ClaimForm() {
     queryKey: ['/api/auth/user'],
   });
 
+  // Fetch claim to get insured user info for admin "filing on behalf of" banner
+  const { data: claimData } = useQuery<{ insuredId: string }>({
+    queryKey: ['/api/claims', claimId],
+    enabled: !!claimId && user?.role === 'admin',
+  });
+
+  // Fetch insured users list so admin can see who they are filing for
+  const { data: allInsuredUsers = [] } = useQuery<Array<{ id: string; firstName: string; lastName: string; email: string }>>({
+    queryKey: ['/api/admin/insured-users'],
+    enabled: !!claimId && user?.role === 'admin' && !!claimData?.insuredId && claimData.insuredId !== user?.id,
+  });
+
+  const insuredUserForClaim = claimData?.insuredId && claimData.insuredId !== user?.id
+    ? allInsuredUsers.find((u) => u.id === claimData.insuredId) || null
+    : null;
+
   // Track highlighted fields for remote updates
   const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
   const [showHistory, setShowHistory] = useState(false);
+
+  const onFieldUpdateRef = useRef<(update: FieldUpdate) => void>();
+
+  type FormData = typeof formData;
+  type FormSection = 'individual' | 'corporate' | 'vehicle' | 'accident' | 'damage' | 'driver' | 'bank';
+
+  onFieldUpdateRef.current = (update) => {
+    const fieldParts = update.field.split('.');
+    setFormData(prev => {
+      if (fieldParts.length === 1) {
+        const key = fieldParts[0] as keyof FormData;
+        return { ...prev, [key]: update.value };
+      }
+      if (fieldParts.length === 2) {
+        const section = fieldParts[0] as FormSection;
+        const field = fieldParts[1];
+        const sectionData = prev[section];
+        if (typeof sectionData === 'object' && sectionData !== null && !Array.isArray(sectionData)) {
+          return { ...prev, [section]: { ...sectionData, [field]: update.value } };
+        }
+      }
+      return prev;
+    });
+    
+    setHighlightedFields(prev => {
+      const newSet = new Set(prev);
+      newSet.add(update.field);
+      return newSet;
+    });
+    
+    toast({
+      title: "Field Updated",
+      description: `${update.changedBy.userName} updated ${update.field}`,
+      duration: 3000,
+    });
+  };
+
+  const stableOnFieldUpdate = useCallback((update: FieldUpdate) => {
+    onFieldUpdateRef.current?.(update);
+  }, []);
 
   // Collaboration hook for real-time updates (disabled for admins to prevent conflicts)
   const collaboration = useClaimCollaboration(
@@ -65,43 +120,7 @@ export default function ClaimForm() {
     user?.id,
     `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Unknown User',
     user?.role || 'insured',
-    (update) => {
-      // Handle remote field updates
-      console.log('Field updated remotely:', update.field, update.value);
-      
-      // Parse the field path and update formData
-      const fieldParts = update.field.split('.');
-      setFormData(prev => {
-        const newData = { ...prev };
-        let current: any = newData;
-        
-        // Navigate to the nested property
-        for (let i = 0; i < fieldParts.length - 1; i++) {
-          if (!current[fieldParts[i]]) {
-            current[fieldParts[i]] = {};
-          }
-          current = current[fieldParts[i]];
-        }
-        
-        // Set the value
-        current[fieldParts[fieldParts.length - 1]] = update.value;
-        return newData;
-      });
-      
-      // Add field to highlighted set
-      setHighlightedFields(prev => {
-        const newSet = new Set(prev);
-        newSet.add(update.field);
-        return newSet;
-      });
-      
-      // Show toast notification
-      toast({
-        title: "Field Updated",
-        description: `${update.changedBy.userName} updated ${update.field}`,
-        duration: 3000,
-      });
-    }
+    stableOnFieldUpdate
   );
 
   // Determine if form should be read-only
@@ -276,32 +295,36 @@ export default function ClaimForm() {
     }>,
   });
 
-  // Restore draft data when loading a draft claim
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+  const lastSavedDataRef = useRef<string>("");
+
+  // Restore draft data when loading a draft claim (fires only ONCE)
   useEffect(() => {
-    // Only restore if we haven't already restored from this draft
-    if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object' && !hasRestoredFromDraft) {
-      console.log("=== RESTORING DRAFT DATA ===");
-      console.log("Loading draft data:", JSON.stringify(currentDraft, null, 2));
-      console.log("Current form data before restore:", JSON.stringify(formData, null, 2));
+    if (currentDraft && !isLoadingDraft && typeof currentDraft === 'object' && !hasRestoredRef.current) {
+      hasRestoredRef.current = true;
       
       const savedStep = getCurrentStep(currentDraft);
-      console.log("Restoring to step:", savedStep);
       setCurrentStep(savedStep);
-      setHasRestoredFromDraft(true); // Mark that we've restored from this draft
       
-      // Use the proper transformation function instead of manual mapping
       const restoredData = restoreFormDataFromAPI(currentDraft);
-      console.log("Restored form data:", JSON.stringify(restoredData, null, 2));
-      setFormData(restoredData);
-      
-      console.log("=== RESTORATION COMPLETE ===");
-      
-      // Log the restored form data after state update
-      setTimeout(() => {
-        console.log("=== FORM DATA AFTER RESTORATION (delayed check) ===");
-      }, 100);
+      setFormData(prev => ({
+        ...prev,
+        ...restoredData,
+        individual: { ...prev.individual, ...restoredData.individual },
+        corporate: { ...prev.corporate, ...restoredData.corporate },
+        vehicle: { ...prev.vehicle, ...restoredData.vehicle },
+        accident: { ...prev.accident, ...restoredData.accident },
+        damage: { ...prev.damage, ...restoredData.damage },
+        driver: { ...prev.driver, ...restoredData.driver },
+        bank: { ...prev.bank, ...restoredData.bank },
+      }));
 
-      // Show restoration notification only once
+      // Enable auto-save after 2 second delay
+      setTimeout(() => {
+        autoSaveEnabledRef.current = true;
+      }, 2000);
+
       if (claimId && !hasShownRestoreNotification) {
         toast({
           title: "Draft Restored",
@@ -311,23 +334,16 @@ export default function ClaimForm() {
         setHasShownRestoreNotification(true);
       }
     }
-  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification, hasRestoredFromDraft]);
+  }, [currentDraft, isLoadingDraft, getCurrentStep, claimId, toast, hasShownRestoreNotification]);
 
-  // Initialize persistence manager
+  // Update URL when claim is created (so refresh works correctly)
   useEffect(() => {
-    if (claimId && !persistenceManagerRef.current) {
-      persistenceManagerRef.current = new DraftPersistenceManager({
-        claimId,
-        autoSaveDelay: 2000, // 2 second debounce
-        enableLocalBackup: true,
-        conflictResolution: 'merge'
-      });
+    // Only update URL if we have a new claimId that's not already in the URL
+    if (claimId && !id) {
+      // Use replaceState to update URL without adding to history
+      window.history.replaceState(null, '', `/claim-form/${claimId}`);
     }
-    
-    return () => {
-      persistenceManagerRef.current?.destroy();
-    };
-  }, [claimId]);
+  }, [claimId, id]);
 
   const totalSteps = 4;
   
@@ -337,129 +353,147 @@ export default function ClaimForm() {
   }, [currentStep, totalSteps]);
 
   // Smart auto-save that only saves meaningful data and never overwrites complete data with empty data
-  const autoSave = useCallback(() => {
+  const autoSave = useCallback((stepOverride?: number) => {
     if (!claimId) {
-      console.log("No claimId, skipping auto-save");
       return;
     }
+    
+    const fd = formDataRef.current;
     
     // Build the data to save
     const dataToSave = {
       // Policy details
-      branchName: formData.branchName || "",
-      agentName: formData.agentName || "",
-      policyNumber: formData.policyNumber || "",
-      lastPaymentDate: formData.lastPaymentDate || "",
-      typeOfCover: formData.typeOfCover || "",
-      insuredType: formData.insuredType || "individual",
+      branchName: fd.branchName || "",
+      agentName: fd.agentName || "",
+      policyNumber: fd.policyNumber || "",
+      lastPaymentDate: fd.lastPaymentDate || "",
+      typeOfCover: fd.typeOfCover || "",
+      insuredType: fd.insuredType || "individual",
 
       // Individual details (save all individual form fields INCLUDING AGE BAND)
-      individualFirstName: formData.individual?.firstName || "",
-      individualMiddleName: formData.individual?.middleName || "",
-      individualSurname: formData.individual?.surname || "",
-      individualIdNumber: formData.individual?.idNumber || "",
-      individualNationality: formData.individual?.nationality || "",
-      individualDateOfBirth: formData.individual?.dateOfBirth || "",
-      individualPinNumber: formData.individual?.pinNumber || "",
-      individualOccupation: formData.individual?.occupation || "",
-      individualResidentialPhone: formData.individual?.residentialPhone || "",
-      individualOfficePhone: formData.individual?.officePhone || "",
-      individualMobile: formData.individual?.mobile || "",
-      individualPostalAddress: formData.individual?.postalAddress || "",
-      individualPostalCode: formData.individual?.postalCode || "",
-      individualPhysicalAddress: formData.individual?.physicalAddress || "",
-      individualEmail: formData.individual?.email || "",
-      individualTradeBusiness: formData.individual?.tradeBusiness || "",
-      individualAgeBand: formData.individual?.ageBand || "", // ← CRITICAL: The missing age band field!
+      individualFirstName: fd.individual?.firstName || "",
+      individualMiddleName: fd.individual?.middleName || "",
+      individualSurname: fd.individual?.surname || "",
+      individualIdNumber: fd.individual?.idNumber || "",
+      individualNationality: fd.individual?.nationality || "",
+      individualDateOfBirth: fd.individual?.dateOfBirth || "",
+      individualPinNumber: fd.individual?.pinNumber || "",
+      individualOccupation: fd.individual?.occupation || "",
+      individualResidentialPhone: fd.individual?.residentialPhone || "",
+      individualOfficePhone: fd.individual?.officePhone || "",
+      individualMobile: fd.individual?.mobile || "",
+      individualPostalAddress: fd.individual?.postalAddress || "",
+      individualPostalCode: fd.individual?.postalCode || "",
+      individualPhysicalAddress: fd.individual?.physicalAddress || "",
+      individualEmail: fd.individual?.email || "",
+      individualTradeBusiness: fd.individual?.tradeBusiness || "",
+      individualAgeBand: fd.individual?.ageBand || "",
       // Corporate details (save all corporate form fields)
-      corporateRegisteredName: formData.corporate?.registeredName || "",
-      corporateRegistrationNumber: formData.corporate?.registrationNumber || "",
-      corporateCountryOfRegistration: formData.corporate?.countryOfRegistration || "",
-      corporatePinNumber: formData.corporate?.pinNumber || "",
-      corporateVatRegNumber: formData.corporate?.vatRegNumber || "",
-      corporateOfficePhone: formData.corporate?.officePhone || "",
-      corporateMobileContact: formData.corporate?.mobileContact || "",
-      corporatePostalAddress: formData.corporate?.postalAddress || "",
-      corporatePostalCode: formData.corporate?.postalCode || "",
-      corporatePhysicalAddress: formData.corporate?.physicalAddress || "",
-      corporateEmail: formData.corporate?.email || "",
-      corporateTradeBusiness: formData.corporate?.tradeBusiness || "",
-      corporateYearsInOperation: formData.corporate?.yearsInOperation || "",
+      corporateRegisteredName: fd.corporate?.registeredName || "",
+      corporateRegistrationNumber: fd.corporate?.registrationNumber || "",
+      corporateCountryOfRegistration: fd.corporate?.countryOfRegistration || "",
+      corporatePinNumber: fd.corporate?.pinNumber || "",
+      corporateVatRegNumber: fd.corporate?.vatRegNumber || "",
+      corporateOfficePhone: fd.corporate?.officePhone || "",
+      corporateMobileContact: fd.corporate?.mobileContact || "",
+      corporatePostalAddress: fd.corporate?.postalAddress || "",
+      corporatePostalCode: fd.corporate?.postalCode || "",
+      corporatePhysicalAddress: fd.corporate?.physicalAddress || "",
+      corporateEmail: fd.corporate?.email || "",
+      corporateTradeBusiness: fd.corporate?.tradeBusiness || "",
+      corporateYearsInOperation: fd.corporate?.yearsInOperation || "",
       // Accident details
-      accidentDate: formData.accident?.date || "",
-      accidentTime: formData.accident?.time || "",
-      accidentLocation: formData.accident?.location || "",
-      accidentDescription: formData.accident?.description || "",
+      accidentDate: fd.accident?.date || "",
+      accidentTime: fd.accident?.time || "",
+      accidentLocation: fd.accident?.location || "",
+      accidentDescription: fd.accident?.description || "",
       // Damage details
-      vehicleDamageDescription: formData.damage?.vehicleDescription || "",
-      goodsDamaged: formData.damage?.goodsDamaged || false,
-      goodsDescription: formData.damage?.goodsDescription || "",
-      // COMPLETE Vehicle details - ALL fields
-      vehicleMake: formData.vehicle?.make || "",
-      vehicleModel: formData.vehicle?.model || "",
-      vehicleYearOfManufacture: formData.vehicle?.yearOfManufacture || null,
-      vehicleRegistrationNumber_primemover: formData.vehicle?.registrationNumber_primemover || "",
-      vehicleRegistrationNumber_trailer: formData.vehicle?.registrationNumber_trailer || "",
-      vehicleCarryingCapacity: formData.vehicle?.carryingCapacity || "",
-      vehicleLoadingCapacity: formData.vehicle?.loadingCapacity || "",
-      vehicleOwnerName: formData.vehicle?.ownerName || "",
-      vehicleOwnerAddress: formData.vehicle?.ownerAddress || "",
-      vehicleVehicleUse: formData.vehicle?.vehicleUse || "",
+      vehicleDamageDescription: fd.damage?.vehicleDescription || "",
+      goodsDamaged: fd.damage?.goodsDamaged || false,
+      goodsDescription: fd.damage?.goodsDescription || "",
+      // Vehicle details
+      vehicleMake: fd.vehicle?.make || "",
+      vehicleModel: fd.vehicle?.model || "",
+      vehicleYearOfManufacture: fd.vehicle?.yearOfManufacture || null,
+      vehicleRegistrationNumber_primemover: fd.vehicle?.registrationNumber_primemover || "",
+      vehicleRegistrationNumber_trailer: fd.vehicle?.registrationNumber_trailer || "",
+      vehicleCarryingCapacity: fd.vehicle?.carryingCapacity || "",
+      vehicleLoadingCapacity: fd.vehicle?.loadingCapacity || "",
+      vehicleOwnerName: fd.vehicle?.ownerName || "",
+      vehicleOwnerAddress: fd.vehicle?.ownerAddress || "",
+      vehicleVehicleUse: fd.vehicle?.vehicleUse || "",
       
-      // COMPLETE Driver details - ALL fields
-      driverName: formData.driver?.name || "",
-      driverOccupation: formData.driver?.occupation || "",
-      driverAddress: formData.driver?.address || "",
-      driverDateOfBirth: formData.driver?.dateOfBirth || "",
-      driverTelephone: formData.driver?.telephone || "",
-      driverLicenseNumber: formData.driver?.licenseNumber || "",
-      driverEmployedByInsured: formData.driver?.employedByInsured || false,
-      driverDrivingWithPermission: formData.driver?.drivingWithPermission || false,
-      driverYearsOfDriving: formData.driver?.yearsOfDriving || null,
-      driverBlameToBareForAccident: formData.driver?.blameToBareForAccident || false,
-      driverAdmittedLiability: formData.driver?.admittedLiability || false,
-      driverPreviousAccidents: formData.driver?.previousAccidents || false,
-      driverPreviousAccidentsDetails: formData.driver?.previousAccidentsDetails || "",
-      driverConvictions: formData.driver?.convictions || false,
-      driverConvictionsDetails: formData.driver?.convictionsDetails || "",
-      driverLicenseType: formData.driver?.licenseType || "",
-      driverDrivingTestPassedDate: formData.driver?.drivingTestPassedDate || "",
-      driverOwnsMotorVehicle: formData.driver?.ownsMotorVehicle || false,
-      driverOwnVehicleInsurer: formData.driver?.ownVehicleInsurer || "",
-      driverOwnVehiclePolicyNumber: formData.driver?.ownVehiclePolicyNumber || "",
-      driverYearsInService: formData.driver?.yearsInService || "",
+      // Driver details
+      driverName: fd.driver?.name || "",
+      driverOccupation: fd.driver?.occupation || "",
+      driverAddress: fd.driver?.address || "",
+      driverDateOfBirth: fd.driver?.dateOfBirth || "",
+      driverTelephone: fd.driver?.telephone || "",
+      driverLicenseNumber: fd.driver?.licenseNumber || "",
+      driverEmployedByInsured: fd.driver?.employedByInsured ?? null,
+      driverDrivingWithPermission: fd.driver?.drivingWithPermission ?? null,
+      driverYearsOfDriving: fd.driver?.yearsOfDriving ?? null,
+      driverBlameToBareForAccident: fd.driver?.blameToBareForAccident ?? null,
+      driverAdmittedLiability: fd.driver?.admittedLiability ?? null,
+      driverPreviousAccidents: fd.driver?.previousAccidents ?? null,
+      driverPreviousAccidentsDetails: fd.driver?.previousAccidentsDetails || "",
+      driverConvictions: fd.driver?.convictions ?? null,
+      driverConvictionsDetails: fd.driver?.convictionsDetails || "",
+      driverLicenseType: fd.driver?.licenseType || "",
+      driverDrivingTestPassedDate: fd.driver?.drivingTestPassedDate || "",
+      driverOwnsMotorVehicle: fd.driver?.ownsMotorVehicle ?? null,
+      driverOwnVehicleInsurer: fd.driver?.ownVehicleInsurer || "",
+      driverOwnVehiclePolicyNumber: fd.driver?.ownVehiclePolicyNumber || "",
+      driverYearsInService: fd.driver?.yearsInService || "",
       
-      // COMPLETE Bank details - ALL fields
-      bankBankName: formData.bank?.bankName || "",
-      bankAccountName: formData.bank?.accountName || "",
-      bankAccountNumber: formData.bank?.accountNumber || "",
-      bankBranch: formData.bank?.branch || "",
-      bankSwiftCode: formData.bank?.swiftCode || "",
-      bankSortCode: formData.bank?.sortCode || "",
+      // Bank details
+      bankBankName: fd.bank?.bankName || "",
+      bankAccountName: fd.bank?.accountName || "",
+      bankAccountNumber: fd.bank?.accountNumber || "",
+      bankBranch: fd.bank?.branch || "",
+      bankSwiftCode: fd.bank?.swiftCode || "",
+      bankSortCode: fd.bank?.sortCode || "",
       
-      // COMPLETE Accident details - ALL fields  
-      accidentRoadSurface: formData.accident?.roadSurface || "",
-      accidentVisibility: formData.accident?.visibility || "",
-      accidentDriverWarningGiven: formData.accident?.driverWarningGiven || "",
-      accidentVehicleLightsOn: formData.accident?.vehicleLightsOn || "",
-      accidentPoliceTookParticulars: formData.accident?.policeTookParticulars || false,
-      accidentPoliceConstableNumber: formData.accident?.policeConstableNumber || "",
-      accidentPoliceStation: formData.accident?.policeStation || "",
+      // Accident details
+      accidentRoadSurface: fd.accident?.roadSurface || "",
+      accidentVisibility: fd.accident?.visibility || "",
+      accidentDriverWarningGiven: fd.accident?.driverWarningGiven || "",
+      accidentVehicleLightsOn: fd.accident?.vehicleLightsOn || "",
+      accidentPoliceTookParticulars: fd.accident?.policeTookParticulars || false,
+      accidentPoliceConstableNumber: fd.accident?.policeConstableNumber || "",
+      accidentPoliceStation: fd.accident?.policeStation || "",
       
       // STEP 3: Complete Damage Assessment Fields
-      inspectionLocation: formData.inspectionLocation || "",
-      repairerName: formData.repairerName || "",
-      repairerPhone: formData.repairerPhone || "",
-      repairerAddress: formData.repairerAddress || "",
-      isVehicleInUse: formData.isVehicleInUse || false,
-      thirdPartyProperties: JSON.stringify((formData as any).thirdPartyProperties || []),
-      personsInjured: JSON.stringify((formData as any).personsInjured || []),
+      inspectionLocation: fd.inspectionLocation || "",
+      repairerName: fd.repairerName || "",
+      repairerPhone: fd.repairerPhone || "",
+      repairerAddress: fd.repairerAddress || "",
+      isVehicleInUse: fd.isVehicleInUse ?? null,
+      thirdPartyProperties: JSON.stringify(fd.thirdPartyProperties || []),
+      injuredPersons: JSON.stringify(fd.injuredPersons || []),
+      passengers: JSON.stringify(fd.passengers || []),
+      witnesses: JSON.stringify(fd.witnesses || []),
+      
+      // Finance/Loan fields
+      financeCompanyName: fd.financeCompanyName ?? "",
+      hasOtherInsurance: fd.hasOtherInsurance ?? false,
+      otherInsuranceDetails: fd.otherInsuranceDetails ?? "",
+      hasLoanRepaymentCover: fd.hasLoanRepaymentCover ?? false,
+      loanPrincipalAmount: fd.loanPrincipalAmount ?? "",
+      loanInterestAmount: fd.loanInterestAmount ?? "",
+      monthlyInstalment: fd.monthlyInstalment ?? "",
+      loanCoveragePercentage: fd.loanCoveragePercentage ?? "",
+      
+      // Trailer/Goods fields
+      wasTrailerAttached: fd.wasTrailerAttached || false,
+      goodsOwnerName: fd.goodsOwnerName || "",
+      loadWeight: fd.loadWeight || "",
       
       // STEP 4: Final Declaration Fields
-      ownerStatement: formData.ownerStatement || "",
-      declarationName: formData.declarationName || "",
-      declarationTitle: formData.declarationTitle || "",
-      declarationAccepted: formData.declarationAccepted || false,
+      ownerStatement: fd.ownerStatement || "",
+      declarationName: fd.declarationName || "",
+      declarationTitle: fd.declarationTitle || "",
+      declarationAccepted: fd.declarationAccepted || false,
     };
     
     // Check if we have meaningful data to save (not just empty strings)
@@ -475,65 +509,27 @@ export default function ClaimForm() {
     const hasMeaningfulData = hasBasicPolicyData || hasIndividualData || hasCorporateData || hasAccidentData || hasVehicleData || hasDriverData || hasBankData;
     
     if (!hasMeaningfulData) {
-      console.log("Skipping auto-save - no meaningful data to save");
       return;
     }
     
-    console.log("Auto-saving form data with meaningful content...");
-    console.log("🔍 DRIVER DATA DEBUG:", {
-      driverObject: formData.driver,
-      driverName: formData.driver?.name,
-      driverLicense: formData.driver?.licenseNumber,
-      flatDriverName: dataToSave.driverName,
-      flatDriverLicense: dataToSave.driverLicenseNumber
-    });
-    console.log("🔍 BANK DATA DEBUG:", {
-      bankObject: formData.bank,
-      bankName: formData.bank?.bankName,
-      accountNumber: formData.bank?.accountNumber,
-      flatBankName: dataToSave.bankBankName,
-      flatAccountNumber: dataToSave.bankAccountNumber
-    });
     const progressPercentage = calculateProgress();
+    const stepToSave = stepOverride ?? currentStep;
     
-    console.log("Saving data with step:", currentStep, "Sections with data:", {
-      hasBasicPolicyData,
-      hasIndividualData,
-      hasCorporateData,
-      hasAccidentData,
-      hasVehicleData,
-      hasDriverData,
-      hasBankData
-    });
-    
-    saveDraft(claimId, currentStep, dataToSave, progressPercentage);
-  }, [claimId, currentStep, formData, saveDraft, calculateProgress]);
+    saveDraft(claimId, stepToSave, dataToSave, progressPercentage);
+  }, [claimId, currentStep, saveDraft, calculateProgress]);
 
   // Manual save button handler
-  const handleManualSave = () => {
-    console.log("Manual save triggered");
-    if (!claimId) {
-      console.log("No claimId for manual save");
-      return;
-    }
-    
-    autoSave();
-    toast({
-      title: "Draft Saved",
-      description: "Your progress has been saved successfully.",
-    });
-  };
   const handleSaveDraft = () => {
     autoSave();
   };
 
+  const getDashboardRoute = () => user?.role === 'admin' ? '/admin-dashboard' : '/';
+
   const handleBackToLanding = () => {
-    setLocation("/");
+    setLocation(getDashboardRoute());
   };
 
   const handleNextStep = () => {
-    console.log("Next button clicked, current step:", currentStep, "total steps:", totalSteps);
-    
     // Validate current step before proceeding
     const validation = validateStep(currentStep, formData);
     if (!validation.isValid) {
@@ -547,15 +543,10 @@ export default function ClaimForm() {
     
     if (currentStep < totalSteps) {
       const nextStep = currentStep + 1;
-      console.log("Moving to next step:", nextStep);
       setCurrentStep(nextStep);
-      // Auto-save when moving to next step
       if (claimId) {
-        console.log("Auto-saving before moving to next step");
-        autoSave();
+        autoSave(nextStep);
       }
-    } else {
-      console.log("Already at last step, cannot proceed");
     }
   };
 
@@ -563,9 +554,8 @@ export default function ClaimForm() {
     if (currentStep > 1) {
       const prevStep = currentStep - 1;
       setCurrentStep(prevStep);
-      // Auto-save when moving to previous step
       if (claimId) {
-        autoSave();
+        autoSave(prevStep);
       }
     }
   };
@@ -595,57 +585,44 @@ export default function ClaimForm() {
     }
 
     try {
-      console.log("🔍 SUBMIT - Force-saving data before submission...");
-      // CRITICAL: Force-save all current data before submitting
+      // Save all current data before submitting
       autoSave();
       // Wait for save to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log("🔍 SUBMIT - Current form data:", {
-        driver: formData.driver,
-        bank: formData.bank
-      });
-      
-      // Transform data to match server validation requirements
-      const formDataAny = formData as any;
       const submitData = {
-        // Driver details - READ FROM CORRECT NESTED LOCATION
         driver: {
-          name: formDataAny.driver?.name || "",
-          licenseNumber: formDataAny.driver?.licenseNumber || "",
-          occupation: formDataAny.driver?.occupation || "",
-          address: formDataAny.driver?.address || "",
-          telephone: formDataAny.driver?.telephone || "",
-          dateOfBirth: formDataAny.driver?.dateOfBirth || "",
-          employedByInsured: formDataAny.driver?.employedByInsured || false,
-          drivingWithPermission: formDataAny.driver?.drivingWithPermission || false,
-          yearsOfDriving: formDataAny.driver?.yearsOfDriving || 0,
-          blameToBareForAccident: formDataAny.driver?.blameToBareForAccident || false,
-          admittedLiability: formDataAny.driver?.admittedLiability || false,
-          previousAccidents: formDataAny.driver?.previousAccidents || false,
-          convictions: formDataAny.driver?.convictions || false,
-          licenseType: formDataAny.driver?.licenseType || "",
-          ownsMotorVehicle: formDataAny.driver?.ownsMotorVehicle || false,
+          name: formData.driver.name || "",
+          licenseNumber: formData.driver.licenseNumber || "",
+          occupation: formData.driver.occupation || "",
+          address: formData.driver.address || "",
+          telephone: formData.driver.telephone || "",
+          dateOfBirth: formData.driver.dateOfBirth || "",
+          employedByInsured: formData.driver.employedByInsured ?? false,
+          drivingWithPermission: formData.driver.drivingWithPermission ?? false,
+          yearsOfDriving: formData.driver.yearsOfDriving ?? 0,
+          blameToBareForAccident: formData.driver.blameToBareForAccident ?? false,
+          admittedLiability: formData.driver.admittedLiability ?? false,
+          previousAccidents: formData.driver.previousAccidents ?? false,
+          convictions: formData.driver.convictions ?? false,
+          licenseType: formData.driver.licenseType || "",
+          ownsMotorVehicle: formData.driver.ownsMotorVehicle ?? false,
         },
-        // Bank details - READ FROM CORRECT NESTED LOCATION
         bankDetails: {
-          bankName: formDataAny.bank?.bankName || "",
-          accountName: formDataAny.bank?.accountName || "",
-          accountNumber: formDataAny.bank?.accountNumber || "",
-          branch: formDataAny.bank?.branch || "",
-          swiftCode: formDataAny.bank?.swiftCode || "",
-          sortCode: formDataAny.bank?.sortCode || "",
+          bankName: formData.bank.bankName || "",
+          accountName: formData.bank.accountName || "",
+          accountNumber: formData.bank.accountNumber || "",
+          branch: formData.bank.branch || "",
+          swiftCode: formData.bank.swiftCode || "",
+          sortCode: formData.bank.sortCode || "",
         }
       };
-
-      console.log("🔍 SUBMIT - Transformed submit data:", submitData);
 
       // Submit the claim (change status from draft to submitted)
       const response = await apiRequest('POST', `/api/claims/${claimId}/submit`, submitData);
       
       if (!response.ok) {
         const errorResult = await response.json();
-        console.log("🔍 SUBMIT ERROR RESPONSE:", errorResult);
         
         // Show detailed validation errors if available
         if (errorResult.errors && Array.isArray(errorResult.errors)) {
@@ -673,18 +650,18 @@ export default function ClaimForm() {
       
       // Redirect to dashboard after successful submission
       setTimeout(() => {
-        setLocation("/");
+        setLocation(getDashboardRoute());
       }, 1500);
       
     } catch (error) {
       if (isUnauthorizedError(error as Error)) {
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          title: "Session expired",
+          description: "Please sign in again.",
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/auth";
         }, 500);
         return;
       }
@@ -700,17 +677,25 @@ export default function ClaimForm() {
   };
 
   // Auto-save functionality
-  // Smart auto-save that triggers only when there's meaningful data
   useEffect(() => {
-    // Only trigger auto-save if we have meaningful form data and haven't just restored from draft
-    if (!hasRestoredFromDraft && claimId) {
-      const timeoutId = setTimeout(() => {
-        autoSave();
-      }, 2000); // 2 second delay to allow user to finish typing
-      
-      return () => clearTimeout(timeoutId);
+    if (!autoSaveEnabledRef.current || !claimId) return;
+
+    const timeoutId = setTimeout(() => {
+      const currentDataStr = JSON.stringify(formDataRef.current);
+      if (currentDataStr === lastSavedDataRef.current) return;
+      lastSavedDataRef.current = currentDataStr;
+      autoSave();
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, claimId, autoSave]);
+
+  // Enable auto-save immediately when there's no draft to restore (new claim)
+  useEffect(() => {
+    if (!currentDraft && !isLoadingDraft && claimId) {
+      autoSaveEnabledRef.current = true;
     }
-  }, [formData, autoSave, hasRestoredFromDraft, claimId]);
+  }, [currentDraft, isLoadingDraft, claimId]);
 
   // Remove duplicate authentication checks - handled by App.tsx router
   // The Router in App.tsx already ensures only authenticated users reach this component
@@ -769,6 +754,13 @@ export default function ClaimForm() {
               </div>
             </div>
           </div>
+
+          {/* Admin "Filing on behalf of" banner */}
+          {claimId && user?.role === 'admin' && insuredUserForClaim && (
+            <div className="mb-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm font-medium" data-testid="banner-filing-on-behalf">
+              Filing on behalf of {insuredUserForClaim.firstName} {insuredUserForClaim.lastName}
+            </div>
+          )}
 
           {/* Collaboration Status */}
           {claimId && (
@@ -850,14 +842,6 @@ export default function ClaimForm() {
             Previous
           </Button>
           <div className="flex space-x-4">
-            <Button 
-              variant="outline" 
-              onClick={handleManualSave}
-              disabled={isReadOnly}
-              data-testid="button-manual-save"
-            >
-              Save Draft
-            </Button>
             {currentStep < totalSteps ? (
               <Button 
                 onClick={handleNextStep}

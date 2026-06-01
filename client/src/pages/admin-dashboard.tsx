@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocation } from "wouter";
 import {
   Select,
   SelectContent,
@@ -54,6 +55,7 @@ import {
   Activity,
   Trash2,
   Edit,
+  Eye,
   Plus,
   BarChart3,
   Shield,
@@ -62,7 +64,8 @@ import {
   UserPlus,
   ClipboardList,
 } from "lucide-react";
-import type { User, AuditLog, SystemSetting, AdminAnalytics } from "@shared/schema";
+import type { User, AuditLog, SystemSetting, AdminAnalytics, AdminSignupRequest } from "@shared/schema";
+import { format } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -70,13 +73,68 @@ import {
   Line,
   AreaChart,
   Area,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
+  RadialBarChart,
+  RadialBar,
 } from "recharts";
+
+// Status badge helper (unified with claimant dashboard)
+function ClaimStatusBadge({ status, ...props }: { status: string; [key: string]: any }) {
+  const map: Record<string, { label: string; cls: string; dot: string }> = {
+    draft:        { label: "Draft",        cls: "badge-draft",     dot: "bg-slate-400" },
+    submitted:    { label: "Submitted",    cls: "badge-submitted", dot: "bg-blue-500" },
+    under_review: { label: "Under Review", cls: "badge-review",    dot: "bg-amber-500" },
+    approved:     { label: "Approved",     cls: "badge-approved",  dot: "bg-emerald-500" },
+    rejected:     { label: "Rejected",     cls: "badge-rejected",  dot: "bg-red-500" },
+    paid:         { label: "Paid",         cls: "badge-paid",      dot: "bg-purple-500" },
+    completed:    { label: "Completed",    cls: "badge-approved",  dot: "bg-emerald-500" },
+  };
+  const s = map[status] || { label: status.replace(/_/g, ' '), cls: "badge-draft", dot: "bg-slate-400" };
+  return (
+    <span className={s.cls} {...props}>
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+      {s.label}
+    </span>
+  );
+}
+
+function RequestStatusBadge({ status, ...props }: { status: string; [key: string]: any }) {
+  if (status === 'approved') return <span className="badge-approved" {...props}><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Approved</span>;
+  if (status === 'rejected') return <span className="badge-rejected" {...props}><span className="w-1.5 h-1.5 rounded-full bg-red-500" />Rejected</span>;
+  return <span className="badge-submitted" {...props}><span className="w-1.5 h-1.5 rounded-full bg-blue-500" />Pending</span>;
+}
+
+// Professional color palette for charts
+const CHART_COLORS = {
+  primary: '#3b82f6',
+  secondary: '#8b5cf6',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  info: '#06b6d4',
+  muted: '#94a3b8',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: '#94a3b8',
+  submitted: '#3b82f6',
+  under_review: '#8b5cf6',
+  approved: '#10b981',
+  rejected: '#ef4444',
+  pending: '#f59e0b',
+  completed: '#059669',
+  processing: '#6366f1',
+};
+
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899'];
 
 interface SystemStats {
   totalUsers: number;
@@ -100,6 +158,7 @@ export default function AdminDashboard() {
   const { user } = useStandaloneAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("analytics");
 
   const [userSearchTerm, setUserSearchTerm] = useState("");
@@ -107,6 +166,10 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showDeleteUserDialog, setShowDeleteUserDialog] = useState(false);
+
+  const [showNewClaimForClientDialog, setShowNewClaimForClientDialog] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [clientSearchTerm, setClientSearchTerm] = useState("");
 
   const [settingKey, setSettingKey] = useState("");
   const [settingValue, setSettingValue] = useState("");
@@ -118,6 +181,10 @@ export default function AdminDashboard() {
   const [bulkStatus, setBulkStatus] = useState("");
 
   const [auditFilter, setAuditFilter] = useState({ entityType: "", adminId: "" });
+
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const { data: stats, isLoading: statsLoading } = useQuery<SystemStats>({
     queryKey: ['/api/admin/stats'],
@@ -142,6 +209,16 @@ export default function AdminDashboard() {
   const { data: auditLogs = [], isLoading: auditLogsLoading } = useQuery<AuditLog[]>({
     queryKey: ['/api/admin/audit-logs', auditFilter],
     enabled: !!user && user.role === 'admin',
+  });
+
+  const { data: signupRequests = [], isLoading: signupRequestsLoading } = useQuery<AdminSignupRequest[]>({
+    queryKey: ['/api/admin/signup-requests'],
+    enabled: !!user && user.role === 'admin',
+  });
+
+  const { data: insuredUsers = [] } = useQuery<Array<{ id: string; firstName: string; lastName: string; email: string }>>({
+    queryKey: ['/api/admin/insured-users'],
+    enabled: !!user && user.role === 'admin' && showNewClaimForClientDialog,
   });
 
   const createUserMutation = useMutation({
@@ -262,6 +339,64 @@ export default function AdminDashboard() {
     },
   });
 
+  const approveRequestMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest(`/api/admin/signup-requests/${id}/approve`, 'POST');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/signup-requests'] });
+      toast({ title: "Success", description: "Signup request approved successfully." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to approve request.", variant: "destructive" });
+    },
+  });
+
+  const rejectRequestMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      return apiRequest(`/api/admin/signup-requests/${id}/reject`, 'POST', { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/signup-requests'] });
+      toast({ title: "Success", description: "Signup request rejected." });
+      setShowRejectDialog(false);
+      setRejectingRequestId(null);
+      setRejectionReason("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to reject request.", variant: "destructive" });
+    },
+  });
+
+  const createClaimForClientMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest('POST', '/api/admin/claims/new-for-user', { userId });
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/staff/claims'] });
+      toast({ title: "Claim Created", description: "A new draft claim has been created. Redirecting to the claim form..." });
+      setShowNewClaimForClientDialog(false);
+      setSelectedClientId("");
+      setClientSearchTerm("");
+      setTimeout(() => {
+        setLocation(`/claim-form/${data.id}`);
+      }, 500);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to create claim.", variant: "destructive" });
+    },
+  });
+
+  const handleStartClaimForClient = () => {
+    if (!selectedClientId) {
+      toast({ title: "Error", description: "Please select a client.", variant: "destructive" });
+      return;
+    }
+    createClaimForClientMutation.mutate(selectedClientId);
+  };
+
   const handleSaveUser = () => {
     if (!selectedUser) return;
 
@@ -312,20 +447,19 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[hsl(210,20%,98%)]">
       <AppHeader />
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Shield className="h-8 w-8 text-primary" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-fade-in">
           <div>
-            <h1 className="text-3xl font-bold" data-testid="heading-admin-dashboard">Admin Dashboard</h1>
-            <p className="text-muted-foreground">System administration and management</p>
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight" data-testid="heading-admin-dashboard">Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">System administration and claims management</p>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <div className="overflow-x-auto">
-            <TabsList className="grid w-full grid-cols-5 min-w-max lg:min-w-0">
+            <TabsList className="grid w-full grid-cols-6 min-w-max lg:min-w-0">
               <TabsTrigger value="analytics" data-testid="tab-analytics">
                 <BarChart3 className="h-4 w-4 sm:mr-2" aria-label="Analytics" />
                 <span className="sr-only sm:not-sr-only">Analytics</span>
@@ -337,6 +471,10 @@ export default function AdminDashboard() {
               <TabsTrigger value="claims" data-testid="tab-claims">
                 <FileText className="h-4 w-4 sm:mr-2" aria-label="Claims" />
                 <span className="sr-only sm:not-sr-only">Claims</span>
+              </TabsTrigger>
+              <TabsTrigger value="signupRequests" data-testid="tab-signup-requests">
+                <UserPlus className="h-4 w-4 sm:mr-2" aria-label="Signup Requests" />
+                <span className="sr-only sm:not-sr-only">Signup Requests</span>
               </TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">
                 <Settings className="h-4 w-4 sm:mr-2" aria-label="Settings" />
@@ -351,42 +489,44 @@ export default function AdminDashboard() {
 
           <TabsContent value="analytics" className="space-y-4">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-              <Card data-testid="card-total-users">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold" data-testid="stat-total-users">
-                    {statsLoading ? "..." : stats?.totalUsers || 0}
+              <div className="stat-card" data-testid="card-total-users">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+                    <Users className="h-5 w-5 text-white" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="text-2xl font-extrabold text-foreground tracking-tight" data-testid="stat-total-users">
+                  {statsLoading ? <div className="skeleton h-8 w-16" /> : stats?.totalUsers || 0}
+                </div>
+                <div className="text-sm font-medium text-foreground mt-0.5">Total users</div>
+                <div className="text-xs text-muted-foreground mt-0.5">All registered accounts</div>
+              </div>
 
-              <Card data-testid="card-total-claims">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Claims</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold" data-testid="stat-total-claims">
-                    {statsLoading ? "..." : stats?.totalClaims || 0}
+              <div className="stat-card" data-testid="card-total-claims">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
+                    <FileText className="h-5 w-5 text-white" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="text-2xl font-extrabold text-foreground tracking-tight" data-testid="stat-total-claims">
+                  {statsLoading ? <div className="skeleton h-8 w-16" /> : stats?.totalClaims || 0}
+                </div>
+                <div className="text-sm font-medium text-foreground mt-0.5">Total claims</div>
+                <div className="text-xs text-muted-foreground mt-0.5">All time submissions</div>
+              </div>
 
               <Card data-testid="card-users-by-role">
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Users by Role</CardTitle>
+                  <CardTitle className="text-sm font-medium">Users by role</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {statsLoading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : (
                     stats?.usersByRole.map(({ role, count }) => (
-                      <div key={role} className="flex justify-between text-sm" data-testid={`role-count-${role}`}>
-                        <span className="capitalize">{role}</span>
-                        <span className="font-medium">{count}</span>
+                      <div key={role} className="flex justify-between text-sm items-center" data-testid={`role-count-${role}`}>
+                        <span className="capitalize text-muted-foreground">{role}</span>
+                        <span className="font-semibold text-foreground">{count}</span>
                       </div>
                     ))
                   )}
@@ -395,15 +535,21 @@ export default function AdminDashboard() {
 
               <Card data-testid="card-claims-by-status">
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Claims by Status</CardTitle>
+                  <CardTitle className="text-sm font-medium">Claims by status</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {statsLoading ? (
                     <p className="text-sm text-muted-foreground">Loading...</p>
                   ) : (
                     stats?.claimsByStatus.slice(0, 5).map(({ status, count }) => (
-                      <div key={status} className="flex justify-between text-sm" data-testid={`status-count-${status}`}>
-                        <span className="capitalize">{status.replace(/_/g, ' ')}</span>
+                      <div key={status} className="flex justify-between text-sm items-center" data-testid={`status-count-${status}`}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-2.5 h-2.5 rounded-full" 
+                            style={{ backgroundColor: STATUS_COLORS[status] || CHART_COLORS.muted }}
+                          />
+                          <span className="capitalize text-muted-foreground">{status.replace(/_/g, ' ')}</span>
+                        </div>
                         <span className="font-medium">{count}</span>
                       </div>
                     ))
@@ -411,6 +557,104 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Claims Status Pie Chart */}
+            {stats?.claimsByStatus && stats.claimsByStatus.length > 0 && (
+              <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Claims Distribution by Status</CardTitle>
+                    <CardDescription>Visual breakdown of all claims</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={stats.claimsByStatus.map(item => ({
+                              ...item,
+                              name: item.status.replace(/_/g, ' ').charAt(0).toUpperCase() + item.status.replace(/_/g, ' ').slice(1)
+                            }))}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="count"
+                            nameKey="name"
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {stats.claimsByStatus.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={STATUS_COLORS[entry.status] || PIE_COLORS[index % PIE_COLORS.length]} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number, name: string) => [`${value} claims`, name]}
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Users Distribution Pie Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Distribution by Role</CardTitle>
+                    <CardDescription>System users breakdown</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={stats.usersByRole.map(item => ({
+                              ...item,
+                              name: item.role.charAt(0).toUpperCase() + item.role.slice(1)
+                            }))}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            paddingAngle={3}
+                            dataKey="count"
+                            nameKey="name"
+                          >
+                            {stats.usersByRole.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={entry.role === 'admin' ? CHART_COLORS.secondary : CHART_COLORS.primary} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number, name: string) => [`${value} users`, name]}
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Analytics Visualizations */}
             {stats?.analytics && (
@@ -425,16 +669,37 @@ export default function AdminDashboard() {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={stats.analytics.userGrowth}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
-                          <YAxis />
-                          <Tooltip />
+                          <defs>
+                            <linearGradient id="colorAdmin" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+                            </linearGradient>
+                            <linearGradient id="colorInsured" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="month" 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickLine={{ stroke: '#e2e8f0' }}
+                          />
+                          <YAxis 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickLine={{ stroke: '#e2e8f0' }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
                           <Legend />
-                          <Area type="monotone" dataKey="roleData.admin" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" name="Admin" />
-                          <Area type="monotone" dataKey="roleData.insurer" stackId="1" stroke="#3b82f6" fill="#3b82f6" name="Insurer" />
-                          <Area type="monotone" dataKey="roleData.broker" stackId="1" stroke="#10b981" fill="#10b981" name="Broker" />
-                          <Area type="monotone" dataKey="roleData.insured" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Insured" />
-                          <Area type="monotone" dataKey="roleData.service_provider" stackId="1" stroke="#ef4444" fill="#ef4444" name="Service Provider" />
+                          <Area type="monotone" dataKey="roleData.admin" stackId="1" stroke="#8b5cf6" fill="url(#colorAdmin)" name="Admin" />
+                          <Area type="monotone" dataKey="roleData.insured" stackId="1" stroke="#3b82f6" fill="url(#colorInsured)" name="Insured" />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -454,30 +719,42 @@ export default function AdminDashboard() {
                           // Restructure data to group by role with current and previous values
                           if (!stats?.analytics) return [];
                           
-                          const analytics = stats.analytics; // Store to satisfy TypeScript
-                          const roles = new Set([
-                            ...analytics.roleMix.current.map(d => d.role),
-                            ...analytics.roleMix.previous.map(d => d.role)
-                          ]);
+                          const analytics = stats.analytics;
+                          // Filter to only show admin and insured roles
+                          const relevantRoles = ['admin', 'insured'];
                           
-                          return Array.from(roles).map(role => {
+                          return relevantRoles.map(role => {
                             const currentData = analytics.roleMix.current.find(d => d.role === role);
                             const previousData = analytics.roleMix.previous.find(d => d.role === role);
                             
                             return {
-                              role: role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' '),
+                              role: role.charAt(0).toUpperCase() + role.slice(1),
                               current: currentData?.count || 0,
                               previous: previousData?.count || 0,
                             };
                           });
                         })()}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="role" angle={-20} textAnchor="end" height={80} />
-                          <YAxis label={{ value: 'New Users', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="role" 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickLine={{ stroke: '#e2e8f0' }}
+                          />
+                          <YAxis 
+                            label={{ value: 'New Users', angle: -90, position: 'insideLeft', fill: '#64748b' }} 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
                           <Legend />
-                          <Bar dataKey="previous" fill="#94a3b8" name="Previous Month" />
-                          <Bar dataKey="current" fill="#3b82f6" name="Current Month" />
+                          <Bar dataKey="previous" fill="#94a3b8" name="Previous Month" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="current" fill="#3b82f6" name="Current Month" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -494,13 +771,31 @@ export default function AdminDashboard() {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stats.analytics.slaCompliance}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="status" angle={-45} textAnchor="end" height={100} />
-                          <YAxis label={{ value: 'Days', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="status" 
+                            angle={-30} 
+                            textAnchor="end" 
+                            height={80}
+                            tick={{ fill: '#64748b', fontSize: 11 }}
+                            tickFormatter={(value) => value.replace(/_/g, ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                          />
+                          <YAxis 
+                            label={{ value: 'Days', angle: -90, position: 'insideLeft', fill: '#64748b' }} 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                            formatter={(value: number) => [`${value} days`, '']}
+                          />
                           <Legend />
-                          <Bar dataKey="avgDays" fill="#3b82f6" name="Avg Processing Days" />
-                          <Bar dataKey="slaTarget" fill="#10b981" name="SLA Target" />
+                          <Bar dataKey="avgDays" fill="#3b82f6" name="Avg Processing Days" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="slaTarget" fill="#10b981" name="SLA Target" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -517,12 +812,33 @@ export default function AdminDashboard() {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stats.analytics.backlogAging}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="bucket" />
-                          <YAxis label={{ value: 'Claims Count', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip />
+                          <defs>
+                            <linearGradient id="colorBacklog" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9}/>
+                              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.6}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="bucket" 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickLine={{ stroke: '#e2e8f0' }}
+                          />
+                          <YAxis 
+                            label={{ value: 'Claims Count', angle: -90, position: 'insideLeft', fill: '#64748b' }} 
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                            formatter={(value: number) => [`${value} claims`, 'Count']}
+                          />
                           <Legend />
-                          <Bar dataKey="count" fill="#f59e0b" name="Claims Count" />
+                          <Bar dataKey="count" fill="url(#colorBacklog)" name="Claims Count" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -714,6 +1030,17 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <CardTitle>Claims Management</CardTitle>
+                    <Button
+                      onClick={() => {
+                        setSelectedClientId("");
+                        setClientSearchTerm("");
+                        setShowNewClaimForClientDialog(true);
+                      }}
+                      data-testid="button-new-claim-for-client"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Claim for Client
+                    </Button>
                   </div>
                   {selectedClaims.length > 0 && (
                     <>
@@ -773,9 +1100,7 @@ export default function AdminDashboard() {
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-muted-foreground">Status</p>
-                                  <Badge variant="outline" data-testid={`badge-status-${claim.id}`}>
-                                    {claim.status}
-                                  </Badge>
+                                  <ClaimStatusBadge status={claim.status} data-testid={`badge-status-${claim.id}`} />
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-muted-foreground">Policy Number</p>
@@ -849,20 +1174,26 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell>{claim.policyNumber}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" data-testid={`badge-status-${claim.id}`}>
-                                {claim.status}
-                              </Badge>
+                              <ClaimStatusBadge status={claim.status} data-testid={`badge-status-${claim.id}`} />
                             </TableCell>
                             <TableCell>
                               {new Date(claim.createdAt).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
-                              <Link href={`/claim-form/${claim.id}`}>
-                                <Button variant="outline" size="sm" data-testid={`button-edit-claim-${claim.id}`}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit
-                                </Button>
-                              </Link>
+                              <div className="flex gap-2">
+                                <Link href={`/claim-details/${claim.id}`}>
+                                  <Button variant="ghost" size="sm" data-testid={`button-view-claim-${claim.id}`}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </Button>
+                                </Link>
+                                <Link href={`/claim-form/${claim.id}`}>
+                                  <Button variant="outline" size="sm" data-testid={`button-edit-claim-${claim.id}`}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </Button>
+                                </Link>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))
@@ -1027,6 +1358,157 @@ export default function AdminDashboard() {
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="signupRequests" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Admin Signup Requests</CardTitle>
+                    <CardDescription>Review and manage pending admin account requests</CardDescription>
+                  </div>
+                  <Badge variant="secondary" data-testid="badge-pending-count">
+                    {signupRequests.filter(r => r.status === 'pending').length} pending
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="md:hidden space-y-4">
+                  {signupRequestsLoading ? (
+                    <p className="text-center text-muted-foreground">Loading...</p>
+                  ) : signupRequests.length === 0 ? (
+                    <p className="text-center text-muted-foreground">No signup requests</p>
+                  ) : (
+                    signupRequests.map((request) => (
+                      <Card key={request.id} data-testid={`card-signup-request-${request.id}`}>
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Company Name</p>
+                              <p className="font-medium">{request.companyName}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Company Type</p>
+                              <p className="capitalize">{request.companyType}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Applicant</p>
+                              <p>{request.firstName} {request.lastName}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Email</p>
+                              <p>{request.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Status</p>
+                              <RequestStatusBadge status={request.status} data-testid={`badge-status-${request.id}`} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Submitted</p>
+                              <p>{request.createdAt ? format(new Date(request.createdAt), 'MMM d, yyyy') : 'N/A'}</p>
+                            </div>
+                            {request.status === 'pending' && (
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => approveRequestMutation.mutate(request.id)}
+                                  disabled={approveRequestMutation.isPending}
+                                  data-testid={`button-approve-${request.id}`}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    setRejectingRequestId(request.id);
+                                    setShowRejectDialog(true);
+                                  }}
+                                  data-testid={`button-reject-${request.id}`}
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+                <div className="overflow-x-auto md:overflow-visible">
+                  <Table className="hidden md:table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Company Name</TableHead>
+                        <TableHead>Company Type</TableHead>
+                        <TableHead>Applicant Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {signupRequestsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center">Loading...</TableCell>
+                        </TableRow>
+                      ) : signupRequests.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center">No signup requests</TableCell>
+                        </TableRow>
+                      ) : (
+                        signupRequests.map((request) => (
+                          <TableRow key={request.id} data-testid={`row-signup-request-${request.id}`}>
+                            <TableCell className="font-medium" data-testid={`text-company-${request.id}`}>
+                              {request.companyName}
+                            </TableCell>
+                            <TableCell className="capitalize">{request.companyType}</TableCell>
+                            <TableCell>{request.firstName} {request.lastName}</TableCell>
+                            <TableCell>{request.email}</TableCell>
+                            <TableCell>
+                              <RequestStatusBadge status={request.status} data-testid={`badge-status-${request.id}`} />
+                            </TableCell>
+                            <TableCell>
+                              {request.createdAt ? format(new Date(request.createdAt), 'MMM d, yyyy') : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {request.status === 'pending' ? (
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => approveRequestMutation.mutate(request.id)}
+                                    disabled={approveRequestMutation.isPending}
+                                    data-testid={`button-approve-${request.id}`}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      setRejectingRequestId(request.id);
+                                      setShowRejectDialog(true);
+                                    }}
+                                    data-testid={`button-reject-${request.id}`}
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))
@@ -1305,6 +1787,135 @@ export default function AdminDashboard() {
               data-testid="button-save-setting"
             >
               {upsertSettingMutation.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNewClaimForClientDialog} onOpenChange={(open) => {
+        setShowNewClaimForClientDialog(open);
+        if (!open) {
+          setSelectedClientId("");
+          setClientSearchTerm("");
+        }
+      }}>
+        <DialogContent className="max-w-full sm:max-w-md" data-testid="dialog-new-claim-for-client">
+          <DialogHeader>
+            <DialogTitle>New Claim for Client</DialogTitle>
+            <DialogDescription>
+              Select an existing insured client to file a claim on their behalf.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="client-search">Search Client</Label>
+              <Input
+                id="client-search"
+                value={clientSearchTerm}
+                onChange={(e) => setClientSearchTerm(e.target.value)}
+                placeholder="Search by name or email..."
+                data-testid="input-client-search"
+              />
+            </div>
+            <div>
+              <Label htmlFor="client-select">Select Client</Label>
+              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                <SelectTrigger id="client-select" data-testid="select-client">
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {insuredUsers
+                    .filter((u) => {
+                      if (!clientSearchTerm) return true;
+                      const searchLower = clientSearchTerm.toLowerCase();
+                      const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+                      const email = (u.email || '').toLowerCase();
+                      return fullName.includes(searchLower) || email.includes(searchLower);
+                    })
+                    .map((u) => (
+                      <SelectItem key={u.id} value={u.id} data-testid={`option-client-${u.id}`}>
+                        {u.firstName} {u.lastName} — {u.email}
+                      </SelectItem>
+                    ))}
+                  {insuredUsers.filter((u) => {
+                    if (!clientSearchTerm) return true;
+                    const searchLower = clientSearchTerm.toLowerCase();
+                    const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+                    const email = (u.email || '').toLowerCase();
+                    return fullName.includes(searchLower) || email.includes(searchLower);
+                  }).length === 0 && (
+                    <SelectItem value="__none__" disabled>No clients found</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowNewClaimForClientDialog(false)}
+              className="w-full sm:w-auto"
+              data-testid="button-cancel-new-claim-for-client"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStartClaimForClient}
+              disabled={!selectedClientId || createClaimForClientMutation.isPending}
+              className="w-full sm:w-auto"
+              data-testid="button-start-claim-for-client"
+            >
+              {createClaimForClientMutation.isPending ? 'Creating...' : 'Start Claim'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="max-w-full sm:max-w-md" data-testid="dialog-reject-request">
+          <DialogHeader>
+            <DialogTitle>Reject Signup Request</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this signup request.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rejectionReason">Rejection Reason</Label>
+              <Textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Enter the reason for rejection..."
+                data-testid="input-rejection-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRejectDialog(false);
+                setRejectingRequestId(null);
+                setRejectionReason("");
+              }}
+              className="w-full sm:w-auto"
+              data-testid="button-cancel-reject"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (rejectingRequestId) {
+                  rejectRequestMutation.mutate({ id: rejectingRequestId, reason: rejectionReason });
+                }
+              }}
+              disabled={!rejectionReason || rejectRequestMutation.isPending}
+              className="w-full sm:w-auto"
+              data-testid="button-confirm-reject"
+            >
+              {rejectRequestMutation.isPending ? 'Rejecting...' : 'Reject Request'}
             </Button>
           </DialogFooter>
         </DialogContent>

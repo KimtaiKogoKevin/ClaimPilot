@@ -4,6 +4,12 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
-.env
 .replit
+.env
 .env.example
+LOCAL_DEVELOPMENT.md
+LOCAL_SETUP_COMPLETED.md
+LOCAL_SETUP.md
+replit.md
+ROBOFLOW_INTEGRATION_GUIDE.md
+STANDALONE_SETUP.md

@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,13 +10,9 @@ import ClaimForm from "@/pages/claim-form";
 import ClaimDetails from "@/pages/claim-details";
 import DraftDashboard from "@/pages/draft-dashboard";
 import ClaimantDashboard from "@/pages/claimant-dashboard";
-import StaffPortal from "@/pages/staff-portal";
-import RoleSelection from "@/pages/role-selection";
-import BrokerSignup from "@/pages/broker-signup";
-import AdjudicatorSignup from "@/pages/adjudicator-signup";
-import ClaimantSignup from "@/pages/claimant-signup";
 import AuthPage from "@/pages/auth-page";
-import AnalyticsDashboard from "@/pages/analytics-dashboard";
+import InsuredSignupPage from "@/pages/insured-signup";
+import AdminSignupPage from "@/pages/admin-signup";
 import AdminDashboard from "@/pages/admin-dashboard";
 
 function Router() {
@@ -40,20 +36,9 @@ function Router() {
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/auth" component={AuthPage} />
-        <Route path="/staff-portal" component={Landing} />
-        <Route path="/broker-signup" component={BrokerSignup} />
-        <Route path="/adjudicator-signup" component={AdjudicatorSignup} />
-        <Route path="/claimant-signup" component={ClaimantSignup} />
+        <Route path="/auth/insured" component={InsuredSignupPage} />
+        <Route path="/auth/admin" component={AdminSignupPage} />
         <Route component={NotFound} />
-      </Switch>
-    );
-  }
-
-  // No role assigned - redirect to role selection
-  if (!user?.role) {
-    return (
-      <Switch>
-        <Route path="*" component={RoleSelection} />
       </Switch>
     );
   }
@@ -63,51 +48,13 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={ClaimantDashboard} />
+        <Route path="/auth">{() => <Redirect to="/" />}</Route>
+        <Route path="/auth/insured">{() => <Redirect to="/" />}</Route>
+        <Route path="/auth/admin">{() => <Redirect to="/" />}</Route>
         <Route path="/claim-form/:id" component={ClaimForm} />
         <Route path="/claim-form" component={ClaimForm} />
         <Route path="/claim-details/:id" component={ClaimDetails} />
         <Route path="/drafts" component={DraftDashboard} />
-        <Route path="/role-selection" component={RoleSelection} />
-        <Route component={NotFound} />
-      </Switch>
-    );
-  }
-
-  if (user.role === 'insurer') {
-    return (
-      <Switch>
-        <Route path="/" component={AnalyticsDashboard} />
-        <Route path="/analytics" component={AnalyticsDashboard} />
-        <Route path="/claims-review" component={StaffPortal} />
-        <Route path="/claim-details/:id" component={ClaimDetails} />
-        <Route path="/role-selection" component={RoleSelection} />
-        <Route component={NotFound} />
-      </Switch>
-    );
-  }
-
-  if (user.role === 'broker') {
-    return (
-      <Switch>
-        <Route path="/" component={AnalyticsDashboard} />
-        <Route path="/analytics" component={AnalyticsDashboard} />
-        <Route path="/client-claims" component={StaffPortal} />
-        <Route path="/claim-form/:id" component={ClaimForm} />
-        <Route path="/claim-form" component={ClaimForm} />
-        <Route path="/claim-details/:id" component={ClaimDetails} />
-        <Route path="/role-selection" component={RoleSelection} />
-        <Route component={NotFound} />
-      </Switch>
-    );
-  }
-
-  if (user.role === 'service_provider') {
-    return (
-      <Switch>
-        <Route path="/" component={StaffPortal} />
-        <Route path="/assigned-claims" component={StaffPortal} />
-        <Route path="/claim-details/:id" component={ClaimDetails} />
-        <Route path="/role-selection" component={RoleSelection} />
         <Route component={NotFound} />
       </Switch>
     );
@@ -118,25 +65,26 @@ function Router() {
       <Switch>
         <Route path="/" component={AdminDashboard} />
         <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin-dashboard" component={AdminDashboard} />
         <Route path="/admin/users" component={AdminDashboard} />
         <Route path="/admin/claims" component={AdminDashboard} />
         <Route path="/admin/settings" component={AdminDashboard} />
         <Route path="/admin/audit" component={AdminDashboard} />
+        <Route path="/auth">{() => <Redirect to="/admin-dashboard" />}</Route>
+        <Route path="/auth/insured">{() => <Redirect to="/admin-dashboard" />}</Route>
+        <Route path="/auth/admin">{() => <Redirect to="/admin-dashboard" />}</Route>
         <Route path="/claim-form/:id" component={ClaimForm} />
         <Route path="/claim-form" component={ClaimForm} />
         <Route path="/claim-details/:id" component={ClaimDetails} />
-        <Route path="/role-selection" component={RoleSelection} />
         <Route component={NotFound} />
       </Switch>
     );
   }
 
-  // Default fallback
+  // Default fallback - redirect to auth if no valid role
   return (
     <Switch>
-      <Route path="/" component={StaffPortal} />
-      <Route path="/staff-portal" component={StaffPortal} />
-      <Route path="/role-selection" component={RoleSelection} />
+      <Route path="/" component={Landing} />
       <Route component={NotFound} />
     </Switch>
   );

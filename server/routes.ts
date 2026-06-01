@@ -11,7 +11,12 @@ import {
   disable2FA, 
   authenticateToken,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  registerInsured,
+  registerAdminRequest,
+  getAdminSignupRequests,
+  approveAdminSignupRequest,
+  rejectAdminSignupRequest
 } from "./standaloneAuth";
 import {
   ObjectStorageService,
@@ -32,8 +37,6 @@ import {
   adminUpdateRoleSchema,
   adminBulkStatusSchema,
   adminBulkDeleteSchema,
-  adminAssignBrokerSchema,
-  adminAssignProviderSchema,
   adminSystemSettingSchema,
 } from "@shared/schema";
 import { z } from "zod";
@@ -97,21 +100,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/2fa/disable', authenticateToken, disable2FA);
   app.post('/api/auth/forgot-password', forgotPassword);
   app.post('/api/auth/reset-password', resetPassword);
+  
+  // Separate signup flows
+  app.post('/api/auth/signup/insured', registerInsured);
+  app.post('/api/auth/signup/admin', registerAdminRequest);
+  
+  // Admin signup request management (admin only)
+  app.get('/api/admin/signup-requests', authenticateToken, getAdminSignupRequests);
+  app.post('/api/admin/signup-requests/:id/approve', authenticateToken, approveAdminSignupRequest);
+  app.post('/api/admin/signup-requests/:id/reject', authenticateToken, rejectAdminSignupRequest);
 
-  // Update user role
   app.put('/api/auth/update-role', authenticateToken, async (req: any, res) => {
     try {
-      const userId = req.user?.id || req.userId;
-      if (!userId) {
+      const requestingUserId = req.user?.id || req.userId;
+      if (!requestingUserId) {
         return res.status(401).json({ message: "User ID not found" });
       }
-      const { role } = req.body;
-      
-      if (!['insured', 'broker', 'insurer', 'service_provider'].includes(role)) {
-        return res.status(400).json({ message: "Invalid role" });
+
+      const requestingUser = await storage.getUser(requestingUserId);
+      if (!requestingUser || requestingUser.role !== 'admin') {
+        return res.status(403).json({ message: "Only administrators can update user roles" });
       }
-      
-      const updatedUser = await storage.updateUser(userId, { role });
+
+      const { role, targetUserId } = req.body;
+      if (!targetUserId) {
+        return res.status(400).json({ message: "targetUserId is required" });
+      }
+
+      if (!['insured', 'admin'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Only 'insured' and 'admin' are allowed." });
+      }
+
+      const updatedUser = await storage.updateUser(targetUserId, { role });
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user role:", error);
@@ -219,15 +239,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Claim not found" });
       }
 
-      // Debug logging to identify timestamp issues
-      console.log("Save draft data received:", JSON.stringify(data, null, 2));
-      console.log("Saving step:", step, "Progress:", progressPercentage);
-      
       await storage.saveDraftProgress(id, step, data, progressPercentage);
       res.json({ message: "Draft saved successfully" });
     } catch (error) {
-      console.error("Error saving draft:", error);
-      console.error("Draft data that caused error:", JSON.stringify(req.body.data, null, 2));
+      console.error("Error saving draft for claim:", req.params.id, "step:", req.body.step, error);
       res.status(500).json({ message: "Failed to save draft" });
     }
   });
@@ -295,9 +310,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Claim details routes
-  app.post("/api/claims/:id/individual-details", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/individual-details", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const details = insertIndividualDetailsSchema.parse({
         ...req.body,
         claimId: id,
@@ -311,9 +338,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/corporate-details", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/corporate-details", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const details = insertCorporateDetailsSchema.parse({
         ...req.body,
         claimId: id,
@@ -327,9 +366,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/vehicle", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/vehicle", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const vehicle = insertVehicleSchema.parse({
         ...req.body,
         claimId: id,
@@ -343,9 +394,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/driver", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/driver", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const driver = insertDriverSchema.parse({
         ...req.body,
         claimId: id,
@@ -359,9 +422,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/bank-details", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/bank-details", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const bankDetails = insertBankDetailsSchema.parse({
         ...req.body,
         claimId: id,
@@ -375,9 +450,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/claims/:id/other-vehicles", authenticateToken, async (req, res) => {
+  app.post("/api/claims/:id/other-vehicles", authenticateToken, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Verify user can access this claim (admins can access any claim)
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
       const vehicle = insertOtherVehicleSchema.parse({
         ...req.body,
         claimId: id,
@@ -446,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiAnalysisResults: detectedDamages,
       };
       
-      const photo = await storage.addDamagedPhoto(photoData);
+      const photo = await storage.upsertDamagedPhoto(photoData);
       res.status(201).json({ photo, success: true });
     } catch (error) {
       console.error("Error adding damage photo:", error);
@@ -506,24 +593,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Continue without AI analysis
           }
         } else {
-          console.log("ROBOFLOW_API_KEY not set - using placeholder analysis");
-          // Placeholder AI analysis for demonstration
+          console.log("ROBOFLOW_API_KEY not set - AI analysis unavailable");
           aiAnalysis = {
-            predictions: [
-              {
-                damageType: 'dent',
-                confidence: 0.85,
-                severity: 'medium',
-                boundingBox: { x: 100, y: 150, width: 50, height: 30 }
-              },
-              {
-                damageType: 'scratch',
-                confidence: 0.72,
-                severity: 'low',
-                boundingBox: { x: 200, y: 180, width: 80, height: 10 }
-              }
-            ],
-            totalDamages: 2,
+            predictions: [],
+            totalDamages: 0,
+            unavailable: true,
           };
         }
       }
@@ -537,7 +611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiAnalysisResults: aiAnalysis,
       };
       
-      const media = await storage.addDamagedPhoto(mediaData);
+      const media = await storage.upsertDamagedPhoto(mediaData);
       
       res.status(201).json({ 
         media,
@@ -547,6 +621,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading media:", error);
       res.status(500).json({ message: "Failed to upload media" });
+    }
+  });
+
+  app.get("/api/claims/:id/media", authenticateToken, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      const claim = await storage.getClaim(id);
+      const hasAccess = await canAccessClaim(userId, claim);
+      if (!hasAccess) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      const allMedia = await storage.getDamagedPhotos(id);
+      
+      const photoAngles = ['FRONT_VIEW', 'REAR_VIEW', 'LEFT_SIDE', 'RIGHT_SIDE', 'DAMAGE_CLOSEUP', 'VIDEO_360'];
+      const documentAngles = ['logbook', 'policeAbstract', 'license', 'police_report', 'accident_sketch', 'insurance_certificate', 'other_document'];
+      
+      const photos = allMedia.filter(m => photoAngles.includes(m.angle || ''));
+      const documents = allMedia.filter(m => documentAngles.includes(m.angle || ''));
+      
+      res.json({ photos, documents });
+    } catch (error) {
+      console.error("Error fetching media:", error);
+      res.status(500).json({ message: "Failed to fetch media" });
     }
   });
 
@@ -572,49 +675,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Media IDs array is required" });
       }
       
+      const apiKey = process.env.ROBOFLOW_API_KEY;
+      
+      // If no Roboflow key is configured, report unavailable rather than fake results
+      if (!apiKey) {
+        return res.json({
+          results: [],
+          totalDamages: 0,
+          unavailable: true,
+        });
+      }
+      
       // Get all media files for this claim
       const claimMedia = await storage.getDamagedPhotos(id);
       
       let totalDamages = 0;
       const results = [];
       
-      // Placeholder comprehensive analysis
-      // In production, this would batch process all media through the AI model
       for (const media of claimMedia) {
-        if (!media.aiAnalysisResults) {
-          // Simulate AI analysis for media that hasn't been analyzed
-          const analysis = {
-            mediaId: media.id,
-            damageType: ['dent', 'scratch', 'crack'][Math.floor(Math.random() * 3)],
-            severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-            confidence: Math.random() * 0.5 + 0.5,
-            estimatedCost: Math.floor(Math.random() * 2000) + 500,
-          };
-          results.push(analysis);
-          totalDamages++;
-        } else {
-          // Use existing analysis
+        if (media.aiAnalysisResults) {
           const existing = media.aiAnalysisResults as any;
-          if (existing.predictions) {
+          if (existing.predictions && Array.isArray(existing.predictions)) {
             totalDamages += existing.predictions.length;
             results.push(...existing.predictions);
           }
         }
       }
       
-      // Generate comprehensive assessment
       const assessment = {
         totalDamages,
         analyzedMedia: claimMedia.length,
         results,
         overallSeverity: totalDamages > 5 ? 'high' : totalDamages > 2 ? 'medium' : 'low',
         estimatedTotalCost: results.reduce((sum: number, r: any) => sum + (r.estimatedCost || 0), 0),
-        repairability: totalDamages > 10 ? 'total_loss' : 'repairable',
-        recommendations: [
-          'Professional body shop assessment recommended',
-          'Multiple damage points detected requiring specialized repair',
-          'Insurance adjuster review suggested for accurate valuation'
-        ]
       };
       
       // Update claim with AI analysis summary
@@ -660,7 +753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiAnalysisResults: null,
       };
       
-      const document = await storage.addDamagedPhoto(documentData);
+      const document = await storage.upsertDamagedPhoto(documentData);
       res.status(201).json({ document, success: true });
     } catch (error) {
       console.error("Error adding document:", error);
@@ -679,6 +772,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
       const hasAccess = await canAccessClaim(userId, claim);
       if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
@@ -707,6 +803,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user can access this claim (admins can access any claim)
       const claim = await storage.getClaim(id);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
       const hasAccess = await canAccessClaim(userId, claim);
       if (!hasAccess) {
         return res.status(404).json({ message: "Claim not found" });
@@ -808,8 +907,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       
       // Check if user has staff access (broker or insurer)
-      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
-        return res.status(403).json({ message: "Access denied. Staff access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       // Get claims with full details for staff portal
@@ -830,8 +929,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
-        return res.status(403).json({ message: "Access denied. Staff access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       // Get claim with full details for staff portal
@@ -856,8 +955,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
-        return res.status(403).json({ message: "Access denied. Staff access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       // Get claim with full details for PDF generation
@@ -887,8 +986,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || (!['broker', 'insurer', 'admin'].includes(user.role))) {
-        return res.status(403).json({ message: "Access denied. Staff access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       const { status } = req.body;
@@ -904,7 +1003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Edit claim (insurer only)
+  // Edit claim (admin only)
   app.put("/api/staff/claims/:id/edit", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.userId;
@@ -913,8 +1012,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'insurer') {
-        return res.status(403).json({ message: "Access denied. Adjudicator access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       const updatedClaim = await storage.updateClaim(req.params.id, req.body);
@@ -925,7 +1024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete claim (insurer only)
+  // Delete claim (admin only)
   app.delete("/api/staff/claims/:id", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.userId;
@@ -934,8 +1033,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'insurer') {
-        return res.status(403).json({ message: "Access denied. Adjudicator access required." });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin access required." });
       }
       
       await storage.deleteClaim(req.params.id);
@@ -1248,6 +1347,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get insured users list (for admin dropdown)
+  app.get("/api/admin/insured-users", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const insuredUsers = await storage.getAllUsers({ role: 'insured' });
+      const result = insuredUsers.map((u) => ({
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+      }));
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching insured users:", error);
+      res.status(500).json({ message: "Failed to fetch insured users" });
+    }
+  });
+
+  // Create a draft claim on behalf of an insured user (admin only)
+  app.post("/api/admin/claims/new-for-user", authenticateToken, async (req: any, res) => {
+    try {
+      const adminId = req.user?.id || req.userId;
+      if (!adminId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const admin = await storage.getUser(adminId);
+      if (!admin || admin.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Admin role required." });
+      }
+
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Target user not found" });
+      }
+
+      if (targetUser.role !== 'insured') {
+        return res.status(400).json({ message: "Claims can only be created for insured users" });
+      }
+
+      const claimData = insertClaimSchema.parse({
+        insuredId: userId,
+        status: "draft",
+        policyNumber: "",
+        insuredType: "individual",
+        typeOfCover: "",
+      });
+
+      const claim = await storage.createClaim(claimData);
+
+      try {
+        await storage.createAuditLog({
+          adminId,
+          action: 'create_on_behalf',
+          entityType: 'claim',
+          entityId: claim.id,
+          changes: { targetUserId: userId },
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+        });
+      } catch (auditError) {
+        console.warn("Audit log failed (non-critical):", auditError);
+      }
+
+      res.status(201).json(claim);
+    } catch (error) {
+      console.error("Error creating claim on behalf of user:", error);
+      res.status(400).json({ message: "Failed to create claim" });
+    }
+  });
+
   // Claim Management Routes
   app.post("/api/admin/claims/bulk-status", authenticateToken, async (req: any, res) => {
     try {
@@ -1324,86 +1508,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error bulk deleting claims:", error);
       res.status(500).json({ message: "Failed to bulk delete claims" });
-    }
-  });
-
-  app.put("/api/admin/claims/:id/assign-broker", authenticateToken, async (req: any, res) => {
-    try {
-      const userId = req.user?.id || req.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
-      
-      const user = await storage.getUser(userId);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Admin role required." });
-      }
-      
-      const { id } = req.params;
-      const validatedData = adminAssignBrokerSchema.parse(req.body);
-      
-      await storage.assignClaimToBroker(id, validatedData.brokerId);
-      
-      await storage.createAuditLog({
-        adminId: userId,
-        action: 'assign_broker',
-        entityType: 'claim',
-        entityId: id,
-        changes: { brokerId: validatedData.brokerId },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'],
-      });
-      
-      res.json({ message: "Broker assigned successfully" });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation failed", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error assigning broker:", error);
-      res.status(500).json({ message: "Failed to assign broker" });
-    }
-  });
-
-  app.put("/api/admin/claims/:id/assign-provider", authenticateToken, async (req: any, res) => {
-    try {
-      const userId = req.user?.id || req.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
-      
-      const user = await storage.getUser(userId);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Admin role required." });
-      }
-      
-      const { id } = req.params;
-      const validatedData = adminAssignProviderSchema.parse(req.body);
-      
-      await storage.assignClaimToServiceProvider(id, validatedData.providerId);
-      
-      await storage.createAuditLog({
-        adminId: userId,
-        action: 'assign_provider',
-        entityType: 'claim',
-        entityId: id,
-        changes: { providerId: validatedData.providerId },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'],
-      });
-      
-      res.json({ message: "Service provider assigned successfully" });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation failed", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error assigning provider:", error);
-      res.status(500).json({ message: "Failed to assign provider" });
     }
   });
 
@@ -1555,7 +1659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analytics dashboard endpoint with role-based permissions
+  // Analytics dashboard endpoint - admin only
   app.get("/api/analytics/dashboard", authenticateToken, async (req: any, res) => {
     try {
       const userId = req.user?.id || req.userId;
@@ -1565,25 +1669,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const user = await storage.getUser(userId);
       
-      // Check if user has permission to access analytics
-      if (!user || !['broker', 'insurer'].includes(user.role)) {
+      // Check if user has permission to access analytics (admin only)
+      if (!user || user.role !== 'admin') {
         return res.status(403).json({ 
-          error: "Access denied. Analytics available only for Broker and Insurer roles." 
+          error: "Access denied. Analytics available only for admin users." 
         });
       }
 
-      const hasFullAccess = user.role === 'insurer';
-
-      // Get analytics data based on role permissions
-      let analyticsData;
-
-      if (hasFullAccess) {
-        // Insurers can see all claims across all brokers
-        analyticsData = await storage.getAnalyticsDashboard();
-      } else {
-        // Brokers can only see their assigned clients' claims
-        analyticsData = await storage.getAnalyticsDashboard(userId);
-      }
+      // Admins can see all claims
+      const analyticsData = await storage.getAnalyticsDashboard();
 
       res.json(analyticsData);
     } catch (error) {

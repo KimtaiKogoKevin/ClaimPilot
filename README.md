@@ -1,193 +1,470 @@
 # AI-Powered Motor Accident Claims Platform
 
-A modern, intelligent web application that streamlines motor accident insurance claims processing using AI-powered damage analysis and guided photo capture.
+A full-stack web application that streamlines motor accident insurance claims processing using Roboflow computer vision for automated damage detection, real-time WebSocket collaboration, and a guided multi-step claim form with full draft persistence.
 
-![Claims Platform](https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&w=800&h=400)
+## Quick Start (clone to running app in ~10 minutes)
 
-## ✨ Features
+```bash
+# 1. Clone and install
+git clone <repo-url> && cd claims-platform
+npm install
 
-- **🤖 AI Damage Analysis**: Computer vision automatically detects and classifies vehicle damage
-- **📱 Guided Photo Capture**: Step-by-step photo upload with angle guidance
-- **🔄 Multi-Step Forms**: Intelligent claim forms with auto-save functionality
-- **👥 Role-Based Access**: Separate portals for claimants, brokers, and adjusters
-- **🔐 Secure Authentication**: Google OAuth integration for user management
-- **📊 Real-Time Processing**: Instant AI analysis with confidence scoring
-- **💾 Cloud Storage**: Secure file storage with access controls
+# 2. Create .env from example and fill in DATABASE_URL + JWT_SECRET
+cp .env.example .env
+# Edit .env — at minimum set DATABASE_URL and JWT_SECRET
 
-## 🏗️ Architecture
+# 3. Push schema to PostgreSQL
+npm run db:push
 
-### Frontend
-- **React 18** with TypeScript
-- **Tailwind CSS** + shadcn/ui components
-- **Wouter** for routing
-- **TanStack Query** for state management
-- **React Hook Form** + Zod validation
-
-### Backend
-- **Express.js** with TypeScript
-- **PostgreSQL** with Drizzle ORM
-- **Google Cloud Storage** for file management
-- **Session-based authentication**
-
-### AI Integration
-- **Roboflow Universe** models for damage detection
-- **Computer vision** for vehicle and goods damage analysis
-- **Bounding box detection** with confidence scoring
-
-## 🚀 Deployment Options
-
-### Option 1: Replit (Recommended)
-This platform is optimized for Replit and includes:
-- Integrated Google Cloud Storage
-- Replit Authentication (Google OAuth)
-- Managed PostgreSQL
-- Auto-deployment
-
-[![Run on Replit](https://replit.com/badge/github/yourusername/claims-platform)](https://replit.com/@yourusername/claims-platform)
-
-### Option 2: Local Development
-For local development, see [LOCAL_SETUP.md](./LOCAL_SETUP.md) for detailed instructions.
-
-## 📦 Quick Start (Local)
-
-1. **Prerequisites**
-   ```bash
-   node --version  # v18+
-   npm --version   # v8+
-   psql --version  # v14+
-   ```
-
-2. **Setup**
-   ```bash
-   git clone https://github.com/yourusername/claims-platform.git
-   cd claims-platform
-   npm install
-   node scripts/setup-local.js
-   ```
-
-3. **Configure Environment**
-   - Update `.env` with your database credentials
-   - Add Google Cloud Storage service account
-   - Add Roboflow API keys
-
-4. **Database Setup**
-   ```bash
-   npm run db:push
-   ```
-
-5. **Start Development**
-   ```bash
-   npm run dev:local
-   ```
-
-Visit `http://localhost:5000`
-
-## 🔧 Configuration
-
-### Required Environment Variables
-
-```env
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/claims_db
-
-# Google Cloud Storage
-GOOGLE_APPLICATION_CREDENTIALS=./service-account.json
-DEFAULT_OBJECT_STORAGE_BUCKET_ID=your-bucket
-
-# Roboflow AI
-ROBOFLOW_API_KEY=your-api-key
-ROBOFLOW_VEHICLE_MODEL=vehicle-damage-model
-ROBOFLOW_GOODS_MODEL=goods-damage-model
-
-# Session
-SESSION_SECRET=your-secret-key
+# 4. Start dev server (serves frontend + backend on port 5000)
+npm run dev
 ```
 
-## 📋 API Endpoints
+Open `http://localhost:5000`. Register as an insured user at `/auth/insured` or as an admin at `/auth/admin`.
+
+### Prerequisites
+
+- Node.js v18+
+- PostgreSQL 14+ (local or hosted — Neon, Supabase, etc.)
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Browser (React + Vite)                             │
+│  ├─ Wouter routing                                  │
+│  ├─ TanStack Query (server state)                   │
+│  ├─ React Hook Form + Zod (form validation)         │
+│  └─ shadcn/ui + Tailwind CSS (components)           │
+├─────────────────────────────────────────────────────┤
+│  Express.js API (port 5000)                         │
+│  ├─ JWT auth (standalone) / Replit OIDC (cloud)     │
+│  ├─ Role-based access control (admin / insured)     │
+│  ├─ WebSocket server (/ws/collaboration)            │
+│  └─ Roboflow REST API integration                   │
+├─────────────────────────────────────────────────────┤
+│  PostgreSQL (Drizzle ORM)                           │
+│  ├─ 20+ tables: users, claims, vehicles, drivers…   │
+│  └─ Full relational schema with foreign keys        │
+└─────────────────────────────────────────────────────┘
+```
+
+Single-port deployment: Vite dev server is middleware-mounted on Express in development; static files are served directly in production. No proxy configuration needed.
+
+## Project File Map
+
+```
+shared/
+  schema.ts              — Drizzle ORM schema (all tables, enums, relations, Zod insert schemas, TS types)
+
+server/
+  index.ts               — Express app bootstrap, middleware, Vite setup, port binding
+  routes.ts              — All REST API endpoints (claims CRUD, draft save/restore, AI analysis, admin ops)
+  storage.ts             — IStorage interface + DatabaseStorage (all DB operations via Drizzle)
+  db.ts                  — Drizzle/Neon database connection
+  auth/jwt.ts            — JWT sign/verify helpers
+  standaloneAuth.ts      — Standalone auth routes (register, login, forgot/reset password)
+  replitAuth.ts          — Replit OIDC auth (auto-selected when REPL_ID is present)
+  localAuth.ts           — Simple session-based dev auth
+  collaborationWebSocket.ts — WebSocket server for real-time claim editing collaboration
+  emailService.ts        — SMTP email service for password reset
+  objectStorage.ts       — Replit object storage helpers (presigned URLs, ACL)
+  storage/fileSystem.ts  — Local filesystem upload handler
+  pdfGenerator.ts        — PDF export for claims
+
+client/src/
+  App.tsx                — Router with role-based route sets (admin vs insured)
+  pages/
+    landing.tsx          — Public landing page
+    auth-page.tsx        — Login form
+    insured-signup.tsx   — Insured user registration
+    admin-signup.tsx     — Admin signup request (requires approval)
+    claimant-dashboard.tsx — Insured user dashboard (my claims, drafts)
+    admin-dashboard.tsx  — Admin dashboard (all claims, analytics, users, settings)
+    claim-form.tsx       — 4-step claim form with auto-save, draft restore, collaboration
+    claim-details.tsx    — Read-only claim view with AI analysis results
+    draft-dashboard.tsx  — Draft claims list
+  components/
+    claim-form/
+      policy-details-step.tsx       — Step 1: policy, insured details, finance/loan
+      vehicle-accident-step.tsx     — Step 2: vehicle info, accident circumstances
+      enhanced-damage-assessment.tsx — Step 3: photo upload, AI damage analysis
+      driver-declaration-step.tsx   — Step 4: driver info, bank details, declaration
+      progress-bar.tsx              — Multi-step progress indicator
+    ClaimCollaborationStatus.tsx — Real-time lock/editing status display
+    ClaimChangeHistory.tsx       — Change history timeline
+    ObjectUploader.tsx           — File upload component (Uppy-based)
+    AppHeader.tsx                — Navigation header with auth controls
+  hooks/
+    useStandaloneAuth.ts   — Auth state hook (JWT token management)
+    useClaimCollaboration.ts — WebSocket collaboration hook
+    useDraftManager.ts     — Draft save/restore hook
+  lib/
+    formPersistenceUtils.ts — Transform form data ↔ API payload (auto-save & restore)
+    formValidation.ts       — Step-level form validation
+    queryClient.ts          — TanStack Query client with default fetcher
+    authUtils.ts            — Auth helpers (token storage, 401 detection)
+    roboflow.ts             — Client-side Roboflow helpers
+```
+
+## Database Schema
+
+All tables are defined in `shared/schema.ts` using Drizzle ORM.
+
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `users` | Authentication & profiles | id, email, password, role (admin/insured), 2FA fields |
+| `claims` | Main claim records | id, insuredId, status, policy details, accident details, damage info, draft tracking (currentFormStep, formProgress, lastSavedAt), declaration fields |
+| `individual_details` | Individual insured info (1:1 with claim) | firstName, surname, idNumber, ageBand (nullable enum), contact info |
+| `corporate_details` | Corporate insured info (1:1 with claim) | registeredName, registrationNumber, yearsInOperation |
+| `vehicles` | Vehicle details (1:1 with claim) | make, model, registrationNumber_primemover, registrationNumber_trailer |
+| `drivers` | Driver details (1:1 with claim) | name, licenseNumber, ownsMotorVehicle, employment/driving history |
+| `bank_details` | Payment info (1:1 with claim) | bankName, accountNumber, branch, swiftCode |
+| `other_vehicles` | Other vehicles involved (1:many) | ownerName, registrationNumber, insurer |
+| `third_party_properties` | Damaged third-party property (1:many) | ownerName, propertyDescription |
+| `injured_persons` | Injured persons (1:many) | personName, apparentInjuries, vehicleRegNo |
+| `passengers` | Passengers in insured vehicle (1:many) | passengerName, passengerAddress |
+| `witnesses` | Independent witnesses (1:many) | witnessName, witnessAddress |
+| `damaged_photos` | Uploaded photos with AI results (1:many) | objectPath, angle, aiAnalysisResults (JSONB) |
+| `detected_damages` | Individual AI-detected damages | damageType, confidence, boundingBox, severity, estimatedCost |
+| `ai_analysis_results` | Comprehensive AI assessment per claim | overallSeverity, totalEstimatedCost, aiSummary |
+| `claim_edit_sessions` | Active editing locks for collaboration | userId, claimId, startedAt |
+| `claim_change_history` | Field-level change audit trail | fieldName, oldValue, newValue, userName |
+| `admin_signup_requests` | Pending admin registrations | email, companyName, status (pending/approved/rejected) |
+| `audit_logs` | Admin action audit trail | action, entityType, adminId |
+| `system_settings` | App configuration key-value store | key, value, category |
+
+Enums: `user_role`, `claim_status` (10 statuses from draft→closed), `damage_type`, `photo_angle`, `severity_level`, `age_band`, `road_surface`, `visibility`.
+
+## API Endpoints
 
 ### Authentication
-- `POST /api/auth/local-login` - Local development login
-- `GET /api/auth/user` - Get current user
-- `POST /api/auth/logout` - Logout
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/signup/insured` | No | Register insured user |
+| POST | `/api/auth/signup/admin` | No | Submit admin signup request |
+| POST | `/api/auth/login` | No | Login (returns JWT) |
+| GET | `/api/auth/user` | Yes | Get current user |
+| POST | `/api/auth/logout` | Yes | Logout |
+| POST | `/api/auth/forgot-password` | No | Request password reset email |
+| POST | `/api/auth/reset-password` | No | Reset password with token |
+| PUT | `/api/auth/update-role` | Admin | Update a user's role (requires targetUserId) |
 
-### Claims Management
-- `GET /api/claims` - List user claims
-- `POST /api/claims` - Create new claim
-- `GET /api/claims/:id` - Get claim details
-- `PUT /api/claims/:id` - Update claim
+### Claims
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/claims` | Yes | Create new draft claim |
+| GET | `/api/claims` | Yes | List user's claims (admin sees all) |
+| GET | `/api/claims/:id` | Yes | Get claim with all relations |
+| PUT | `/api/claims/:id` | Yes | Update claim fields |
+| PUT | `/api/claims/:id/save-draft` | Yes | Auto-save draft progress (step, all form data) |
+| GET | `/api/claims/:id/resume` | Yes | Resume draft (returns full claim with relations) |
+| GET | `/api/claims/drafts` | Yes | List user's draft claims |
+| POST | `/api/claims/:id/submit` | Yes | Submit claim for review |
+| GET | `/api/claims/:id/edit-session` | Yes | Get active edit session |
+| GET | `/api/claims/:id/change-history` | Yes | Get field change history |
 
-### File Upload
-- `POST /api/objects/upload` - Get upload URL
-- `PUT /api/objects/analyze` - Trigger AI analysis
+### Claim Sub-resources
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/claims/:id/individual-details` | Yes | Upsert individual details |
+| POST | `/api/claims/:id/corporate-details` | Yes | Upsert corporate details |
+| POST | `/api/claims/:id/vehicle` | Yes | Upsert vehicle details |
+| POST | `/api/claims/:id/driver` | Yes | Upsert driver details |
+| POST | `/api/claims/:id/bank-details` | Yes | Upsert bank details |
+| POST | `/api/claims/:id/other-vehicles` | Yes | Add other vehicle |
 
-## 🎯 User Flows
+### Photos & AI Analysis
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/claims/:id/photos` | Yes | Upload damage photo |
+| POST | `/api/claims/:id/media` | Yes | Upload media file |
+| POST | `/api/claims/:id/analyze` | Yes | Trigger Roboflow AI analysis |
+| POST | `/api/claims/:id/documents` | Yes | Upload documents |
+| GET | `/api/claims/:id/pdf` | Yes | Export claim as PDF |
 
-### Claimant Journey
-1. **Landing Page** - Overview and authentication
-2. **Claim Form** - 4-step guided process:
-   - Policy Details
-   - Vehicle & Accident Information  
-   - Damage Assessment with AI
-   - Driver Declaration
-3. **Dashboard** - Track claim status and history
+### Admin
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/admin/stats` | Admin | Dashboard analytics/stats |
+| GET | `/api/admin/users` | Admin | List all users |
+| POST | `/api/admin/users` | Admin | Create user |
+| PUT | `/api/admin/users/:id` | Admin | Update user |
+| DELETE | `/api/admin/users/:id` | Admin | Delete user |
+| PUT | `/api/admin/users/:id/role` | Admin | Change user role |
+| POST | `/api/admin/users/:id/reset-password` | Admin | Reset user password |
+| GET | `/api/admin/signup-requests` | Admin | List admin signup requests |
+| POST | `/api/admin/signup-requests/:id/approve` | Admin | Approve admin request |
+| POST | `/api/admin/signup-requests/:id/reject` | Admin | Reject admin request |
+| POST | `/api/admin/claims/bulk-status` | Admin | Bulk update claim statuses |
+| POST | `/api/admin/claims/bulk-delete` | Admin | Bulk delete claims |
+| GET | `/api/admin/audit-logs` | Admin | View audit trail |
+| GET | `/api/admin/settings` | Admin | Get system settings |
+| PUT | `/api/admin/settings` | Admin | Update system settings |
+| DELETE | `/api/admin/settings/:key` | Admin | Delete system setting |
 
-### Staff Portal
-1. **Claims Review** - View and process submitted claims
-2. **AI Analysis** - Review damage assessments
-3. **Decision Making** - Approve, reject, or request more info
+### WebSocket
+- **Path**: `/ws/collaboration`
+- **Auth**: JWT token via query param or `authenticate` message
+- **Messages**: `join_claim`, `leave_claim`, `field_update`, `heartbeat`, `request_history`
+- **Events**: `claim_locked`, `user_joined`, `user_left`, `field_changed`, `history`
 
-## 🧠 AI Models
+## Roboflow AI Integration
 
-The platform uses specialized Roboflow models:
+The platform integrates with Roboflow Universe pre-trained computer vision models for automated vehicle damage detection.
 
-- **Vehicle Damage**: Detects dents, scratches, cracks, broken parts
-- **Goods Damage**: Analyzes cargo and goods damage
-- **Confidence Scoring**: Each detection includes accuracy metrics
-- **Bounding Boxes**: Visual overlays showing damage locations
+### Setup
 
-## 🔒 Security
+1. Create a free account at [roboflow.com](https://roboflow.com)
+2. Get your API key from Settings > API Key
+3. Find or train a vehicle damage detection model on [Roboflow Universe](https://universe.roboflow.com/)
+4. Set environment variables:
+   ```env
+   ROBOFLOW_API_KEY=your_api_key_here
+   ROBOFLOW_VEHICLE_MODEL_ID=your-vehicle-model/version
+   ROBOFLOW_GOODS_MODEL_ID=your-goods-model/version
+   ```
 
-- **Session Management**: Secure cookie-based sessions
-- **File Upload**: Presigned URLs for direct cloud upload
-- **Access Control**: Role-based permissions
-- **Data Validation**: Zod schemas for type safety
-- **CSRF Protection**: Session-based request validation
+### How It Works
 
-## 📊 Database Schema
+1. User uploads damage photos in Step 3 of the claim form
+2. Photos are stored (local filesystem or object storage)
+3. When "Analyze" is triggered, the server sends images to the Roboflow Inference API:
+   ```
+   POST https://detect.roboflow.com/{modelId}/1?api_key={key}
+   Body: { "image": "<base64-or-url>" }
+   ```
+4. Roboflow returns bounding box predictions with class labels and confidence scores
+5. Results are stored in `detected_damages` and `ai_analysis_results` tables
+6. The frontend renders bounding boxes overlaid on photos with severity assessments
 
-Key entities:
-- **Users**: Authentication and profile data
-- **Claims**: Main claim records with status tracking
-- **Vehicle Details**: Make, model, registration info
-- **Damage Photos**: Images with AI analysis results
-- **Detected Damages**: Individual damage items from AI
+### Without Roboflow
 
-## 🤝 Contributing
+If `ROBOFLOW_API_KEY` is not set, the platform works normally but skips AI analysis. Photos are still uploaded and stored. Users can manually describe damage.
 
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with proper TypeScript types
-4. Add tests for new functionality
-5. Submit a pull request
+## Draft Save/Restore System
 
-## 📄 License
+The form uses enterprise-grade draft persistence:
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- **Auto-save**: Fires 800ms after any field change (debounced)
+- **Manual save**: "Save Draft" button available on every step
+- **Full round-trip**: All form fields (policy, individual/corporate, vehicle, accident, damage, driver, bank, other vehicles, third-party properties, injured persons, passengers, witnesses, declaration) are saved to the database and fully restored when resuming
+- **Relation arrays**: Third-party properties, injured persons, passengers, and witnesses use delete-before-insert to prevent stale data
+- **Numeric zero preservation**: Finance/loan fields use `??` (not `||`) to preserve zero values
+- **Step tracking**: `currentFormStep` and `formProgress` fields track where the user left off
 
-## 🔗 Links
+Key files: `client/src/lib/formPersistenceUtils.ts` (transform logic), `server/storage.ts` `saveDraftProgress()` (server-side persistence).
 
-- **Live Demo**: [claims-platform.replit.app](https://claims-platform.replit.app)
-- **Documentation**: [LOCAL_SETUP.md](./LOCAL_SETUP.md)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/claims-platform/issues)
+## Collaboration (WebSocket)
 
-## 💡 Technology Decisions
+Real-time claim editing collaboration uses WebSocket:
 
-- **Why React**: Component reusability and mature ecosystem
-- **Why Drizzle**: Type-safe database operations with PostgreSQL
-- **Why Roboflow**: Pre-trained models with easy API integration
-- **Why Google Cloud**: Reliable storage with global CDN
-- **Why TypeScript**: Better developer experience and fewer runtime errors
+- Lock-based: Only one user can edit a claim at a time
+- Viewers see real-time field updates from the active editor
+- Heartbeat keeps sessions alive (30s interval)
+- Sessions auto-cleanup on disconnect
+- Disabled for admin users to prevent React hook ordering issues
 
----
+## User Roles
 
-Built with ❤️ for modern insurance workflows
+| Role | Capabilities |
+|------|-------------|
+| **insured** | Create/edit own claims, upload photos, save drafts, submit claims |
+| **admin** | View/edit all claims, manage users, approve admin signups, view analytics dashboard, access audit logs, manage system settings |
+
+## Environment Variables
+
+See `.env.example` for the complete list with descriptions. Summary:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | JWT token signing secret |
+| `SESSION_SECRET` | Yes | Express session cookie secret |
+| `PORT` | No | Server port (default: 5000) |
+| `ROBOFLOW_API_KEY` | No | Roboflow API key for AI analysis |
+| `ROBOFLOW_VEHICLE_MODEL_ID` | No | Roboflow vehicle damage model ID |
+| `ROBOFLOW_GOODS_MODEL_ID` | No | Roboflow goods damage model ID |
+| `EMAIL_HOST` | No | SMTP host for password reset emails |
+| `EMAIL_PORT` | No | SMTP port |
+| `EMAIL_USER` | No | SMTP username |
+| `EMAIL_PASS` | No | SMTP password |
+| `EMAIL_SERVICE` | No | Named email service (gmail, outlook) |
+| `EMAIL_FROM` | No | Sender address for outgoing emails |
+| `ENABLE_AI_ANALYSIS` | No | Set to 'true' in standalone mode |
+| `PRIVATE_OBJECT_DIR` | No | Local private upload directory |
+| `PUBLIC_OBJECT_SEARCH_PATHS` | No | Local public upload directory |
+| `MAX_FILE_SIZE` | No | Max upload size in bytes (default: 10MB) |
+
+## NPM Scripts
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `npm run dev` | `NODE_ENV=development tsx server/index.ts` | Start dev server with hot reload (port 5000) |
+| `npm run build` | `vite build && esbuild ...` | Build frontend + bundle server for production |
+| `npm start` | `NODE_ENV=production node dist/index.js` | Run production build |
+| `npm run check` | `tsc` | TypeScript type checking |
+| `npm run db:push` | `drizzle-kit push` | Push schema changes to database |
+
+## Authentication Bootstrap
+
+### First-time setup: Create test accounts
+
+After running `npm run db:push`, register users through the UI:
+
+1. Open `http://localhost:5000/auth/insured` and register an insured user
+2. Open `http://localhost:5000/auth/admin` and submit an admin signup request
+
+To approve the first admin without an existing admin, insert directly:
+
+```sql
+-- Create the first admin user (password: AdminPass123, bcrypt hash)
+INSERT INTO users (id, email, password, first_name, last_name, role)
+VALUES (
+  gen_random_uuid(),
+  'admin@example.com',
+  '$2b$10$YourBcryptHashHere',
+  'Admin',
+  'User',
+  'admin'
+);
+```
+
+Or use the Node REPL:
+
+```bash
+node -e "const bcrypt = require('bcrypt'); bcrypt.hash('YourPassword123', 10).then(h => console.log(h))"
+```
+
+### Test credentials (if seeded)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | testadmin@test.com | TestAdmin123 |
+| Insured | testinsured@test.com | TestInsured123 |
+
+## Local AI Alternative (YOLO)
+
+If you prefer running damage detection locally instead of using the Roboflow cloud API, you can wrap a YOLO model in a minimal Flask endpoint that matches the Roboflow response format:
+
+```python
+# yolo_server.py — minimal local alternative to Roboflow API
+from flask import Flask, request, jsonify
+from ultralytics import YOLO
+
+app = Flask(__name__)
+model = YOLO("yolov8n.pt")  # or your fine-tuned model
+
+@app.route("/detect", methods=["POST"])
+def detect():
+    data = request.json
+    results = model.predict(source=data["image"], conf=0.25)
+    predictions = []
+    for r in results:
+        for box in r.boxes:
+            predictions.append({
+                "class": r.names[int(box.cls)],
+                "confidence": float(box.conf),
+                "x": float(box.xywh[0][0]),
+                "y": float(box.xywh[0][1]),
+                "width": float(box.xywh[0][2]),
+                "height": float(box.xywh[0][3]),
+            })
+    return jsonify({"predictions": predictions})
+
+if __name__ == "__main__":
+    app.run(port=9001)
+```
+
+Then update `server/routes.ts` `analyzeImageWithRoboflow()` to point at `http://localhost:9001/detect` instead of the Roboflow URL.
+
+## Developer Recipes
+
+### Reset database and start fresh
+
+```bash
+npm run db:push          # Pushes schema (creates/alters tables)
+```
+
+To fully reset, drop and recreate the database:
+
+```bash
+psql -U postgres -c "DROP DATABASE IF EXISTS claims_platform"
+psql -U postgres -c "CREATE DATABASE claims_platform"
+npm run db:push
+```
+
+### Seed test users
+
+```bash
+# Register via API
+curl -X POST http://localhost:5000/api/auth/signup/insured \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Test1234","firstName":"Test","lastName":"User"}'
+```
+
+### Test auth roles
+
+```bash
+# Login and get token
+TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Test1234"}' | jq -r .token)
+
+# Use token for authenticated requests
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/auth/user
+curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/claims
+```
+
+### Troubleshoot Roboflow
+
+```bash
+# Test your Roboflow API key
+curl "https://detect.roboflow.com/your-model-id/1?api_key=YOUR_KEY" \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"image":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Car_crash_2.jpg/1200px-Car_crash_2.jpg"}'
+```
+
+If you get `401`, your API key is invalid. If `404`, check the model ID. The response should contain a `predictions` array.
+
+## Verification Checklist
+
+The following flows have been verified end-to-end:
+
+| Flow | Steps Verified |
+|------|---------------|
+| Insured signup & login | Register at /auth/insured, login, redirect to dashboard |
+| 4-step claim form | Create claim, fill all steps, save draft at each step |
+| Draft persistence | Save draft, navigate away, resume, verify all fields restored (including loan/finance zeros, nullable booleans, relation arrays) |
+| Admin dashboard | Login as admin, view claims list, analytics charts, user management |
+| Admin claim access | Admin opens any claim, edits it, saves draft |
+| Role protection | Unauthenticated users blocked from /claim-form, admin routes inaccessible to insured users, privilege escalation blocked on /api/auth/update-role |
+
+## Security
+
+- JWT authentication with configurable expiration
+- bcrypt password hashing
+- Role-based access control on all endpoints via `canAccessClaim()` helper
+- Admin-only role update endpoint (requires explicit targetUserId)
+- No PII in server error logs
+- CSRF protection via SameSite cookies
+- WebSocket authentication via JWT token
+
+## Deployment
+
+### Replit (recommended)
+The app auto-detects `REPL_ID` and switches to Replit Auth (OIDC) + managed PostgreSQL + object storage. Just click Run.
+
+### Standalone
+1. Set up PostgreSQL and configure `DATABASE_URL`
+2. Set `JWT_SECRET` and `SESSION_SECRET`
+3. Run `npm run db:push` to create tables
+4. Run `npm run dev` (development) or `npm run build && npm start` (production)
+
+## Tech Stack
+
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Wouter, TanStack Query, React Hook Form, Zod
+- **Backend**: Express.js, TypeScript, Drizzle ORM, WebSocket (ws)
+- **Database**: PostgreSQL
+- **AI**: Roboflow Universe (REST API)
+- **Auth**: JWT (standalone) / OIDC (Replit)

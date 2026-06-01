@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,17 @@ interface VehicleAccidentStepProps {
   claimId: string | null;
 }
 
+function normalizeObjectUrl(objectPath: string): string {
+  if (!objectPath) return '';
+  if (objectPath.startsWith('https://') || objectPath.startsWith('http://')) {
+    return objectPath.split('?')[0];
+  }
+  if (objectPath.startsWith('/objects/')) {
+    return objectPath;
+  }
+  return objectPath;
+}
+
 export default function VehicleAccidentStep({
   formData,
   setFormData,
@@ -25,10 +36,43 @@ export default function VehicleAccidentStep({
 }: VehicleAccidentStepProps) {
   const { toast } = useToast();
   const [uploadedDocuments, setUploadedDocuments] = useState<{
-    [key: string]: boolean;
+    [key: string]: { uploaded: boolean; url?: string };
   }>({});
   const [isUploadingSketch, setIsUploadingSketch] = useState(false);
 
+  const { data: existingMedia } = useQuery<{ photos: any[]; documents: any[] }>({
+    queryKey: ['/api/claims', claimId, 'media'],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/claims/${claimId}/media`);
+      return res.json();
+    },
+    enabled: !!claimId,
+  });
+
+  useEffect(() => {
+    if (existingMedia?.documents && existingMedia.documents.length > 0) {
+      const restoredDocs: Record<string, { uploaded: boolean; url?: string }> = {};
+      for (const doc of existingMedia.documents) {
+        if (doc.angle) {
+          restoredDocs[doc.angle] = { uploaded: true, url: normalizeObjectUrl(doc.objectPath) };
+        }
+      }
+      setUploadedDocuments(prev => {
+        if (Object.keys(prev).length === 0) return restoredDocs;
+        return prev;
+      });
+      const sketch = existingMedia.documents.find((d: any) => d.angle === 'accident_sketch');
+      if (sketch && !formData.accident?.accidentSketchPath) {
+        setFormData((prev: any) => ({
+          ...prev,
+          accident: {
+            ...prev.accident,
+            accidentSketchPath: normalizeObjectUrl(sketch.objectPath),
+          },
+        }));
+      }
+    }
+  }, [existingMedia]);
 
   // Auto-save vehicle details
   const saveVehicleMutation = useMutation({
@@ -102,7 +146,7 @@ export default function VehicleAccidentStep({
     onSuccess: (data, variables) => {
       setUploadedDocuments((prev) => ({
         ...prev,
-        [variables.documentType]: true,
+        [variables.documentType]: { uploaded: true, url: variables.documentUrl },
       }));
       toast({
         title: "Document Uploaded",
@@ -119,9 +163,7 @@ export default function VehicleAccidentStep({
     },
   });
 
-  // Auto-save is now handled by the parent claim-form component
-  // This prevents form clearing and provides enterprise-grade persistence
-  // with local backup, conflict resolution, and debounced saves
+  // Auto-save is handled by the parent claim-form component
 
   // Save vehicle details when they change (individual API call for immediate feedback)
   useEffect(() => {
@@ -225,35 +267,50 @@ export default function VehicleAccidentStep({
     };
 
   
-   const handleSketchUpload = async (
-     event: React.ChangeEvent<HTMLInputElement>
-   ) => {
-     const file = event.target.files?.[0];
-     if (!file || !claimId) return;
-     setIsUploadingSketch(true);
-     const uploadFormData = new FormData();
-     uploadFormData.append("sketchFile", file);
-     uploadFormData.append("category", "documents");
-     uploadFormData.append("subCategory", "sketches");
-     try {
-       const response = await fetch(`/api/claims/${claimId}/upload-sketch`, {
-         method: "POST",
-         body: uploadFormData,
-       });
-       if (!response.ok) throw new Error("Upload failed");
-       const result = await response.json();
-       handleAccidentChange("accidentSketchPath", result.filePath);
-       toast({ title: "Success", description: "Accident sketch uploaded." });
-     } catch (error) {
-       toast({
-         title: "Error",
-         description: "Could not upload sketch.",
-         variant: "destructive",
-       });
-     } finally {
-       setIsUploadingSketch(false);
-     }
-   };
+  const handleSketchUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !claimId) return;
+    setIsUploadingSketch(true);
+    try {
+      const paramsResponse = await apiRequest("POST", "/api/objects/upload", {});
+      const { uploadURL } = await paramsResponse.json();
+
+      const uploadResponse = await fetch(uploadURL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) throw new Error("Upload failed");
+
+      const documentResponse = await apiRequest(
+        "POST",
+        `/api/claims/${claimId}/documents`,
+        {
+          documentUrl: uploadURL.split("?")[0],
+          documentType: "accident_sketch",
+        }
+      );
+
+      if (!documentResponse.ok) throw new Error("Failed to save document");
+
+      handleAccidentChange("accidentSketchPath", uploadURL.split("?")[0]);
+      toast({ title: "Success", description: "Accident sketch uploaded." });
+    } catch (error) {
+      console.error("Sketch upload error:", error);
+      toast({
+        title: "Error",
+        description: "Could not upload sketch.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingSketch(false);
+    }
+  };
 
   return (
     <Card className="shadow-sm border-neutral-200">
@@ -263,7 +320,6 @@ export default function VehicleAccidentStep({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-8">
-        {/* VVVVVV THIS IS THE UPDATED AND REORGANIZED SECTION VVVVVV */}
         {/* Vehicle Details */}
         <div>
           <h4 className="text-lg font-semibold text-neutral-800 border-b border-neutral-200 pb-2 mb-6">
@@ -389,29 +445,13 @@ export default function VehicleAccidentStep({
               />
             </div>
             <div>
-              <Label htmlFor="ownerName">Owner's Address</Label>
+              <Label htmlFor="ownerAddress">Owner's Address</Label>
               <Input
-                id="ownerAddres"
+                id="ownerAddress"
                 value={formData.vehicle.ownerAddress}
                 onChange={(e) =>
                   handleVehicleChange("ownerAddress", e.target.value)
                 }
-              />
-            </div>
-
-            {/* --- Row 4 (Spanning) --- */}
-            <div className="md:col-span-3">
-              <Label htmlFor="ownerAddress">
-                State the Exact Purpose of the vehicle
-              </Label>
-              <Textarea
-                id="ownerAddress"
-                value={formData.vehicle.vehicleUse}
-                onChange={(e) =>
-                  handleVehicleChange("vehicleUse", e.target.value)
-                }
-                placeholder="e.g was caryring bags of cement"
-                rows={3}
               />
             </div>
           </div>
@@ -464,7 +504,6 @@ export default function VehicleAccidentStep({
 
           {/* --- New Detailed Accident Fields --- */}
           <div className="space-y-6 mb-6">
-            {/* VVVVVV STYLED ROAD SURFACE SELECTION VVVVVV */}
             <div>
               <Label className="mb-3 block font-medium">
                 Type of road surface?
@@ -518,7 +557,6 @@ export default function VehicleAccidentStep({
               </RadioGroup>
             </div>
 
-            {/* VVVVVV STYLED VISIBILITY SELECTION VVVVVV */}
             <div>
               <Label className="mb-3 block font-medium">Visibility?</Label>
               <RadioGroup
@@ -730,131 +768,55 @@ export default function VehicleAccidentStep({
             Upload relevant documents for your vehicle and accident claim
           </p>
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="border border-neutral-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-neutral-600" />
-                  <span className="font-medium">Vehicle Logbook</span>
+            {[
+              { key: "logbook", label: "Vehicle Logbook", desc: "Upload your vehicle logbook" },
+              { key: "policeAbstract", label: "Police Abstract", desc: "Upload your police abstract" },
+              { key: "license", label: "Driver's License", desc: "Upload your driver's license" },
+              { key: "police_report", label: "Police Report (if applicable)", desc: "Upload police report if available" },
+            ].map(({ key, label, desc }) => {
+              const doc = uploadedDocuments[key];
+              const isUploaded = doc?.uploaded;
+              return (
+                <div key={key} className="border border-neutral-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-neutral-600" />
+                      <span className="font-medium">{label}</span>
+                    </div>
+                    {isUploaded && (
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    )}
+                  </div>
+                  <p className="text-sm text-neutral-600 mb-2">{desc}</p>
+                  {isUploaded && doc.url && (
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mb-2"
+                    >
+                      <FileText className="h-3 w-3" />
+                      {(() => {
+                        try {
+                          const urlPath = new URL(doc.url!, window.location.origin).pathname;
+                          return urlPath.split('/').pop() || label;
+                        } catch { return label; }
+                      })()}
+                    </a>
+                  )}
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={5242880}
+                    onGetUploadParameters={handleGetUploadParameters}
+                    onComplete={handleDocumentUploadComplete(key)}
+                    buttonClassName={isUploaded ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isUploaded ? "Replace Document" : "Upload Document"}
+                  </ObjectUploader>
                 </div>
-                {uploadedDocuments.logbook && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-              <p className="text-sm text-neutral-600 mb-3">
-                Upload your vehicle logbook 
-              </p>
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5242880}
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleDocumentUploadComplete("logbook")}
-                buttonClassName={
-                  uploadedDocuments.logbook
-                    ? "bg-green-600 hover:bg-green-700"
-                    : ""
-                }
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadedDocuments.logbook
-                  ? "Replace Document"
-                  : "Upload Document"}
-              </ObjectUploader>
-            </div>
-
-            <div className="border border-neutral-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-neutral-600" />
-                  <span className="font-medium">Police Abstract</span>
-                </div>
-                {uploadedDocuments.policeAbstract && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-              <p className="text-sm text-neutral-600 mb-3">
-                Upload your police abstract
-              </p>
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5242880}
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleDocumentUploadComplete("policeAbstract")}
-                buttonClassName={
-                  uploadedDocuments.policeAbstract
-                    ? "bg-green-600 hover:bg-green-700"
-                    : ""
-                }
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadedDocuments.policeAbstract
-                  ? "Replace Document"
-                  : "Upload Document"}
-              </ObjectUploader>
-            </div>
-
-            <div className="border border-neutral-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-neutral-600" />
-                  <span className="font-medium">Driver's License</span>
-                </div>
-                {uploadedDocuments.license && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-              <p className="text-sm text-neutral-600 mb-3">
-                Upload your driver's license
-              </p>
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5242880}
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleDocumentUploadComplete("license")}
-                buttonClassName={
-                  uploadedDocuments.license
-                    ? "bg-green-600 hover:bg-green-700"
-                    : ""
-                }
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadedDocuments.license
-                  ? "Replace Document"
-                  : "Upload Document"}
-              </ObjectUploader>
-            </div>
-
-            <div className="border border-neutral-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-neutral-600" />
-                  <span className="font-medium">
-                    Police Report (if applicable)
-                  </span>
-                </div>
-                {uploadedDocuments.police_report && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-              </div>
-              <p className="text-sm text-neutral-600 mb-3">
-                Upload police report if available
-              </p>
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5242880}
-                onGetUploadParameters={handleGetUploadParameters}
-                onComplete={handleDocumentUploadComplete("police_report")}
-                buttonClassName={
-                  uploadedDocuments.police_report
-                    ? "bg-green-600 hover:bg-green-700"
-                    : ""
-                }
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploadedDocuments.police_report
-                  ? "Replace Document"
-                  : "Upload Document"}
-              </ObjectUploader>
-            </div>
+              );
+            })}
           </div>
         </div>
 
